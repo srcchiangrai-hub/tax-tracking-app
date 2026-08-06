@@ -4,73 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard รายงานภาษี</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome สำหรับไอคอน -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Prompt) -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
     <style>
-        body { background-color: #f4f6f9; font-family: 'Sarabun', sans-serif; }
-        .card-stat { border-radius: 12px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.06); }
-        .card { border-radius: 12px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f4f6f9;
+        }
+        .card-dash {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .card-dash:hover {
+            transform: translateY(-3px);
+        }
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
     </style>
 </head>
 <body>
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold text-primary">📊 Dashboard รายงานการชำระภาษี</h2>
-            <a href="admin.html" class="btn btn-primary">➕ บันทึกข้อมูลใหม่</a>
-        </div>
 
-        <!-- การ์ดสรุปยอดเงิน -->
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fa-solid fa-chart-pie me-2 text-warning"></i>Dashboard สรุปยอดภาษี
+            </a>
+            <div class="ms-auto">
+                <a href="admin.html" class="btn btn-primary btn-sm rounded-pill px-3">
+                    <i class="fa-solid fa-plus me-1"></i> บันทึกข้อมูลใหม่
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        
+        <!-- การ์ดสรุปยอดการชำระภาษี -->
         <div class="row g-3 mb-4">
             <div class="col-md-6">
-                <div class="card card-stat bg-primary text-white p-3">
-                    <h5 class="opacity-75">ยอดรวมภาษีทั้งหมด</h5>
-                    <h2 id="totalAmount" class="fw-bold mb-0">0.00 บาท</h2>
+                <div class="card card-dash bg-white p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-box bg-success text-white me-3">
+                            <i class="fa-solid fa-sack-dollar"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted fw-medium">ยอดจัดเก็บภาษีรวมทั้งหมด</span>
+                            <h2 class="fw-bold text-success mb-0" id="totalAmount">0.00 บาท</h2>
+                        </div>
+                    </div>
                 </div>
             </div>
+
             <div class="col-md-6">
-                <div class="card card-stat bg-success text-white p-3">
-                    <h5 class="opacity-75">จำนวนรายการทั้งหมด</h5>
-                    <h2 id="totalCount" class="fw-bold mb-0">0 รายการ</h2>
+                <div class="card card-dash bg-white p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-box bg-primary text-white me-3">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted fw-medium">จำนวนรายการทั้งหมด</span>
+                            <h2 class="fw-bold text-primary mb-0" id="totalCount">0 รายการ</h2>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- เครื่องมือค้นหาและเรียงลำดับ -->
-        <div class="card p-4">
+        <!-- รายการตารางข้อมูลแบบละเอียด -->
+        <div class="card card-dash bg-white p-4">
+            <h4 class="fw-bold text-secondary mb-3">
+                <i class="fa-solid fa-list-check me-2"></i> รายงานสรุปการรับชำระภาษี
+            </h4>
+
+            <!-- ตัวกรอง และ ค้นหา -->
             <div class="row g-2 mb-3">
                 <div class="col-md-8">
-                    <input type="text" id="searchInput" class="form-control" placeholder="🔍 ค้นหาตามชื่อผู้บันทึก หรือประเภทภาษี...">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="searchInput" class="form-control bg-light" placeholder="ค้นหาชื่อผู้เสียภาษี หรือ ประเภทภาษี...">
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <select id="sortSelect" class="form-select">
-                        <option value="desc">📅 ใหม่ล่าสุด</option>
-                        <option value="asc">📅 เก่าที่สุด</option>
-                        <option value="name_asc">🔤 จัดเรียงชื่อ ก-ฮ</option>
-                        <option value="name_desc">🔤 จัดเรียงชื่อ ฮ-ก</option>
+                    <select id="sortSelect" class="form-select bg-light">
+                        <option value="desc">📅 วันที่: ใหม่ไปเก่า</option>
+                        <option value="asc">📅 วันที่: เก่าไปใหม่</option>
+                        <option value="name_asc">🔤 ชื่อ: ก-ฮ</option>
+                        <option value="name_desc">🔤 ชื่อ: ฮ-ก</option>
                     </select>
                 </div>
             </div>
 
-            <!-- ตารางแสดงข้อมูล -->
+            <!-- ตารางแสดงข้อมูลใน Dashboard -->
             <div class="table-responsive">
-                <table class="table table-striped align-middle">
+                <table class="table table-striped table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>วันที่/เวลา</th>
-                            <th>ชื่อผู้บันทึก</th>
+                            <th style="width: 180px;">วัน-เวลา บันทึก</th>
+                            <th>ชื่อผู้ชำระภาษี</th>
                             <th>ประเภทภาษี</th>
-                            <th class="text-end">ยอดภาษี (บาท)</th>
-                            <th class="text-center">หลักฐาน</th>
+                            <th class="text-end">ยอดชำระ (บาท)</th>
+                            <th class="text-center">หลักฐานสลิป</th>
                         </tr>
                     </thead>
                     <tbody id="dashboardTable">
-                        <tr><td colspan="5" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div>กำลังโหลดข้อมูลรายงาน...
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+
     </div>
 
+    <!-- Modal สำหรับเปิดดูรูปสลิปใน Dashboard -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-regular fa-image me-2"></i>หลักฐานการชำระเงิน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                    <img id="modalImage" src="" class="img-fluid" alt="สลิปการโอนเงิน">
+                </div>
+                <div class="modal-footer">
+                    <a id="modalDriveLink" href="#" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>เปิดใน Google Drive
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS & Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="app.js"></script>
 </body>
 </html>
