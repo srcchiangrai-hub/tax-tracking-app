@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แดชบอร์ดติดตามรายได้ - RevenueCute Tracker</title>
+    <title>แดชบอร์ดเร่งรัดจัดเก็บรายได้ - RevenueCute</title>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -45,16 +45,6 @@
             box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.1);
             border: 2px solid #FFF0F5;
         }
-        .cute-input {
-            border-radius: 14px;
-            border: 2px solid #F1F5F9;
-            transition: all 0.2s ease;
-        }
-        .cute-input:focus {
-            border-color: #F472B6;
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.15);
-        }
     </style>
 </head>
 <body class="font-sans text-slate-700 min-h-screen pb-12">
@@ -70,11 +60,10 @@
                     <h1 class="font-cute font-bold text-xl sm:text-2xl text-pink-500 tracking-wide">
                         RevenueCute Tracker
                     </h1>
-                    <p class="text-xs text-slate-400 font-medium">ระบบแดชบอร์ดติดตามเร่งรัดจัดเก็บรายได้</p>
+                    <p class="text-xs text-slate-400 font-medium">ระบบติดตามและเร่งรัดจัดเก็บรายได้</p>
                 </div>
             </div>
 
-            <!-- Navigation Links -->
             <div class="flex items-center gap-2">
                 <a href="index.html" class="px-4 py-2 rounded-xl text-sm font-semibold bg-pink-500 text-white shadow-sm">
                     <i class="fa-solid fa-chart-pie mr-1"></i> แดชบอร์ด
@@ -88,100 +77,76 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
 
-        <!-- 📈 STATS SUMMARY SECTION: การ์ดสรุปสถิติภาพรวม -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-            <!-- ยอดประเมินรวม -->
-            <div class="cute-card p-5 lg:col-span-2 border-l-8 border-l-pink-400">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400">เป้าหมายเป้าประเมินรวม</p>
-                        <h3 id="stat-total-amount" class="text-2xl font-bold text-slate-800 mt-1">฿0.00</h3>
-                    </div>
-                    <span class="text-3xl p-3 bg-pink-50 rounded-2xl">💰</span>
-                </div>
+        <!-- 📊 STATS CARDS GRID -->
+        <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="cute-card p-4">
+                <p class="text-xs text-slate-400 font-medium">เป้าหมายรวม</p>
+                <h4 id="stat-total-amount" class="text-lg font-bold text-slate-800 mt-1">฿0.00</h4>
             </div>
-
-            <!-- ชำระแล้ว -->
-            <div class="cute-card p-5 lg:col-span-2 border-l-8 border-l-emerald-400">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400">จัดเก็บได้แล้วทั้งหมด</p>
-                        <h3 id="stat-collected-amount" class="text-2xl font-bold text-emerald-600 mt-1">฿0.00</h3>
-                    </div>
-                    <span class="text-3xl p-3 bg-emerald-50 rounded-2xl">🎉</span>
-                </div>
+            <div class="cute-card p-4 bg-emerald-50/50 border-emerald-100">
+                <p class="text-xs text-emerald-600 font-medium">จัดเก็บแล้ว</p>
+                <h4 id="stat-collected-amount" class="text-lg font-bold text-emerald-600 mt-1">฿0.00</h4>
             </div>
-
-            <!-- สรุป Flag สถาณะ -->
-            <div class="cute-card p-4 flex flex-col justify-between border-l-4 border-l-slate-900">
-                <p class="text-xs font-bold text-slate-500">⚫ ดำ (เร่งด่วน)</p>
-                <h4 id="stat-black-count" class="text-xl font-bold text-slate-900 mt-2">0 เคส</h4>
+            <div class="cute-card p-4">
+                <p class="text-xs text-slate-500 font-medium">⚫ เร่งด่วนวิกฤต</p>
+                <h4 id="stat-black-count" class="text-lg font-bold text-slate-900 mt-1">0 เคส</h4>
             </div>
-
-            <div class="cute-card p-4 flex flex-col justify-between border-l-4 border-l-rose-500">
-                <p class="text-xs font-bold text-slate-500">🔴 แดง (ค้างชำระ)</p>
-                <h4 id="stat-red-count" class="text-xl font-bold text-rose-500 mt-2">0 เคส</h4>
+            <div class="cute-card p-4">
+                <p class="text-xs text-rose-500 font-medium">🔴 ค้างชำระ</p>
+                <h4 id="stat-red-count" class="text-lg font-bold text-rose-600 mt-1">0 เคส</h4>
             </div>
-
-            <div class="cute-card p-4 flex flex-col justify-between border-l-4 border-l-amber-400">
-                <p class="text-xs font-bold text-slate-500">🟡 เหลือง (ติดตาม)</p>
-                <h4 id="stat-yellow-count" class="text-xl font-bold text-amber-500 mt-2">0 เคส</h4>
+            <div class="cute-card p-4">
+                <p class="text-xs text-amber-600 font-medium">🟡 ติดตาม</p>
+                <h4 id="stat-yellow-count" class="text-lg font-bold text-amber-600 mt-1">0 เคส</h4>
             </div>
-
-            <div class="cute-card p-4 flex flex-col justify-between border-l-4 border-l-emerald-500">
-                <p class="text-xs font-bold text-slate-500">🟢 เขียว (เสร็จสิ้น)</p>
-                <h4 id="stat-green-count" class="text-xl font-bold text-emerald-500 mt-2">0 เคส</h4>
+            <div class="cute-card p-4">
+                <p class="text-xs text-emerald-600 font-medium">🟢 เสร็จสิ้น</p>
+                <h4 id="stat-green-count" class="text-lg font-bold text-emerald-600 mt-1">0 เคส</h4>
             </div>
         </section>
 
-        <!-- 👤 STAFF SUMMARY SECTION: สรุปภาระงานและผลงานตามรายชื่อเจ้าหน้าที่ -->
+        <!-- 👥 STAFF WORKLOAD SUMMARY -->
         <section class="cute-card p-6">
-            <div class="flex items-center justify-between border-b-2 border-pink-50 pb-4 mb-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl">👤</span>
-                    <div>
-                        <h3 class="font-cute font-bold text-lg text-slate-800">สรุปภาระงานตามรายชื่อเจ้าหน้าที่</h3>
-                        <p class="text-xs text-slate-400">คลิกที่การ์ดเจ้าหน้าที่เพื่อกรองดูเฉพาะรายการเคสที่รับผิดชอบ</p>
-                    </div>
-                </div>
-                <button onclick="filterByStaff('')" class="text-xs font-semibold text-pink-500 hover:underline">
-                    <i class="fa-solid fa-arrows-rotate"></i> แสดงทั้งหมด
-                </button>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-cute font-bold text-lg text-slate-800 flex items-center gap-2">
+                    <span>👩‍💼</span> สรุปภาระงานรายเจ้าหน้าที่
+                </h3>
+                <span class="text-xs text-slate-400">*คลิกที่การ์ดเพื่อกรองตารางเฉพาะเจ้าหน้าที่</span>
             </div>
-            <div id="staff-summary-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <!-- JS จะสร้างการ์ดสรุปจำนวนเคสของเจ้าหน้าที่แต่ละคนอัตโนมัติที่นี่ -->
+            <div id="staff-summary-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Dynamic Content จาก app.js -->
             </div>
         </section>
 
-        <!-- 📋 DATA TABLE SECTION: ตารางติดตามสถานะรายเคส -->
+        <!-- 📑 DATA TABLE SECTION -->
         <section class="cute-card p-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                <div>
-                    <h3 class="font-cute font-bold text-lg text-slate-800 flex items-center gap-2">
-                        <span>📋</span> รายการติดตามภาษีภาคสนาม
-                    </h3>
-                    <p class="text-xs text-slate-400">แสดงรายการผู้เสียภาษีพร้อมปุ่มกดดูรายละเอียดแบบเจาะลึก</p>
-                </div>
-                <div class="w-full sm:w-auto">
-                    <input type="text" id="search-input" onkeyup="renderDashboardTable()" placeholder="🔍 ค้นชื่อ / เจ้าหน้าที่ / เลขภาษี..." class="cute-input px-4 py-2 text-sm w-full sm:w-64">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <h3 class="font-cute font-bold text-lg text-slate-800 flex items-center gap-2">
+                    <span>📋</span> รายการติดตามรายได้ทั้งหมด
+                </h3>
+                <div class="relative w-full sm:w-72">
+                    <input type="text" id="search-input" onkeyup="renderDashboardTable()" 
+                           placeholder="ค้นหาผู้เสียภาษี, เลขภาษี..." 
+                           class="w-full pl-9 pr-4 py-2 rounded-xl border-2 border-slate-100 text-xs focus:border-pink-500 focus:outline-none">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
                 </div>
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
+                <table class="w-full text-left text-xs">
                     <thead class="bg-pink-50 text-pink-600 font-semibold rounded-xl">
                         <tr>
-                            <th class="p-3">ระดับด่วน</th>
-                            <th class="p-3">ชื่อผู้เสียภาษี</th>
-                            <th class="p-3">ประเภท / ปีภาษี</th>
-                            <th class="p-3">ยอดค้างชำระ</th>
-                            <th class="p-3">สถานะขั้นตอน</th>
-                            <th class="p-3">เจ้าหน้าที่ผู้บันทึก</th>
-                            <th class="p-3 text-center">รายละเอียด</th>
+                            <th class="p-3">สถานะ</th>
+                            <th class="p-3">ผู้เสียภาษี</th>
+                            <th class="p-3">ประเภท / ปี</th>
+                            <th class="p-3">ยอดเงิน</th>
+                            <th class="p-3">ขั้นตอน</th>
+                            <th class="p-3">เจ้าหน้าที่</th>
+                            <th class="p-3 text-center">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="dashboard-data-table" class="divide-y divide-slate-100">
-                        <!-- Dynamic Data Rows จะสร้างโดย app.js -->
+                        <!-- Dynamic Content จาก app.js -->
                     </tbody>
                 </table>
             </div>
@@ -189,19 +154,16 @@
 
     </main>
 
-    <!-- 🔍 MODAL: ป๊อปอัปแสดงรายละเอียดเคสแบบเจาะลึก -->
-    <div id="case-detail-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-2 border-pink-100 max-h-[90vh] overflow-y-auto relative">
-            <button onclick="closeCaseModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold">✕</button>
-            
+    <!-- 🔍 MODAL DETAIL POPUP -->
+    <div id="case-detail-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border-2 border-pink-100 animate-fade-in">
             <div id="modal-content">
-                <!-- Dynamic Detail Content จาก app.js -->
+                <!-- Content injected via app.js -->
             </div>
         </div>
     </div>
 
-    <!-- 📦 APP LOGIC SCRIPT (ES Module) -->
+    <!-- ⚠️ ดึงไฟล์ app.js แบบ Module (สำคัญมาก) -->
     <script type="module" src="app.js"></script>
-
 </body>
 </html>
