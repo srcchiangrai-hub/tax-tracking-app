@@ -3,36 +3,23 @@
 // ==========================================
 const STORAGE_KEY = 'revenue_data';
 
+// ข้อมูลตั้งต้นชุดใหม่ (เอาชื่อเดิมออกทั้งหมด)
 const initialMockData = [
     {
         id: 'TAX-69001',
         taxId: '1-5099-00123-45-1',
-        name: 'นายสมชาย ใจดี',
+        name: 'นายกิตติศักดิ์ เจริญสุข',
         taxType: 'ภาษีที่ดินและสิ่งปลูกสร้าง',
         taxYear: '2026',
-        amount: 4500,
+        amount: 5200,
         status: '🔴 ค้างชำระ',
         step: 'ส่งหนังสือเตือน ครั้งที่ 1',
-        officer: 'นางสาวนภา มีสุข',
+        officer: 'นายสมศักดิ์ มั่นคง',
         dueDate: '2026-08-01',
         address: '123/4 หมู่ 2 ต.ในเมือง อ.เมือง จ.เชียงราย'
-    },
-    {
-        id: 'TAX-69002',
-        taxId: '3-5001-00888-11-0',
-        name: 'ห้างหุ้นส่วนจำกัด สยามการค้า',
-        taxType: 'ภาษีป้าย',
-        taxYear: '2026',
-        amount: 1800,
-        status: '🟡 ติดตาม',
-        step: 'ลงพื้นที่ตรวจป้าย',
-        officer: 'นายวิชัย รักษ์ดี',
-        dueDate: '2026-08-15',
-        address: '45/1 ถนนพาณิชย์ ต.เวียง อ.เมือง จ.เชียงราย'
     }
 ];
 
-// โหลดข้อมูลจาก LocalStorage
 function loadData() {
     const dataStr = localStorage.getItem(STORAGE_KEY);
     if (!dataStr) {
@@ -46,7 +33,6 @@ function loadData() {
     }
 }
 
-// เซฟข้อมูลลง LocalStorage
 function saveData(data) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
@@ -77,7 +63,6 @@ function renderAll() {
 document.addEventListener('DOMContentLoaded', () => {
     renderAll();
 
-    // ผูกช่องค้นหา
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
@@ -103,10 +88,9 @@ function updateMainStats() {
     if (elGreen) elGreen.innerText = `${greenCount} เคส`;
 }
 
-// ฟังก์ชันกรองตามสถานะ (🔴/🟡/🟢) เมื่อผู้ใช้คลิกการ์ด
 window.filterByStatus = function(statusType) {
     if (selectedStatusFilter === statusType) {
-        selectedStatusFilter = null; // ปลดกรองถ้าคลิกซ้ำ
+        selectedStatusFilter = null;
     } else {
         selectedStatusFilter = statusType;
     }
@@ -146,10 +130,12 @@ function updateTaxTypeStats() {
     });
 
     const periodTexts = { month: 'ประจำเดือนนี้', quarter: 'ประจำไตรมาสนี้', year: 'ประจำปีนี้' };
+    
+    // ปรับเปลี่ยนข้อความหัวข้อการ์ดเป็น "ยอดที่ติดตาม"
     const lblLand = document.getElementById('label-land-period');
     const lblSign = document.getElementById('label-sign-period');
-    if (lblLand) lblLand.innerText = periodTexts[currentPeriod];
-    if (lblSign) lblSign.innerText = periodTexts[currentPeriod];
+    if (lblLand) lblLand.innerText = `ยอดที่ติดตาม (${periodTexts[currentPeriod]})`;
+    if (lblSign) lblSign.innerText = `ยอดที่ติดตาม (${periodTexts[currentPeriod]})`;
 
     const landItems = filteredData.filter(i => i.taxType.includes('ที่ดิน'));
     const landTotal = landItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
