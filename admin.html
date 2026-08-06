@@ -15,9 +15,7 @@
   <!-- 1. หน้าล็อกอิน -->
   <div id="loginSection" class="w-full max-w-md bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border-4 border-pink-200 p-8 space-y-6">
     <div class="text-center space-y-2">
-      <span class="bg-pink-100 text-pink-600 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
-        🔒 Staff Only
-      </span>
+      <span class="bg-pink-100 text-pink-600 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">🔒 Staff Only</span>
       <h2 class="text-2xl font-bold text-pink-600 mt-2">เข้าสู่ระบบเจ้าหน้าที่</h2>
       <p class="text-slate-400 text-xs">ระบบบันทึกข้อมูลการออกติดตามภาษี</p>
     </div>
@@ -43,26 +41,18 @@
 
   <!-- 2. หน้าฟอร์มบันทึกข้อมูล -->
   <div id="adminSection" class="hidden w-full max-w-2xl mx-auto space-y-6">
-    <!-- Header Bar -->
     <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border-4 border-pink-200 p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
       <div>
-        <span class="bg-pink-100 text-pink-600 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
-          📝 Staff Portal
-        </span>
+        <span class="bg-pink-100 text-pink-600 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">📝 Staff Portal</span>
         <h1 class="text-2xl font-bold text-pink-600 mt-2">บันทึกการออกติดตามภาษี</h1>
         <p class="text-xs text-slate-400" id="userStatusText">ผู้ใช้งาน: -</p>
       </div>
       <div class="flex gap-2">
-        <a href="index.html" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-2xl text-xs font-bold transition shadow-md flex items-center">
-          👑 หน้าผู้บริหาร
-        </a>
-        <button id="btnLogout" class="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-2xl text-xs font-bold transition shadow-md">
-          🚪 ออกจากระบบ
-        </button>
+        <a href="index.html" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-2xl text-xs font-bold transition shadow-md flex items-center">👑 หน้าผู้บริหาร</a>
+        <button id="btnLogout" class="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-2xl text-xs font-bold transition shadow-md">🚪 ออกจากระบบ</button>
       </div>
     </div>
 
-    <!-- Form บันทึกข้อมูล -->
     <form id="taxForm" class="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border-4 border-pink-200 p-6 space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -90,7 +80,6 @@
         </div>
       </div>
 
-      <!-- ที่อยู่ -->
       <div class="border-t border-pink-100 pt-3">
         <label class="block text-sm font-bold text-slate-700 mb-2">ที่อยู่ผู้ค้างชำระ</label>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
@@ -122,11 +111,9 @@
         <textarea id="otherDetail" rows="2" placeholder="ระบุข้อมูลเพิ่มเติมถ้ามี..." class="w-full bg-pink-50/50 border-2 border-pink-200 rounded-2xl p-2.5 text-sm focus:outline-none focus:border-pink-400"></textarea>
       </div>
 
-      <!-- 📸 ส่วนที่เพิ่มมาใหม่: อัปโหลด/ถ่ายรูปภาพหลักฐาน -->
       <div class="border-t border-pink-100 pt-3">
         <label class="block text-sm font-bold text-slate-600 mb-1">📸 ภาพถ่ายสถานที่ / การลงพื้นที่</label>
         <input type="file" id="photoInput" accept="image/*" capture="environment" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pink-100 file:text-pink-700 hover:file:bg-pink-200">
-        <p class="text-[10px] text-slate-400 mt-1">* บนมือถือสามารถกดเพื่อถ่ายรูปจากกล้องได้ทันที</p>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-pink-100 pt-3">
@@ -144,9 +131,7 @@
         <label class="block text-sm font-bold text-slate-600 mb-1">พิกัดสถานที่ (GPS)</label>
         <div class="flex gap-2">
           <input type="text" id="location" readonly placeholder="กดปุ่มเพื่อดึงพิกัด" class="w-full bg-slate-100 border-2 border-pink-200 rounded-2xl p-2.5 text-sm">
-          <button type="button" id="btnGetLocation" class="bg-pink-500 hover:bg-pink-600 text-white px-4 rounded-2xl text-xs font-bold transition whitespace-nowrap">
-            📍 ดึงพิกัด
-          </button>
+          <button type="button" id="btnGetLocation" class="bg-pink-500 hover:bg-pink-600 text-white px-4 rounded-2xl text-xs font-bold transition whitespace-nowrap">📍 ดึงพิกัด</button>
         </div>
       </div>
 
@@ -162,14 +147,14 @@
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-    // 🔴 อย่าลืมเปลี่ยนเป็น Firebase Config ของคุณ
+    // 🔴 ใส่ Firebase Config จริงของคุณที่นี่
     const firebaseConfig = {
-      aapiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
-  authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
-  projectId: "tax-tracking-app-25fb7",
-  storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
-  messagingSenderId: "122118718226",
-  appId: "1:122118718226:web:df2d284fe543ec799da9cb"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -180,7 +165,6 @@
     const loginSection = document.getElementById("loginSection");
     const adminSection = document.getElementById("adminSection");
 
-    // ตรวจสอบการเข้าสู่ระบบ
     onAuthStateChanged(auth, (user) => {
       if (user) {
         loginSection.classList.add("hidden");
@@ -192,7 +176,6 @@
       }
     });
 
-    // ระบบล็อกอิน
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = document.getElementById("loginEmail").value;
@@ -211,18 +194,14 @@
       }
     });
 
-    // ระบบออกจากระบบ
     document.getElementById("btnLogout").addEventListener("click", () => {
       if (confirm("ต้องการออกจากระบบใช่หรือไม่?")) signOut(auth);
     });
 
-    // ปุ่มดึง GPS
     document.getElementById("btnGetLocation").addEventListener("click", () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            document.getElementById("location").value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
-          },
+          (pos) => { document.getElementById("location").value = `${pos.coords.latitude}, ${pos.coords.longitude}`; },
           (err) => alert("ไม่สามารถดึงพิกัด GPS ได้: " + err.message)
         );
       } else {
@@ -230,21 +209,18 @@
       }
     });
 
-    // บันทึกข้อมูลและอัปโหลดรูปภาพ
     document.getElementById("taxForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const btnSubmit = document.getElementById("btnSubmit");
       btnSubmit.disabled = true;
-      btnSubmit.innerText = "⏳ กำลังบันทึกข้อมูลและอัปโหลดรูป...";
+      btnSubmit.innerText = "⏳ กำลังบันทึกข้อมูล...";
 
       try {
         let photoUrl = "";
         const photoFile = document.getElementById("photoInput").files[0];
 
-        // ถ้ามีการเลือก/ถ่ายรูป ให้อัปโหลดขึ้น Firebase Storage
         if (photoFile) {
-          const fileName = `photos/${Date.now()}_${photoFile.name}`;
-          const storageRef = ref(storage, fileName);
+          const storageRef = ref(storage, `photos/${Date.now()}_${photoFile.name}`);
           const uploadResult = await uploadBytes(storageRef, photoFile);
           photoUrl = await getDownloadURL(uploadResult.ref);
         }
@@ -264,7 +240,7 @@
           followResult: document.getElementById("followResult").value,
           docType: document.getElementById("docType").value,
           otherDetail: document.getElementById("otherDetail").value,
-          photoUrl: photoUrl, // บันทึก URL ของรูปภาพลง Firestore
+          photoUrl: photoUrl,
           reporterName: document.getElementById("reporterName").value,
           reporterPosition: document.getElementById("reporterPosition").value,
           location: document.getElementById("location").value,
@@ -275,7 +251,6 @@
         alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
         document.getElementById("taxForm").reset();
       } catch (err) {
-        console.error("Save error:", err);
         alert("❌ เกิดข้อผิดพลาดในการบันทึก: " + err.message);
       } finally {
         btnSubmit.disabled = false;
