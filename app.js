@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// 🔴 1. ใส่ค่า firebaseConfig จากคอนโซล Firebase ของคุณที่นี่
 const firebaseConfig = {
     apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
   authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
@@ -11,6 +12,7 @@ const firebaseConfig = {
   appId: "1:122118718226:web:df2d284fe543ec799da9cb"
 };
 
+// 🔴 2. URL Google Apps Script สำหรับเก็บรูปบน Google Drive
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJVT-FV_TxiRBXW4CnJIcPrOjoclfJDQZSUJDmyCUOuTypaD3ogrYGorNnVMPfHtvBkQ/exec";
 
 const app = initializeApp(firebaseConfig);
@@ -19,52 +21,71 @@ const db = getFirestore(app);
 
 let rawDataList = [];
 
-// --- 1. ระบบตรวจสอบการ Login ---
+// --- 1. ตรวจสอบสถานะการล็อกอิน Firebase Authentication ---
 onAuthStateChanged(auth, (user) => {
-    const currentPage = window.location.pathname.split("/").pop();
-    
+    const loginSection = document.getElementById('loginSection');
+    const adminSection = document.getElementById('adminSection');
+    const userInfo = document.getElementById('userInfo');
+    const btnLogout = document.getElementById('btnLogout');
+
     if (user) {
-        if (currentPage === "login.html" || currentPage === "") {
-            window.location.href = "admin.html";
+        if (loginSection) loginSection.style.display = 'none';
+        if (adminSection) adminSection.style.display = 'block';
+        if (userInfo) { 
+            userInfo.style.display = 'inline-block'; 
+            userInfo.innerText = `👤 ${user.email}`; 
         }
-        const userInfo = document.getElementById('userInfo');
-        if (userInfo) userInfo.innerText = `👤 ${user.email}`;
+        if (btnLogout) btnLogout.style.display = 'inline-block';
     } else {
-        if (currentPage !== "login.html") {
-            window.location.href = "login.html";
-        }
+        if (loginSection) loginSection.style.display = 'flex';
+        if (adminSection) adminSection.style.display = 'none';
+        if (userInfo) userInfo.style.display = 'none';
+        if (btnLogout) btnLogout.style.display = 'none';
     }
 });
 
-// ฟังก์ชัน Login
+// --- 2. ระบบ Login ยืนยันไอดีผ่าน Firebase Auth ---
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('loginEmail').value;
+        const email = document.getElementById('loginEmail').value.trim();
         const password = document.getElementById('loginPassword').value;
-        const btnLogin = document.getElementById('btnLogin');
+        const btnLoginSubmit = document.getElementById('btnLoginSubmit');
 
         try {
-            btnLogin.disabled = true;
-            btnLogin.innerText = "⏳ กำลังเข้าสู่ระบบ...";
+            btnLoginSubmit.disabled = true;
+            btnLoginSubmit.innerText = "⏳ กำลังตรวจสอบไอดี...";
+
+            // ส่งอีเมล/รหัสผ่านไปตรวจสอบที่ Firebase Auth
             await signInWithEmailAndPassword(auth, email, password);
-            window.location.href = "admin.html";
+            alert("✅ เข้าสู่ระบบสำเร็จ!");
+            loginForm.reset();
         } catch (error) {
-            alert("❌ เข้าสู่ระบบไม่สำเร็จ: " + error.message);
-            btnLogin.disabled = false;
-            btnLogin.innerText = "🚀 เข้าสู่ระบบ";
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                alert("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง โปรดตรวจสอบไอดีใน Firebase Authentication");
+            } else {
+                alert("❌ เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+            }
+        } finally {
+            btnLoginSubmit.disabled = false;
+            btnLoginSubmit.innerText = "🚀 เข้าสู่ระบบ";
         }
     });
 }
 
-// ฟังก์ชัน Logout
+// ระบบ Logout
 const btnLogout = document.getElementById('btnLogout');
 if (btnLogout) {
-    btnLogout.addEventListener('click', () => signOut(auth));
+    btnLogout.addEventListener('click', async () => {
+        if (confirm("ต้องการออกจากระบบหรือไม่?")) {
+            await signOut(auth);
+            alert("👋 ออกจากระบบเรียบร้อย");
+        }
+    });
 }
 
-// --- 2. ฟังก์ชัน ดึงพิกัด GPS ---
+// --- 3. ฟังก์ชัน GPS & แปลงไฟล์ภาพ ---
 const btnGetGPS = document.getElementById('btnGetGPS');
 if (btnGetGPS) {
     btnGetGPS.addEventListener('click', () => {
@@ -80,7 +101,6 @@ if (btnGetGPS) {
     });
 }
 
-// แปลงไฟล์ภาพเป็น Base64
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -88,7 +108,7 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
     reader.onerror = error => reject(error);
 });
 
-// --- 3. บันทึกฟอร์มลง Firebase & Google Drive ---
+// --- 4. บันทึกข้อมูลเข้า Firestore & ส่งรูปไป Drive ---
 const taxForm = document.getElementById('taxForm');
 if (taxForm) {
     taxForm.addEventListener('submit', async (e) => {
@@ -102,7 +122,7 @@ if (taxForm) {
             let imageUrl = "";
 
             if (imageFile) {
-                btnSubmit.innerHTML = "⏳ อัปโหลดภาพเข้า Google Drive...";
+                btnSubmit.innerHTML = "⏳ อัปโหลดรูปภาพเข้า Google Drive...";
                 const base64Data = await fileToBase64(imageFile);
                 const res = await fetch(GOOGLE_SCRIPT_URL, {
                     method: "POST",
@@ -143,7 +163,7 @@ if (taxForm) {
                 createdAt: serverTimestamp()
             });
 
-            alert("✅ บันทึกข้อมูลและส่งรูปเข้า Google Drive เรียบร้อย!");
+            alert("✅ บันทึกข้อมูลเรียบร้อย!");
             taxForm.reset();
         } catch (err) {
             alert("❌ เกิดข้อผิดพลาด: " + err.message);
@@ -154,7 +174,7 @@ if (taxForm) {
     });
 }
 
-// --- 4. ดึงข้อมูล Realtime & แสดงผล ---
+// --- 5. ดึงข้อมูลแบบ Realtime & พิมพ์ ---
 const dataTable = document.getElementById('dataTable');
 const dashboardTable = document.getElementById('dashboardTable');
 
@@ -218,27 +238,25 @@ function renderData() {
         if (document.getElementById('successCount')) document.getElementById('successCount').innerText = `${success} รายการ`;
     }
 
-    // ผูกปุ่มพิมพ์รายรายการ
     document.querySelectorAll('.print-single-btn').forEach(btn => {
         btn.addEventListener('click', (e) => printSingle(e.target.dataset.id));
     });
 }
 
-// --- 5. ระบบ พิมพ์หนังสือแบบราชการ ---
 function printSingle(id) {
     const item = rawDataList.find(i => i.id === id);
     if (!item) return;
 
     const area = document.getElementById('printableArea');
     area.innerHTML = `
-        <div style="font-family: 'Sarabun', sans-serif; padding: 20px; line-height: 1.6;">
+        <div style="font-family: 'Kanit', sans-serif; padding: 20px; line-height: 1.6;">
             <h3 style="text-align: center; font-weight: bold;">รายงานผลการออกติดตามภาษีท้องถิ่น</h3>
             <hr>
             <p><strong>ประเภทภาษี:</strong> ${item.taxType} (ปี ${item.taxYear})</p>
             <p><strong>ชื่อผู้เสียภาษี:</strong> ${item.name} (เลขประจำตัว: ${item.taxId})</p>
             <p><strong>ที่อยู่ติดตาม:</strong> บ้านเลขที่ ${item.houseNo} หมู่ ${item.moo || '-'} ต.${item.subDistrict} อ.${item.district} จ.${item.province}</p>
             <p><strong>เอกสารนำส่ง:</strong> ${item.docType}</p>
-            <p><strong>ยอดภาษีค้างชำระ:</strong> ${item.amount.toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</p>
+            <p><strong>ยอดภาษีค้างชำระ:</strong> ${(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</p>
             <p><strong>ผลการติดตาม:</strong> ${item.followStatus}</p>
             <p><strong>แนวโน้มการชำระ:</strong> ${item.actionTaken}</p>
             <p><strong>หมายเหตุ:</strong> ${item.remark || '-'}</p>
@@ -255,7 +273,6 @@ function printSingle(id) {
     area.style.display = 'none';
 }
 
-// ระบบพิมพ์รวมทั้งหมด
 const printAll = () => {
     const area = document.getElementById('printableArea');
     area.innerHTML = `
@@ -276,7 +293,7 @@ const printAll = () => {
                         <td>${i.name}</td>
                         <td>${i.taxType}</td>
                         <td>${i.docType}</td>
-                        <td style="text-align:right;">${i.amount.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
+                        <td style="text-align:right;">${(i.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
                         <td>${i.followStatus}</td>
                     </tr>
                 `).join('')}
