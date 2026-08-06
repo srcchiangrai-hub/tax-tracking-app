@@ -3,86 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>บันทึกข้อมูลการเสียภาษี</title>
+    <title>บันทึกข้อมูลภาษี</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome สำหรับไอคอน -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Prompt) -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
     <style>
-        body { background-color: #f4f6f9; font-family: 'Sarabun', sans-serif; }
-        .card { border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.08); border: none; }
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f4f6f9;
+        }
+        .card-custom {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .btn-custom {
+            border-radius: 10px;
+            padding: 10px 20px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 10px 15px;
+        }
+        .table-custom {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .img-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            display: none;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold text-primary">📝 ระบบบันทึกข้อมูลการชำระภาษี</h2>
-            <a href="index.html" class="btn btn-outline-primary">📊 ไปยัง Dashboard</a>
-        </div>
 
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-link navbar-brand fw-bold" href="#">
+                <i class="fa-solid fa-file-invoice-dollar me-2"></i>ระบบบันทึกภาษีท้องถิ่น
+            </a>
+            <div class="ms-auto">
+                <a href="index.html" class="btn btn-light btn-sm rounded-pill px-3">
+                    <i class="fa-solid fa-chart-line me-1"></i> ดู Dashboard รายงาน
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
         <div class="row g-4">
-            <!-- ฟอร์มบันทึกข้อมูล -->
+            <!-- ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล -->
             <div class="col-lg-5">
-                <div class="card p-4">
-                    <h4 class="card-title mb-3 fw-bold">กรอกข้อมูลภาษี</h4>
+                <div class="card card-custom p-4 bg-white">
+                    <h4 class="fw-bold text-primary mb-3">
+                        <i class="fa-solid fa-pen-to-square me-2"></i>กรอกข้อมูลการชำระภาษี
+                    </h4>
+                    <hr class="mb-4">
+                    
                     <form id="taxForm">
                         <div class="mb-3">
-                            <label class="form-label">ชื่อ-นามสกุล ผู้บันทึก/ผู้เสียภาษี</label>
-                            <input type="text" id="name" class="form-control" required placeholder="นายสมชาย ใจดี">
+                            <label for="name" class="form-label fw-medium">ชื่อ-นามสกุล / ชื่อผู้ประกอบการ</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                                <input type="text" class="form-control" id="name" placeholder="ระบุชื่อ-นามสกุล" required>
+                            </div>
                         </div>
+
                         <div class="mb-3">
-                            <label class="form-label">ประเภทภาษี</label>
-                            <select id="taxType" class="form-select" required>
-                                <option value="">-- เลือกประเภทภาษี --</option>
-                                <option value="ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีที่ดินและสิ่งปลูกสร้าง</option>
-                                <option value="ภาษีป้าย">ภาษีป้าย</option>
-                                <option value="ภาษีบำรุงท้องที่">ภาษีบำรุงท้องที่</option>
-                                <option value="ภาษีอื่นๆ">ภาษีอื่นๆ</option>
-                            </select>
+                            <label for="taxType" class="form-label fw-medium">ประเภทภาษี</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-list"></i></span>
+                                <select class="form-select" id="taxType" required>
+                                    <option value="" selected disabled>-- เลือกประเภทภาษี --</option>
+                                    <option value="ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีที่ดินและสิ่งปลูกสร้าง</option>
+                                    <option value="ภาษีป้าย">ภาษีป้าย</option>
+                                    <option value="ภาษีบำรุงท้องที่">ภาษีบำรุงท้องที่</option>
+                                    <option value="ค่าธรรมเนียมขยะ">ค่าธรรมเนียมขยะ</option>
+                                    <option value="ภาษีอื่นๆ">ภาษีอื่นๆ</option>
+                                </select>
+                            </div>
                         </div>
+
                         <div class="mb-3">
-                            <label class="form-label">ยอดภาษี (บาท)</label>
-                            <input type="number" id="amount" class="form-control" step="0.01" min="0" required placeholder="0.00">
+                            <label for="amount" class="form-label fw-medium">จำนวนเงิน (บาท)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-baht-sign"></i></span>
+                                <input type="number" step="0.01" class="form-control" id="amount" placeholder="0.00" required>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">แนบรูปสลิป/หลักฐาน (ส่งเข้า Google Drive)</label>
-                            <input type="file" id="imageFile" class="form-control" accept="image/*">
+
+                        <div class="mb-4">
+                            <label for="imageFile" class="form-label fw-medium">แนบไฟล์สลิป / หลักฐานการโอน (Google Drive)</label>
+                            <input class="form-control" type="file" id="imageFile" accept="image/*">
+                            <img id="preview" class="img-preview shadow-sm border" alt="ตัวอย่างภาพ">
                         </div>
-                        <button type="submit" id="btnSubmit" class="btn btn-success w-100 py-2 fw-bold">💾 บันทึกข้อมูลเข้าระบบ</button>
+
+                        <button type="submit" id="submitBtn" class="btn btn-primary btn-custom w-100 fw-bold shadow-sm">
+                            <i class="fa-solid fa-cloud-arrow-up me-2"></i>บันทึกข้อมูล
+                        </button>
                     </form>
                 </div>
             </div>
 
-            <!-- รายการที่บันทึกแล้ว -->
+            <!-- ฝั่งขวา: ตารางแสดงรายการล่าสุด -->
             <div class="col-lg-7">
-                <div class="card p-4">
-                    <h4 class="card-title mb-3 fw-bold">รายการบันทึกล่าสุด</h4>
-                    
-                    <!-- เครื่องมือค้นหา และเรียงลำดับ -->
+                <div class="card card-custom p-4 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-bold text-secondary m-0">
+                            <i class="fa-solid fa-clock-rotate-left me-2"></i>รายการบันทึกล่าสุด
+                        </h4>
+                        <span class="badge bg-primary rounded-pill fs-6" id="recordCount">0 รายการ</span>
+                    </div>
+
+                    <!-- ช่องค้นหา & จัดเรียง -->
                     <div class="row g-2 mb-3">
                         <div class="col-md-7">
-                            <input type="text" id="searchInput" class="form-control" placeholder="🔍 ค้นหาตามชื่อผู้บันทึก หรือประเภทภาษี...">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                <input type="text" id="searchInput" class="form-control bg-light" placeholder="ค้นหาตามชื่อ หรือประเภทภาษี...">
+                            </div>
                         </div>
                         <div class="col-md-5">
-                            <select id="sortSelect" class="form-select">
-                                <option value="desc">📅 ใหม่ล่าสุด</option>
-                                <option value="asc">📅 เก่าที่สุด</option>
+                            <select id="sortSelect" class="form-select bg-light">
+                                <option value="desc">📅 ใหม่ไปเก่า</option>
+                                <option value="asc">📅 เก่าไปใหม่</option>
                                 <option value="name_asc">🔤 ชื่อ ก-ฮ</option>
                                 <option value="name_desc">🔤 ชื่อ ฮ-ก</option>
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+
+                    <hr>
+
+                    <!-- ตารางแสดงข้อมูล -->
+                    <div class="table-responsive table-custom">
+                        <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>ชื่อผู้บันทึก</th>
-                                    <th>ประเภท</th>
+                                    <th>ชื่อผู้ชำระ</th>
+                                    <th>ประเภทภาษี</th>
                                     <th class="text-end">ยอดเงิน (บาท)</th>
-                                    <th class="text-center">สลิป</th>
+                                    <th class="text-center">หลักฐาน</th>
                                 </tr>
                             </thead>
                             <tbody id="dataTable">
-                                <tr><td colspan="4" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>กำลังโหลดข้อมูล...
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -91,6 +168,29 @@
         </div>
     </div>
 
+    <!-- Modal ดูรูปภาพสลิปขนาดใหญ่ -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-regular fa-image me-2"></i>หลักฐานการชำระเงิน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                    <img id="modalImage" src="" class="img-fluid" alt="สลิปการโอนเงิน">
+                </div>
+                <div class="modal-footer">
+                    <a id="modalDriveLink" href="#" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>เปิดใน Google Drive
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS & Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="app.js"></script>
 </body>
 </html>
