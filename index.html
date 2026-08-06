@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👑 Dashboard ผู้บริหาร - ออกติดตามภาษี</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Mali', cursive, sans-serif; }
+    @media print {
+      body * { visibility: hidden; }
+      .print-single-mode #printAreaSingle, .print-single-mode #printAreaSingle * { visibility: visible; }
+      .print-summary-mode #printAreaSummary, .print-summary-mode #printAreaSummary * { visibility: visible; }
+      
+      #printAreaSingle, #printAreaSummary { 
+        position: absolute; left: 0; top: 0; width: 100%; 
+        font-family: 'Sarabun', 'TH Sarabun PSK', 'THSarabunNew', sans-serif; 
+        font-size: 16pt; color: black; 
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-purple-50/60 text-slate-700 p-4 md:p-8 min-h-screen">
+  
+  <div class="max-w-6xl mx-auto space-y-6 no-print">
+    <!-- Header Bar -->
+    <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border-4 border-purple-200 p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div>
+        <span class="bg-purple-100 text-purple-600 px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
+          👑 Executive Overview
+        </span>
+        <h1 class="text-2xl md:text-3xl font-bold text-purple-600 mt-2">
+          📊 รายงานสรุปการออกติดตามภาษี
+        </h1>
+        <p class="text-slate-400 text-sm">ภาพรวมการลงพื้นที่และติดตามยอดค้างชำระ</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="btnPrintSummary" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl text-sm font-bold transition shadow-md flex items-center gap-2">
+          🖨️ พิมพ์รายงานสรุปภาพรวม (A4)
+        </button>
+        <a href="admin.html" class="bg-pink-400 hover:bg-pink-500 text-white px-5 py-2.5 rounded-2xl text-sm font-bold transition shadow-md flex items-center gap-2">
+          ✏️ บันทึก/แก้ไขข้อมูล
+        </a>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-3xl border-2 border-purple-100 shadow-sm text-center">
+        <p class="text-slate-400 text-xs font-bold mb-1">📋 รายการติดตามทั้งหมด</p>
+        <h3 id="statTotal" class="text-3xl font-bold text-purple-600">0</h3>
+      </div>
+      <div class="bg-white p-5 rounded-3xl border-2 border-emerald-100 shadow-sm text-center">
+        <p class="text-emerald-500 text-xs font-bold mb-1">✅ พบผู้ค้างภาษี</p>
+        <h3 id="statFound" class="text-3xl font-bold text-emerald-500">0</h3>
+      </div>
+      <div class="bg-white p-5 rounded-3xl border-2 border-rose-100 shadow-sm text-center">
+        <p class="text-rose-400 text-xs font-bold mb-1">❌ ไม่พบผู้ค้างภาษี</p>
+        <h3 id="statNotFound" class="text-3xl font-bold text-rose-400">0</h3>
+      </div>
+      <div class="bg-white p-5 rounded-3xl border-2 border-amber-100 shadow-sm text-center">
+        <p class="text-amber-600 text-xs font-bold mb-1">💰 ยอดเงินค้างรวม</p>
+        <h3 id="statTotalAmount" class="text-2xl font-bold text-amber-500">0 ฿</h3>
+      </div>
+    </div>
+
+    <!-- Data Table & Search -->
+    <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border-4 border-purple-200 p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-3 border-b border-purple-100 pb-4">
+        <h3 class="font-bold text-purple-700 text-lg flex items-center gap-2">
+          📑 รายการข้อมูลการลงพื้นที่
+        </h3>
+        <input type="text" id="dashSearchInput" placeholder="🔎 ค้นหาชื่อ หรือ รหัส..." class="w-full sm:w-64 bg-purple-50 border-2 border-purple-200 rounded-2xl p-2.5 text-sm focus:outline-none focus:border-purple-400">
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-purple-100/60 text-purple-800">
+            <tr>
+              <th class="p-3">วันที่</th>
+              <th class="p-3">ชื่อ-สกุล / รหัส</th>
+              <th class="p-3">ประเภทภาษี</th>
+              <th class="p-3">ผลการติดตาม</th>
+              <th class="p-3">ยอดค้าง</th>
+              <th class="p-3 text-center">การดำเนินการ</th>
+            </tr>
+          </thead>
+          <tbody id="dashTableBody" class="divide-y divide-purple-50 text-slate-600">
+            <tr><td colspan="6" class="p-4 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 no-print">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 border-4 border-purple-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-purple-600 text-lg">📄 รายละเอียดการออกติดตาม</h3>
+        <button id="btnCloseModal" class="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
+      </div>
+
+      <div id="modalContent" class="space-y-3 text-sm text-slate-600"></div>
+
+      <div class="pt-3 border-t border-slate-100 flex gap-2">
+        <button id="btnModalPrint" class="flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-2.5 rounded-2xl font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-2">
+          🖨️ พิมพ์ใบติดตามเดี่ยว (A4)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. พื้นที่สำหรับพิมพ์แบบเดี่ยว (รายบุคคล) -->
+  <div id="printAreaSingle" class="hidden p-10 max-w-2xl mx-auto bg-white text-black leading-relaxed">
+    <div class="text-center font-bold text-xl mb-6">บันทึกข้อความ / รายงานการออกติดตามภาษี</div>
+    <div class="text-right mb-4" id="pDate">วันที่ ...../...../..........</div>
+    <div class="mb-4 space-y-1">
+      <p><strong>เรื่อง:</strong> รายงานการออกติดตาม <span id="pTaxType"></span></p>
+      <p><strong>เรียน:</strong> <span id="pFullName"></span> (รหัสผู้เสียภาษี: <span id="pTaxId"></span>)</p>
+      <p><strong>สถานที่/ที่อยู่:</strong> <span id="pAddress"></span></p>
+    </div>
+    <div class="mb-6 indent-8 text-justify">
+      ด้วย เจ้าหน้าที่ได้ลงพื้นที่ออกติดตามการชำระภาษี และได้ดำเนินการนำส่งหนังสือ <span id="pDocType"></span> ยอดเงินค้างชำระตามประเมินจำนวน <span id="pAmount"></span> บาท โดยผลการลงพื้นที่ติดตามปรากฏว่า: <strong><span id="pResult"></span></strong> (<span id="pOther"></span>)
+    </div>
+    <div class="mb-8" id="pGpsBox">
+      <p><strong>พิกัดสถานที่ออกติดตาม (GPS):</strong> <span id="pGps"></span></p>
+    </div>
+    <div class="mt-16 text-right pr-8 space-y-1">
+      <p>ลงชื่อ..........................................................เจ้าหน้าที่ลงพื้นที่</p>
+      <p>( <span id="pReporter"></span> )</p>
+      <p>ตำแหน่ง <span id="pPosition"></span></p>
+    </div>
+  </div>
+
+  <!-- 2. พื้นที่สำหรับพิมพ์ตารางรายงานสรุปภาพรวม (หลายรายการ) -->
+  <div id="printAreaSummary" class="hidden p-6 max-w-4xl mx-auto bg-white text-black leading-relaxed">
+    <div class="text-center font-bold text-2xl mb-2">รายงานสรุปการออกติดตามค้างชำระภาษี</div>
+    <div class="text-center text-sm mb-4" id="pSummaryPrintDate">ข้อมูล ณ วันที่ ...../...../..........</div>
+
+    <div class="mb-4 border border-black p-3 text-sm flex justify-around">
+      <div><strong>รายการทั้งหมด:</strong> <span id="pSumTotalCount">0</span> รายการ</div>
+      <div><strong>พบผู้ค้างภาษี:</strong> <span id="pSumFoundCount">0</span> รายการ</div>
+      <div><strong>ไม่พบผู้ค้างภาษี:</strong> <span id="pSumNotFoundCount">0</span> รายการ</div>
+      <div><strong>ยอดค้างรวม:</strong> <span id="pSumTotalAmount">0</span> บาท</div>
+    </div>
+
+    <table class="w-full border-collapse border border-black text-xs text-left mb-8">
+      <thead>
+        <tr class="bg-gray-100 border-b border-black text-center">
+          <th class="border border-black p-2 w-10">ลำดับ</th>
+          <th class="border border-black p-2 w-20">วันที่</th>
+          <th class="border border-black p-2">ชื่อ-นามสกุล / รหัส</th>
+          <th class="border border-black p-2">ประเภทภาษี</th>
+          <th class="border border-black p-2">ผลการติดตาม</th>
+          <th class="border border-black p-2 text-right w-24">ยอดค้าง (บาท)</th>
+        </tr>
+      </thead>
+      <tbody id="pSummaryTableBody"></tbody>
+    </table>
+
+    <div class="mt-12 flex justify-between text-center text-sm px-8">
+      <div>
+        <p class="mb-12">ลงชื่อ..........................................................เจ้าหน้าที่ผู้จัดทำ</p>
+        <p>(..........................................................)</p>
+        <p>ตำแหน่ง..........................................................</p>
+      </div>
+      <div>
+        <p class="mb-12">ลงชื่อ..........................................................ผู้บริหาร/ผู้ตรวจรับรอง</p>
+        <p>(..........................................................)</p>
+        <p>ตำแหน่ง..........................................................</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🟢 โค้ด JavaScript เขียนรวมไว้ในไฟล์ index.html ตรงนี้เลย -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getFirestore, collection, getDocs, query, orderBy 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 🔴 วาง Firebase Config ของคุณตรงนี้
+    const firebaseConfig = {
+      apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
+  authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
+  projectId: "tax-tracking-app-25fb7",
+  storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
+  messagingSenderId: "122118718226",
+  appId: "1:122118718226:web:df2d284fe543ec799da9cb"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let allRecords = [];
+    let activeRecordForPrint = null;
+
+    const detailModal = document.getElementById("detailModal");
+    const btnCloseModal = document.getElementById("btnCloseModal");
+    const modalContent = document.getElementById("modalContent");
+    const btnModalPrint = document.getElementById("btnModalPrint");
+    const btnPrintSummary = document.getElementById("btnPrintSummary");
+
+    btnCloseModal?.addEventListener("click", () => detailModal.classList.add("hidden"));
+
+    async function fetchDashboardData() {
+      try {
+        const q = query(collection(db, "tax_records"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        allRecords = [];
+
+        let totalAmt = 0;
+        let countFound = 0;
+        let countNotFound = 0;
+
+        snapshot.forEach((docSnap) => {
+          const data = { id: docSnap.id, ...docSnap.data() };
+          allRecords.push(data);
+
+          totalAmt += data.taxAmount || 0;
+          if (data.followResult === "พบผู้ค้างภาษี") countFound++;
+          else if (data.followResult === "ไม่พบผู้ค้างภาษี") countNotFound++;
+        });
+
+        document.getElementById("statTotal").innerText = allRecords.length;
+        document.getElementById("statFound").innerText = countFound;
+        document.getElementById("statNotFound").innerText = countNotFound;
+        document.getElementById("statTotalAmount").innerText = totalAmt.toLocaleString() + " ฿";
+
+        renderDashboardTable(allRecords);
+      } catch (err) {
+        console.error("Error loading dashboard data:", err);
+      }
+    }
+
+    function renderDashboardTable(records) {
+      const tbody = document.getElementById("dashTableBody");
+      tbody.innerHTML = "";
+
+      if (records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">ไม่พบรายการข้อมูล</td></tr>`;
+        return;
+      }
+
+      records.forEach((item) => {
+        const dateStr = item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString('th-TH') : '-';
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-purple-50/50 transition border-b border-purple-50";
+        tr.innerHTML = `
+          <td class="p-3 text-xs">${dateStr}</td>
+          <td class="p-3 font-bold text-slate-700">${item.fullName} <br><span class="text-xs font-normal text-slate-400">ID: ${item.taxId || '-'}</span></td>
+          <td class="p-3 text-xs"><span class="px-2.5 py-1 bg-pink-100 text-pink-600 rounded-full font-bold">${item.taxType}</span></td>
+          <td class="p-3 text-xs font-bold text-purple-600">${item.followResult}</td>
+          <td class="p-3 font-bold text-pink-500 text-xs">${(item.taxAmount || 0).toLocaleString()} ฿</td>
+          <td class="p-3 text-center space-x-1">
+            <button data-id="${item.id}" class="btnView bg-purple-500 hover:bg-purple-600 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold transition shadow-sm">
+              🔍 ดูรายละเอียด
+            </button>
+            <button data-id="${item.id}" class="btnPrintDirect bg-indigo-500 hover:bg-indigo-600 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold transition shadow-sm">
+              🖨️ ปริ้นเดี่ยว
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.querySelectorAll(".btnView").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          const id = e.target.getAttribute("data-id");
+          const item = allRecords.find(r => r.id === id);
+          if (item) openModal(item);
+        });
+      });
+
+      document.querySelectorAll(".btnPrintDirect").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          const id = e.target.getAttribute("data-id");
+          const item = allRecords.find(r => r.id === id);
+          if (item) printSingleDocument(item);
+        });
+      });
+    }
+
+    function openModal(item) {
+      activeRecordForPrint = item;
+      const addr = `บ้านเลขที่ ${item.address?.houseNo || '-'} ตรอก/ซอย ${item.address?.soi || '-'} ถ./ต. ${item.address?.road || '-'} อ.${item.address?.district || '-'} จ.${item.address?.province || '-'}`;
+      
+      modalContent.innerHTML = `
+        <div class="bg-purple-50 p-3 rounded-2xl space-y-1">
+          <p><strong>ผู้ค้างภาษี:</strong> ${item.fullName} (รหัส: ${item.taxId || '-'})</p>
+          <p><strong>ประเภทภาษี:</strong> ${item.taxType}</p>
+          <p><strong>ยอดค้างชำระ:</strong> <span class="text-pink-600 font-bold">${(item.taxAmount || 0).toLocaleString()} บาท</span></p>
+        </div>
+        <p><strong>ที่อยู่:</strong> ${addr}</p>
+        <p><strong>ผลการติดตาม:</strong> ${item.followResult} ${item.otherDetail ? `(${item.otherDetail})` : ''}</p>
+        <p><strong>พิกัด GPS:</strong> ${item.location || 'ไม่ได้ระบุ'}</p>
+        <p><strong>ผู้บันทึก:</strong> ${item.reporterName} (${item.reporterPosition})</p>
+        ${item.imageUrl ? `<img src="${item.imageUrl}" class="w-full h-48 object-cover rounded-2xl border-2 border-purple-200 mt-2">` : ''}
+      `;
+
+      detailModal.classList.remove("hidden");
+    }
+
+    btnModalPrint?.addEventListener("click", () => {
+      if (activeRecordForPrint) printSingleDocument(activeRecordForPrint);
+    });
+
+    function printSingleDocument(item) {
+      document.body.classList.add("print-single-mode");
+      document.body.classList.remove("print-summary-mode");
+
+      document.getElementById("pTaxType").innerText = item.taxType || "";
+      document.getElementById("pFullName").innerText = item.fullName || "";
+      document.getElementById("pTaxId").innerText = item.taxId || "-";
+      document.getElementById("pDocType").innerText = item.docType || "แจ้งประเมิน / แจ้งเตือน";
+      document.getElementById("pAmount").innerText = (item.taxAmount || 0).toLocaleString();
+      document.getElementById("pResult").innerText = item.followResult || "";
+      document.getElementById("pOther").innerText = item.otherDetail || "ไม่มีข้อความเพิ่มเติม";
+      document.getElementById("pGps").innerText = item.location || "ไม่ระบุพิกัด";
+      document.getElementById("pReporter").innerText = item.reporterName || "";
+      document.getElementById("pPosition").innerText = item.reporterPosition || "";
+      
+      const addr = `บ้านเลขที่ ${item.address?.houseNo || '-'} ตรอก/ซอย ${item.address?.soi || '-'} ถนน/ตำบล ${item.address?.road || '-'} อ.${item.address?.district || '-'} จ.${item.address?.province || '-'}`;
+      document.getElementById("pAddress").innerText = addr;
+      
+      const dateObj = item.createdAt ? new Date(item.createdAt.toDate()) : new Date();
+      document.getElementById("pDate").innerText = `วันที่ ${dateObj.toLocaleDateString('th-TH')}`;
+
+      const printArea = document.getElementById("printAreaSingle");
+      printArea.classList.remove("hidden");
+      window.print();
+      printArea.classList.add("hidden");
+    }
+
+    btnPrintSummary?.addEventListener("click", () => {
+      document.body.classList.add("print-summary-mode");
+      document.body.classList.remove("print-single-mode");
+
+      const tableBody = document.getElementById("pSummaryTableBody");
+      tableBody.innerHTML = "";
+
+      let totalSum = 0;
+      let foundSum = 0;
+      let notFoundSum = 0;
+
+      allRecords.forEach((item, index) => {
+        totalSum += item.taxAmount || 0;
+        if (item.followResult === "พบผู้ค้างภาษี") foundSum++;
+        else if (item.followResult === "ไม่พบผู้ค้างภาษี") notFoundSum++;
+
+        const dateStr = item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString('th-TH') : '-';
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-black";
+        tr.innerHTML = `
+          <td class="border border-black p-2 text-center">${index + 1}</td>
+          <td class="border border-black p-2 text-center">${dateStr}</td>
+          <td class="border border-black p-2">${item.fullName}<br><span class="text-gray-500">ID: ${item.taxId || '-'}</span></td>
+          <td class="border border-black p-2">${item.taxType}</td>
+          <td class="border border-black p-2">${item.followResult}</td>
+          <td class="border border-black p-2 text-right font-bold">${(item.taxAmount || 0).toLocaleString()}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      document.getElementById("pSummaryPrintDate").innerText = `วันที่พิมพ์รายงาน: ${new Date().toLocaleDateString('th-TH')}`;
+      document.getElementById("pSumTotalCount").innerText = allRecords.length;
+      document.getElementById("pSumFoundCount").innerText = foundSum;
+      document.getElementById("pSumNotFoundCount").innerText = notFoundSum;
+      document.getElementById("pSumTotalAmount").innerText = totalSum.toLocaleString();
+
+      const printArea = document.getElementById("printAreaSummary");
+      printArea.classList.remove("hidden");
+      window.print();
+      printArea.classList.add("hidden");
+    });
+
+    document.getElementById("dashSearchInput")?.addEventListener("input", (e) => {
+      const kw = e.target.value.toLowerCase();
+      const filtered = allRecords.filter(r => 
+        (r.fullName && r.fullName.toLowerCase().includes(kw)) ||
+        (r.taxId && r.taxId.toLowerCase().includes(kw))
+      );
+      renderDashboardTable(filtered);
+    });
+
+    fetchDashboardData();
+  </script>
+</body>
+</html>
