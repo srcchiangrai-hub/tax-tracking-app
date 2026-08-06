@@ -3,19 +3,17 @@
 // ==========================================
 const STORAGE_KEY = 'revenue_data';
 
-// ไม่ใช้ Mock Data (ตั้งต้นเป็นอาร์เรย์ว่าง)
-const initialMockData = [];
-
+// ดึงข้อมูลจาก LocalStorage ตรงๆ ไม่เขียนทับข้อมูลที่มีอยู่เดิม
 function loadData() {
     const dataStr = localStorage.getItem(STORAGE_KEY);
     if (!dataStr) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(initialMockData));
-        return initialMockData;
+        return []; // ถ้ายังไม่มีข้อมูล ให้คืนค่าเป็นอาร์เรย์ว่าง
     }
     try {
         return JSON.parse(dataStr);
     } catch (e) {
-        return initialMockData;
+        console.error("Error parsing revenue_data:", e);
+        return [];
     }
 }
 
@@ -28,7 +26,7 @@ let selectedStatusFilter = null;
 let selectedOfficerFilter = null;
 let currentPeriod = 'month';
 
-// ตรวจจับการเปลี่ยนแปลงจากหน้า Admin แบบ Real-time
+// ตรวจจับการเปลี่ยนแปลงจากหน้า Admin แบบ Real-time (ข้ามหน้า/ข้ามแท็บ)
 window.addEventListener('storage', (e) => {
     if (e.key === STORAGE_KEY) {
         revenueData = loadData();
@@ -40,6 +38,7 @@ window.addEventListener('storage', (e) => {
 // 2. RENDER & REFRESH FUNCTIONS
 // ==========================================
 function renderAll() {
+    revenueData = loadData(); // โหลดข้อมูลใหม่อีกครั้งก่อนเรนเดอร์ทุกส่วน
     updateMainStats();
     updateTaxTypeStats();
     renderStaffSummary();
@@ -57,13 +56,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Focus/Visibility Change: โหลดข้อมูลใหม่ทันทีที่กดสลับแท็บกลับมาหน้า Dashboard
+window.addEventListener('focus', () => {
+    renderAll();
+});
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        renderAll();
+    }
+});
+
 // ==========================================
 // 3. STATS & FILTERS
 // ==========================================
 function updateMainStats() {
-    const redCount = revenueData.filter(d => d.status.includes('🔴') || d.status.includes('ค้างชำระ')).length;
-    const yellowCount = revenueData.filter(d => d.status.includes('🟡') || d.status.includes('ติดตาม')).length;
-    const greenCount = revenueData.filter(d => d.status.includes('🟢') || d.status.includes('เสร็จสิ้น')).length;
+    const redCount = revenueData.filter(d => d.status && (d.status.includes('🔴') || d.status.includes('ค้างชำระ'))).length;
+    const yellowCount = revenueData.filter(d => d.status && (d.status.includes('🟡') || d.status.includes('ติดตาม'))).length;
+    const greenCount = revenueData.filter(d => d.status && (d.status.includes('🟢') || d.status.includes('เสร็จสิ้น'))).length;
 
     const elRed = document.getElementById('stat-red-count');
     const elYellow = document.getElementById('stat-yellow-count');
@@ -122,14 +131,14 @@ function updateTaxTypeStats() {
     if (lblLand) lblLand.innerText = `ยอดที่ติดตาม (${periodTexts[currentPeriod]})`;
     if (lblSign) lblSign.innerText = `ยอดที่ติดตาม (${periodTexts[currentPeriod]})`;
 
-    const landItems = filteredData.filter(i => i.taxType.includes('ที่ดิน'));
+    const landItems = filteredData.filter(i => i.taxType && i.taxType.includes('ที่ดิน'));
     const landTotal = landItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
     const elLandTotal = document.getElementById('stat-land-total');
     const elLandCount = document.getElementById('stat-land-count');
     if (elLandTotal) elLandTotal.innerText = `฿${landTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
     if (elLandCount) elLandCount.innerText = `${landItems.length} ราย`;
 
-    const signItems = filteredData.filter(i => i.taxType.includes('ป้าย'));
+    const signItems = filteredData.filter(i => i.taxType && i.taxType.includes('ป้าย'));
     const signTotal = signItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
     const elSignTotal = document.getElementById('stat-sign-total');
     const elSignCount = document.getElementById('stat-sign-count');
@@ -149,7 +158,7 @@ function renderStaffSummary() {
         const name = item.officer || 'ไม่ระบุ';
         if (!staffMap[name]) staffMap[name] = { total: 0, pending: 0 };
         staffMap[name].total += 1;
-        if (!item.status.includes('เสร็จสิ้น') && !item.status.includes('🟢')) {
+        if (item.status && !item.status.includes('เสร็จสิ้น') && !item.status.includes('🟢')) {
             staffMap[name].pending += 1;
         }
     });
@@ -195,16 +204,16 @@ window.renderDashboardTable = function() {
 
     const filtered = revenueData.filter(item => {
         const matchesSearch = 
-            item.name.toLowerCase().includes(searchVal) || 
-            item.taxId.toLowerCase().includes(searchVal) ||
-            item.taxType.toLowerCase().includes(searchVal);
+            (item.name && item.name.toLowerCase().includes(searchVal)) || 
+            (item.taxId && item.taxId.toLowerCase().includes(searchVal)) ||
+            (item.taxType && item.taxType.toLowerCase().includes(searchVal));
             
         const matchesOfficer = selectedOfficerFilter ? item.officer === selectedOfficerFilter : true;
         
         let matchesStatus = true;
-        if (selectedStatusFilter === 'red') matchesStatus = item.status.includes('🔴') || item.status.includes('ค้างชำระ');
-        if (selectedStatusFilter === 'yellow') matchesStatus = item.status.includes('🟡') || item.status.includes('ติดตาม');
-        if (selectedStatusFilter === 'green') matchesStatus = item.status.includes('🟢') || item.status.includes('เสร็จสิ้น');
+        if (selectedStatusFilter === 'red') matchesStatus = item.status && (item.status.includes('🔴') || item.status.includes('ค้างชำระ'));
+        if (selectedStatusFilter === 'yellow') matchesStatus = item.status && (item.status.includes('🟡') || item.status.includes('ติดตาม'));
+        if (selectedStatusFilter === 'green') matchesStatus = item.status && (item.status.includes('🟢') || item.status.includes('เสร็จสิ้น'));
 
         return matchesSearch && matchesOfficer && matchesStatus;
     });
@@ -218,17 +227,17 @@ window.renderDashboardTable = function() {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-pink-50/30 transition-colors";
         tr.innerHTML = `
-            <td class="p-3 font-medium">${item.status}</td>
+            <td class="p-3 font-medium">${item.status || ''}</td>
             <td class="p-3">
                 <span class="font-bold text-indigo-950 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md tracking-wide">
-                    ${item.taxId}
+                    ${item.taxId || ''}
                 </span>
             </td>
-            <td class="p-3 font-semibold text-slate-800">${item.name}</td>
-            <td class="p-3 text-slate-600">${item.taxType} (${item.taxYear})</td>
-            <td class="p-3 font-bold text-slate-900">฿${Number(item.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
-            <td class="p-3 text-slate-600">${item.step}</td>
-            <td class="p-3 text-slate-600">${item.officer}</td>
+            <td class="p-3 font-semibold text-slate-800">${item.name || ''}</td>
+            <td class="p-3 text-slate-600">${item.taxType || ''} (${item.taxYear || ''})</td>
+            <td class="p-3 font-bold text-slate-900">฿${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
+            <td class="p-3 text-slate-600">${item.step || ''}</td>
+            <td class="p-3 text-slate-600">${item.officer || ''}</td>
             <td class="p-3 text-center">
                 <button onclick="viewCaseDetail('${item.id}')" class="px-3 py-1 bg-pink-100 hover:bg-pink-500 hover:text-white text-pink-600 rounded-xl transition-all font-semibold">
                     <i class="fa-solid fa-eye mr-1"></i> ดูข้อมูล
@@ -243,7 +252,7 @@ window.renderDashboardTable = function() {
 // 5. MODAL & PRINTING
 // ==========================================
 window.viewCaseDetail = function(id) {
-    const item = revenueData.find(d => d.id === id);
+    const item = revenueData.find(d => String(d.id) === String(id));
     if (!item) return;
 
     const modal = document.getElementById('case-detail-modal');
@@ -254,32 +263,32 @@ window.viewCaseDetail = function(id) {
         <div class="space-y-4">
             <div class="border-b pb-3">
                 <span class="text-xs text-pink-500 font-bold uppercase tracking-wider">รายละเอียดเคส</span>
-                <h3 class="text-xl font-bold text-slate-800">${item.name}</h3>
+                <h3 class="text-xl font-bold text-slate-800">${item.name || ''}</h3>
                 <p class="text-xs text-slate-500">${item.address || 'ไม่ระบุที่อยู่'}</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 text-xs">
                 <div class="bg-slate-50 p-2.5 rounded-xl">
                     <span class="text-slate-400 block mb-0.5">เลขประจำตัวภาษี</span>
-                    <strong class="text-indigo-950 font-bold text-sm">${item.taxId}</strong>
+                    <strong class="text-indigo-950 font-bold text-sm">${item.taxId || ''}</strong>
                 </div>
                 <div class="bg-slate-50 p-2.5 rounded-xl">
                     <span class="text-slate-400 block mb-0.5">ประเภทภาษี</span>
-                    <strong class="text-slate-800">${item.taxType}</strong>
+                    <strong class="text-slate-800">${item.taxType || ''}</strong>
                 </div>
                 <div class="bg-slate-50 p-2.5 rounded-xl">
                     <span class="text-slate-400 block mb-0.5">ยอดประเมิน</span>
-                    <strong class="text-emerald-600 text-sm">฿${Number(item.amount).toLocaleString('th-TH')}</strong>
+                    <strong class="text-emerald-600 text-sm">฿${Number(item.amount || 0).toLocaleString('th-TH')}</strong>
                 </div>
                 <div class="bg-slate-50 p-2.5 rounded-xl">
                     <span class="text-slate-400 block mb-0.5">เจ้าหน้าที่ผู้รับผิดชอบ</span>
-                    <strong class="text-slate-800">${item.officer}</strong>
+                    <strong class="text-slate-800">${item.officer || ''}</strong>
                 </div>
             </div>
 
             <div class="bg-pink-50/50 p-3 rounded-2xl border border-pink-100">
                 <span class="text-xs text-slate-500 block">ขั้นตอนปัจจุบัน:</span>
-                <p class="font-bold text-pink-600 text-sm mt-0.5">${item.step}</p>
+                <p class="font-bold text-pink-600 text-sm mt-0.5">${item.step || ''}</p>
             </div>
 
             <div class="flex gap-2 pt-2">
@@ -302,7 +311,7 @@ window.closeModal = function() {
 };
 
 window.printOfficialDocument = function(id) {
-    const item = revenueData.find(d => d.id === id);
+    const item = revenueData.find(d => String(d.id) === String(id));
     if (!item) return;
 
     const printArea = document.getElementById('printable-area');
@@ -319,14 +328,14 @@ window.printOfficialDocument = function(id) {
                 <div>วันที่ ${todayTH}</div>
             </div>
             <div style="margin-bottom: 15px;">
-                <strong>เรื่อง:</strong> เตือนให้ดำเนินการชำระ${item.taxType} ประจำปี ${item.taxYear}<br>
-                <strong>เรียน:</strong> ${item.name}<br>
-                <strong>เลขประจำตัวผู้เสียภาษี:</strong> <span style="font-size: 18pt; font-weight: bold;">${item.taxId}</span>
+                <strong>เรื่อง:</strong> เตือนให้ดำเนินการชำระ${item.taxType || ''} ประจำปี ${item.taxYear || ''}<br>
+                <strong>เรียน:</strong> ${item.name || ''}<br>
+                <strong>เลขประจำตัวผู้เสียภาษี:</strong> <span style="font-size: 18pt; font-weight: bold;">${item.taxId || ''}</span>
             </div>
             <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 15px;">
-                ตามที่ท่านมีหน้าที่ต้องชำระ <strong>${item.taxType}</strong> ประจำปี พ.ศ. ${item.taxYear} เป็นจำนวนเงินทั้งสิ้น 
-                <strong>${Number(item.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</strong> นั้น 
-                จากการตรวจสอบระบบข้อมูลพบว่า ปัจจุบันสถานะของท่านอยู่ระหว่าง <em>"${item.step}"</em> และยังไม่ได้ดำเนินการชำระให้เสร็จสิ้นตามกำหนด
+                ตามที่ท่านมีหน้าที่ต้องชำระ <strong>${item.taxType || ''}</strong> ประจำปี พ.ศ. ${item.taxYear || ''} เป็นจำนวนเงินทั้งสิ้น 
+                <strong>${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</strong> นั้น 
+                จากการตรวจสอบระบบข้อมูลพบว่า ปัจจุบันสถานะของท่านอยู่ระหว่าง <em>"${item.step || ''}"</em> และยังไม่ได้ดำเนินการชำระให้เสร็จสิ้นตามกำหนด
             </p>
             <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 30px;">
                 จึงขอเรียนมาเพื่อโปรดติดต่อนำส่งชำระภาษีดังกล่าว ณ กองคลัง ภายใน 15 วัน นับแต่วันที่ได้รับหนังสือฉบับนี้ หากท่านชำระเงินเรียบร้อยแล้วก่อนได้รับหนังสือฉบับนี้ ทางเจ้าหน้าที่ต้องขออภัยมา ณ ที่นี้ด้วย
@@ -336,7 +345,7 @@ window.printOfficialDocument = function(id) {
                     <p style="margin-bottom: 60px;">ขอแสดงความนับถือ</p>
                     <p style="margin: 0;">(....................................................)</p>
                     <p style="margin: 0;">เจ้าพนักงานจัดเก็บรายได้</p>
-                    <p style="margin: 0;">เจ้าหน้าที่ผู้รับผิดชอบ: ${item.officer}</p>
+                    <p style="margin: 0;">เจ้าหน้าที่ผู้รับผิดชอบ: ${item.officer || ''}</p>
                 </div>
             </div>
         </div>
@@ -352,12 +361,12 @@ window.printFilteredReport = function() {
     let rowsHTML = filtered.map((item, idx) => `
         <tr style="border-bottom: 1px solid #ddd; text-align: center;">
             <td style="padding: 6px;">${idx + 1}</td>
-            <td style="padding: 6px; font-weight: bold;">${item.taxId}</td>
-            <td style="padding: 6px; text-align: left;">${item.name}</td>
-            <td style="padding: 6px; text-align: left;">${item.taxType}</td>
-            <td style="padding: 6px; text-align: right;">${Number(item.amount).toLocaleString('th-TH')}</td>
-            <td style="padding: 6px;">${item.status}</td>
-            <td style="padding: 6px;">${item.officer}</td>
+            <td style="padding: 6px; font-weight: bold;">${item.taxId || ''}</td>
+            <td style="padding: 6px; text-align: left;">${item.name || ''}</td>
+            <td style="padding: 6px; text-align: left;">${item.taxType || ''}</td>
+            <td style="padding: 6px; text-align: right;">${Number(item.amount || 0).toLocaleString('th-TH')}</td>
+            <td style="padding: 6px;">${item.status || ''}</td>
+            <td style="padding: 6px;">${item.officer || ''}</td>
         </tr>
     `).join('');
 
