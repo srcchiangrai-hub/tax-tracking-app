@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการข้อมูลรายได้ - RevenueCute Tracker</title>
+    <title>ระบบเร่งรัดจัดเก็บรายได้ - RevenueCute Tracker</title>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,7 +11,7 @@
     <!-- Google Fonts: Prompt & Mali -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,8 +21,10 @@
             theme: {
                 extend: {
                     colors: {
-                        pastelBg: '#FFF9F5',
-                        brandPrimary: '#F472B6',
+                        pastelBg: '#FFF9F6',
+                        brandPink: '#F472B6',
+                        brandPurple: '#C084FC',
+                        brandYellow: '#FDE047',
                     },
                     fontFamily: {
                         sans: ['Prompt', 'sans-serif'],
@@ -35,68 +37,100 @@
 
     <style>
         body {
-            background-color: #FFF9F5;
-            background-image: radial-gradient(#FDE68A 0.75px, transparent 0.75px);
-            background-size: 16px 16px;
+            background-color: #FFF9F6;
+            background-image: radial-gradient(#FBCFE8 0.8px, transparent 0.8px);
+            background-size: 20px 20px;
         }
         .cute-card {
             background: #FFFFFF;
             border-radius: 24px;
-            box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.1);
+            box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.08);
             border: 2px solid #FFF0F5;
         }
         .cute-input {
-            border-radius: 14px;
+            border-radius: 16px;
             border: 2px solid #F1F5F9;
             transition: all 0.2s ease;
             width: 100%;
-            padding: 0.6rem 1rem;
+            padding: 0.65rem 1rem;
             font-size: 0.875rem;
+            background-color: #FAFAFA;
         }
         .cute-input:focus {
+            background-color: #FFFFFF;
             border-color: #F472B6;
             outline: none;
             box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.15);
+        }
+        
+        /* CSS สำหรับซ่อนส่วนที่ไม่ต้องการเวลาพิมพ์เอกสาร */
+        @media print {
+            header, .no-print, form, #guide-section {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .cute-card {
+                box-shadow: none !important;
+                border: none !important;
+            }
+            main {
+                display: block !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            section {
+                width: 100% !important;
+            }
         }
     </style>
 </head>
 <body class="font-sans text-slate-700 min-h-screen pb-12">
 
-    <!-- 🌸 Header / Navigation Bar (เมนูเต็มครบถ้วน) -->
-    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b-2 border-pink-100 shadow-sm">
+    <!-- 🌸 Header / Navigation Bar -->
+    <header class="bg-white/90 backdrop-blur-md sticky top-0 z-40 border-b-2 border-pink-100 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
-                    📝✨
+                    🌷
                 </div>
                 <div>
-                    <h1 class="font-cute font-bold text-xl sm:text-2xl text-pink-500 tracking-wide">
+                    <h1 class="font-cute font-bold text-xl sm:text-2xl text-pink-500 tracking-wide flex items-center gap-2">
                         RevenueCute Admin
                     </h1>
-                    <p class="text-xs text-slate-400 font-medium">ระบบจัดการและบันทึกการเร่งรัดจัดเก็บรายได้</p>
+                    <p class="text-xs text-slate-400 font-medium">ระบบบริหารและติดตามการเร่งรัดจัดเก็บรายได้</p>
                 </div>
             </div>
 
-            <!-- Navigation Links -->
+            <!-- Navigation Links & Print Button -->
             <div class="flex items-center gap-2">
-                <a href="index.html" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-pink-500 hover:bg-pink-50 transition-all">
-                    <i class="fa-solid fa-chart-pie mr-1"></i> แดชบอร์ด
+                <a href="index.html" class="px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-pink-500 hover:bg-pink-50 transition-all">
+                    <i class="fa-solid fa-chart-pie mr-1 text-pink-400"></i> แดชบอร์ด
                 </a>
-                <a href="admin.html" class="px-4 py-2 rounded-xl text-sm font-semibold bg-pink-500 text-white shadow-sm">
+                <a href="admin.html" class="px-3.5 py-2 rounded-xl text-sm font-semibold bg-pink-500 text-white shadow-sm hover:bg-pink-600 transition-all">
                     <i class="fa-solid fa-folder-plus mr-1"></i> จัดการข้อมูล
                 </a>
+                <!-- 🖨️ ปุ่มพิมพ์รายงาน -->
+                <button onclick="window.print()" class="px-3.5 py-2 rounded-xl text-sm font-semibold bg-purple-100 text-purple-600 hover:bg-purple-200 transition-all flex items-center gap-1.5 border border-purple-200">
+                    <i class="fa-solid fa-print"></i> พิมพ์รายงาน
+                </button>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- ✍️ FORM SECTION: ฟอร์มบันทึก/แก้ไขข้อมูลแบบละเอียด (5 Cols) -->
-        <section class="lg:col-span-5">
+        <!-- ✍️ FORM SECTION (5 Cols) -->
+        <section class="lg:col-span-5 no-print">
             <div class="cute-card p-6 sticky top-28">
                 <div class="flex items-center justify-between border-b-2 border-pink-50 pb-3 mb-4">
                     <h3 id="form-title" class="font-cute font-bold text-lg text-slate-800 flex items-center gap-2">
-                        <span>✏️</span> บันทึกเคสใหม่
+                        <span class="text-xl">🎀</span> บันทึกเคสใหม่
                     </h3>
                     <button id="cancel-edit-btn" onclick="resetForm()" class="text-xs text-rose-500 font-semibold hidden hover:underline">
                         ยกเลิกการแก้ไข
@@ -106,7 +140,7 @@
                 <form id="case-form" class="space-y-3.5 text-xs">
                     <input type="hidden" id="edit-doc-id" value="">
 
-                    <!-- ชื่อผู้เสียภาษี / สถานประกอบการ -->
+                    <!-- ชื่อผู้เสียภาษี -->
                     <div>
                         <label class="block font-semibold text-slate-600 mb-1">ชื่อผู้เสียภาษี / สถานประกอบการ <span class="text-rose-500">*</span></label>
                         <input type="text" id="taxpayerName" required class="cute-input" placeholder="เช่น บริษัท อบต.น่ารัก จำกัด หรือ นายสมชาย">
@@ -136,7 +170,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">ยอดประเมิน/ค้างชำระ (บาท) <span class="text-rose-500">*</span></label>
+                            <label class="block font-semibold text-slate-600 mb-1">ยอดค้างชำระ (บาท) <span class="text-rose-500">*</span></label>
                             <input type="number" id="amount" step="0.01" required class="cute-input" placeholder="0.00">
                         </div>
                     </div>
@@ -144,17 +178,25 @@
                     <!-- สถานะ Flag สี & ขั้นตอนดำเนินงาน -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">ระดับด่วน / Flag สี <span class="text-rose-500">*</span></label>
+                            <label class="block font-semibold text-slate-600 mb-1">ระดับเร่งรัด <span class="text-rose-500">*</span></label>
                             <select id="statusFlag" required class="cute-input bg-white">
-                                <option value="black">⚫ ดำ (เร่งด่วนวิกฤต)</option>
-                                <option value="red" selected>🔴 แดง (ค้างชำระ)</option>
-                                <option value="yellow">🟡 เหลือง (อยู่ระหว่างติดตาม)</option>
+                                <option value="black">⚫ ดำ (วิกฤต/ยึดอายัด)</option>
+                                <option value="red" selected>🔴 แดง (หนังสือเตือน)</option>
+                                <option value="yellow">🟡 เหลือง (ติดตาม/แจ้งเตือน)</option>
                                 <option value="green">🟢 เขียว (ชำระเสร็จสิ้น)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">ขั้นตอนดำเนินงานปัจจุบัน</label>
-                            <input type="text" id="processStep" class="cute-input" placeholder="เช่น ออกหนังสือเตือน ครั้งที่ 1">
+                            <label class="block font-semibold text-slate-600 mb-1">ขั้นตอนเร่งรัดปัจจุบัน</label>
+                            <select id="processStep" class="cute-input bg-white">
+                                <option value="แจ้งประเมิน (ภ.ด.ส.6/ป้าย)">แจ้งประเมิน (ภ.ด.ส.6/ป้าย)</option>
+                                <option value="หนังสือเตือน ครั้งที่ 1">หนังสือเตือน ครั้งที่ 1</option>
+                                <option value="หนังสือเตือน ครั้งที่ 2">หนังสือเตือน ครั้งที่ 2</option>
+                                <option value="ลงพื้นที่ติดตาม/โน้มน้าว">ลงพื้นที่ติดตาม/โน้มน้าว</option>
+                                <option value="ทำหนังสือตกลงผ่อนชำระ">ทำหนังสือตกลงผ่อนชำระ</option>
+                                <option value="รายงานผู้บริหาร/เสนออายัด">รายงานผู้บริหาร/เสนออายัด</option>
+                                <option value="ชำระเงินเรียบร้อยแล้ว">ชำระเงินเรียบร้อยแล้ว</option>
+                            </select>
                         </div>
                     </div>
 
@@ -164,7 +206,7 @@
                         <input type="text" id="officerName" required class="cute-input" placeholder="ระบุชื่อเจ้าหน้าที่ผู้รับผิดชอบ">
                     </div>
 
-                    <!-- เบอร์โทรศัพท์ & ที่อยู่/พิกัด -->
+                    <!-- เบอร์โทรศัพท์ & ที่อยู่ -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
@@ -176,26 +218,34 @@
                         </div>
                     </div>
 
-                    <!-- บันทึกหมายเหตุ / ผลการติดตาม -->
+                    <!-- บันทึกเพิ่มเติม -->
                     <div>
                         <label class="block font-semibold text-slate-600 mb-1">บันทึกเพิ่มเติม / ผลการลงพื้นที่</label>
-                        <textarea id="notes" rows="2" class="cute-input" placeholder="บันทึกรายละเอียดการติดต่อ หรือผลการลงพื้นที่..."></textarea>
+                        <textarea id="notes" rows="2" class="cute-input" placeholder="บันทึกรายละเอียดการติดต่อ หรือผลการติดตาม..."></textarea>
                     </div>
 
-                    <!-- ปุ่มบันทึกข้อมูล -->
-                    <button type="submit" id="save-btn" class="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mt-2">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูลลงระบบ
+                    <!-- ปุ่มบันทึก -->
+                    <button type="submit" id="save-btn" class="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 mt-2">
+                        <i class="fa-solid fa-heart"></i> บันทึกข้อมูลลงระบบ
                     </button>
                 </form>
             </div>
         </section>
 
-        <!-- 📑 LIST SECTION: รายการข้อมูลทั้งหมด และปุ่มแก้ไข/ลบ (7 Cols) -->
-        <section class="lg:col-span-7 space-y-4">
+        <!-- 📑 LIST SECTION & GUIDE SECTION (7 Cols) -->
+        <section class="lg:col-span-7 space-y-6">
+
+            <!-- หัวข้อเอกสารสำหรับแสดงตอนพิมพ์เท่านั้น -->
+            <div class="hidden print-only text-center mb-6">
+                <h2 class="text-2xl font-bold">รายงานติดตามและเร่งรัดจัดเก็บรายได้</h2>
+                <p class="text-sm text-slate-600">ข้อมูล ณ วันที่ <span id="print-date"></span></p>
+            </div>
+
+            <!-- รายการข้อมูล -->
             <div class="cute-card p-6">
                 <div class="flex items-center justify-between border-b-2 border-pink-50 pb-3 mb-4">
                     <h3 class="font-cute font-bold text-lg text-slate-800 flex items-center gap-2">
-                        <span>🗂️</span> รายการข้อมูลในระบบทั้งหมด
+                        <span>💖</span> รายการลูกหนี้ค้างชำระ
                     </h3>
                     <span id="total-records-count" class="text-xs bg-pink-100 text-pink-600 px-3 py-1 rounded-full font-bold">0 รายการ</span>
                 </div>
@@ -204,19 +254,57 @@
                     <table class="w-full text-left text-xs">
                         <thead class="bg-pink-50 text-pink-600 font-semibold rounded-xl">
                             <tr>
-                                <th class="p-2.5">ระดับ</th>
+                                <th class="p-2.5">สถานะ</th>
                                 <th class="p-2.5">ผู้เสียภาษี</th>
-                                <th class="p-2.5">ยอดเงิน</th>
-                                <th class="p-2.5">เจ้าหน้าที่</th>
-                                <th class="p-2.5 text-center">จัดการ</th>
+                                <th class="p-2.5">ยอดค้าง (บาท)</th>
+                                <th class="p-2.5">ขั้นตอนเร่งรัด</th>
+                                <th class="p-2.5 text-center no-print">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="admin-data-table" class="divide-y divide-slate-100">
-                            <!-- Dynamic Rows แสดงรายการเคส -->
+                            <!-- Dynamic Rows -->
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            <!-- 📖 GUIDE SECTION: ความรู้การเร่งรัดภาษีท้องถิ่น -->
+            <div id="guide-section" class="cute-card p-6 bg-gradient-to-br from-white to-pink-50/30">
+                <h3 class="font-cute font-bold text-base text-pink-600 flex items-center gap-2 mb-3">
+                    <span>💡</span> ขั้นตอนและกฎหมายการเร่งรัดภาษีท้องถิ่น
+                </h3>
+                
+                <div class="space-y-2.5 text-xs text-slate-600 leading-relaxed">
+                    <div class="bg-white p-3 rounded-xl border border-pink-100 shadow-sm flex items-start gap-2.5">
+                        <span class="text-base">1️⃣</span>
+                        <div>
+                            <strong class="text-slate-800">แจ้งประเมินภาษี:</strong> ส่งหนังสือแจ้งประเมิน (ภ.ด.ส.6 หรือ ภ.ป.3) ให้ผู้เสียภาษีทราบภายในระยะเวลาที่กฎหมายกำหนด
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-pink-100 shadow-sm flex items-start gap-2.5">
+                        <span class="text-base">2️⃣</span>
+                        <div>
+                            <strong class="text-slate-800">ออกหนังสือแจ้งเตือน (เตือนค้างชำระ):</strong> หากพ้นกำหนด ต้องมีหนังสือเตือนอย่างน้อย 1 ครั้ง ให้เวลามาชำระภายใน 15-30 วัน ก่อนดำเนินการขั้นต่อไป
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-pink-100 shadow-sm flex items-start gap-2.5">
+                        <span class="text-base">3️⃣</span>
+                        <div>
+                            <strong class="text-slate-800">เงินเพิ่มและเบี้ยปรับ:</strong> คิดเงินเพิ่ม 1% ต่อเดือนของภาษีค้างชำระ (เศษของเดือนนับเป็น 1 เดือน) และเบี้ยปรับตามอัตรากฎหมายกำหนด
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-pink-100 shadow-sm flex items-start gap-2.5">
+                        <span class="text-base">4️⃣</span>
+                        <div>
+                            <strong class="text-slate-800">การยึด อายัด ขายทอดตลาด:</strong> ตาม พ.ร.บ. ภาษีที่ดินฯ มาตรา 68 หากพ้นกำหนดหนังสือเตือน ผู้บริหารท้องถิ่นมีอำนาจสั่งยึด อายัด ทรัพย์สินเพื่อขายทอดตลาดได้โดยไม่ต้องฟ้องศาล
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
     </main>
@@ -228,7 +316,6 @@
             getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp 
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ⚠️ อย่าลืมใส่ค่า Firebase Config ของคุณตรงนี้ครับ
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_AUTH_DOMAIN",
@@ -243,6 +330,11 @@
         const casesCollection = collection(db, "revenue_cases");
 
         let allCases = [];
+
+        // แสดงวันที่ปัจจุบันในหัวรายงานพิมพ์
+        document.getElementById("print-date").innerText = new Date().toLocaleDateString('th-TH', {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
 
         // Realtime Data Fetching
         const q = query(casesCollection, orderBy("createdAt", "desc"));
@@ -270,27 +362,30 @@
             tbody.innerHTML = allCases.map(item => {
                 let badge = "";
                 switch(item.statusFlag) {
-                    case 'black': badge = '⚫'; break;
-                    case 'red': badge = '🔴'; break;
-                    case 'yellow': badge = '🟡'; break;
-                    case 'green': badge = '🟢'; break;
+                    case 'black': badge = '<span class="px-2 py-0.5 rounded-full bg-slate-800 text-white text-[10px]">⚫ วิกฤต</span>'; break;
+                    case 'red': badge = '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 text-[10px] font-bold">🔴 เตือน</span>'; break;
+                    case 'yellow': badge = '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-600 text-[10px] font-bold">🟡 ติดตาม</span>'; break;
+                    case 'green': badge = '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600 text-[10px] font-bold">🟢 ชำระแล้ว</span>'; break;
                 }
 
                 return `
-                    <tr class="hover:bg-pink-50/20 border-b border-slate-50">
-                        <td class="p-2.5 text-base text-center">${badge}</td>
+                    <tr class="hover:bg-pink-50/30 border-b border-slate-50 transition-colors">
+                        <td class="p-2.5 text-center">${badge}</td>
                         <td class="p-2.5">
                             <div class="font-semibold text-slate-800">${item.taxpayerName || '-'}</div>
                             <div class="text-[10px] text-slate-400">${item.taxType} (${item.taxYear})</div>
                         </td>
-                        <td class="p-2.5 font-bold text-slate-700">฿${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
-                        <td class="p-2.5 text-slate-500">${item.officerName || '-'}</td>
-                        <td class="p-2.5 text-center">
+                        <td class="p-2.5 font-bold text-pink-600">฿${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
+                        <td class="p-2.5 text-slate-600">
+                            <div>${item.processStep || 'แจ้งประเมิน'}</div>
+                            <div class="text-[10px] text-slate-400">ผู้รับผิดชอบ: ${item.officerName || '-'}</div>
+                        </td>
+                        <td class="p-2.5 text-center no-print">
                             <div class="flex items-center justify-center gap-1">
-                                <button onclick="prepareEdit('${item.id}')" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="แก้ไข">
+                                <button onclick="prepareEdit('${item.id}')" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="แก้ไข">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                <button onclick="deleteCase('${item.id}')" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg" title="ลบ">
+                                <button onclick="deleteCase('${item.id}')" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="ลบ">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </div>
@@ -300,7 +395,7 @@
             }).join('');
         }
 
-        // Form Submit (Create / Update)
+        // Form Submit
         document.getElementById("case-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const editId = document.getElementById("edit-doc-id").value;
@@ -313,7 +408,7 @@
                 taxType: document.getElementById("taxType").value,
                 amount: parseFloat(document.getElementById("amount").value) || 0,
                 statusFlag: document.getElementById("statusFlag").value,
-                processStep: document.getElementById("processStep").value.trim(),
+                processStep: document.getElementById("processStep").value,
                 officerName: document.getElementById("officerName").value.trim(),
                 phone: document.getElementById("phone").value.trim(),
                 address: document.getElementById("address").value.trim(),
@@ -326,14 +421,12 @@
                 saveBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> กำลังบันทึก...`;
 
                 if (editId) {
-                    // Update
                     await updateDoc(doc(db, "revenue_cases", editId), formData);
-                    alert("✨ อัปเดตข้อมูลสำเร็จแล้ว!");
+                    alert("✨ อัปเดตข้อมูลเรียบร้อยแล้ว!");
                 } else {
-                    // Create
                     formData.createdAt = serverTimestamp();
                     await addDoc(casesCollection, formData);
-                    alert("🎉 บันทึกเคสใหม่เข้าสู่ระบบเรียบร้อยแล้ว!");
+                    alert("🎉 บันทึกเคสใหม่เรียบร้อยแล้ว!");
                 }
 
                 resetForm();
@@ -342,7 +435,7 @@
                 alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
             } finally {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูลลงระบบ`;
+                saveBtn.innerHTML = `<i class="fa-solid fa-heart"></i> บันทึกข้อมูลลงระบบ`;
             }
         });
 
@@ -358,13 +451,13 @@
             document.getElementById("taxType").value = item.taxType || 'ภาษีที่ดินและสิ่งปลูกสร้าง';
             document.getElementById("amount").value = item.amount || '';
             document.getElementById("statusFlag").value = item.statusFlag || 'red';
-            document.getElementById("processStep").value = item.processStep || '';
+            document.getElementById("processStep").value = item.processStep || 'หนังสือเตือน ครั้งที่ 1';
             document.getElementById("officerName").value = item.officerName || '';
             document.getElementById("phone").value = item.phone || '';
             document.getElementById("address").value = item.address || '';
             document.getElementById("notes").value = item.notes || '';
 
-            document.getElementById("form-title").innerHTML = `<span>✏️</span> แก้ไขข้อมูลเคส`;
+            document.getElementById("form-title").innerHTML = `<span>🎀</span> แก้ไขข้อมูลเคส`;
             document.getElementById("cancel-edit-btn").classList.remove("hidden");
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
@@ -386,7 +479,7 @@
         window.resetForm = function() {
             document.getElementById("case-form").reset();
             document.getElementById("edit-doc-id").value = "";
-            document.getElementById("form-title").innerHTML = `<span>✏️</span> บันทึกเคสใหม่`;
+            document.getElementById("form-title").innerHTML = `<span>🎀</span> บันทึกเคสใหม่`;
             document.getElementById("cancel-edit-btn").classList.add("hidden");
         };
     </script>
