@@ -827,12 +827,12 @@ import {
 
 // 🔴 อย่าลืมวาง Firebase Config ของคุณตรงนี้
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+   apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
+  authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
+  projectId: "tax-tracking-app-25fb7",
+  storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
+  messagingSenderId: "122118718226",
+  appId: "1:122118718226:web:df2d284fe543ec799da9cb"
 };
 
 const app = initializeApp(firebaseConfig);
