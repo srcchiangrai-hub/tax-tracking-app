@@ -1,296 +1,409 @@
 // ==========================================
-// 1. FIREBASE CONFIGURATION & INITIALIZATION
+// 1. MOCK DATA & INITIAL STATE
 // ==========================================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { 
-    getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+let revenueData = JSON.parse(localStorage.getItem('revenue_data')) || [
+    {
+        id: 'TAX-69001',
+        taxId: '1-5099-00123-45-1',
+        name: 'นายสมชาย ใจดี',
+        taxType: 'ภาษีที่ดินและสิ่งปลูกสร้าง',
+        taxYear: '2026',
+        amount: 4500,
+        status: '🔴 ค้างชำระ',
+        step: 'ส่งหนังสือเตือน ครั้งที่ 1',
+        officer: 'นางสาวนภา มีสุข',
+        dueDate: '2026-08-01',
+        address: '123/4 หมู่ 2 ต.ในเมือง อ.เมือง จ.เชียงราย'
+    },
+    {
+        id: 'TAX-69002',
+        taxId: '3-5001-00888-11-0',
+        name: 'ห้างหุ้นส่วนจำกัด สยามการค้า',
+        taxType: 'ภาษีป้าย',
+        taxYear: '2026',
+        amount: 1800,
+        status: '🟡 ติดตาม',
+        step: 'ลงพื้นที่ตรวจป้าย',
+        officer: 'นายวิชัย รักษ์ดี',
+        dueDate: '2026-08-15',
+        address: '45/1 ถนนพาณิชย์ ต.เวียง อ.เมือง จ.เชียงราย'
+    },
+    {
+        id: 'TAX-69003',
+        taxId: '1-5099-00999-00-2',
+        name: 'นางสาววิภาดาว มณีวรรณ',
+        taxType: 'ภาษีที่ดินและสิ่งปลูกสร้าง',
+        taxYear: '2026',
+        amount: 12500,
+        status: '🟢 เสร็จสิ้น',
+        step: 'ชำระเงินเรียบร้อย',
+        officer: 'นางสาวนภา มีสุข',
+        dueDate: '2026-07-20',
+        address: '88/9 หมู่ 5 ต.รอบเวียง อ.เมือง จ.เชียงราย'
+    }
+];
 
-// ⚠️ ใส่ค่า Config ของระบบ Firebase ของคุณตรงนี้ (ใช้ค่าเดิมของคุณ)
-const firebaseConfig = {
-    apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
-  authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
-  projectId: "tax-tracking-app-25fb7",
-  storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
-  messagingSenderId: "122118718226",
-  appId: "1:122118718226:web:df2d284fe543ec799da9cb"
-};
+let selectedOfficerFilter = null;
+let currentPeriod = 'month'; // 'month', 'quarter', 'year'
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const casesCollection = collection(db, "revenue_cases");
-
-// Global Data Store
-let rawCasesData = [];
-let currentStaffFilter = "";
+// Save data to LocalStorage
+function saveData() {
+    localStorage.setItem('revenue_data', JSON.stringify(revenueData));
+}
 
 // ==========================================
-// 2. REALTIME DATA LISTENER & INIT
+// 2. DOM LOAD & INITIALIZATION
 // ==========================================
-document.addEventListener("DOMContentLoaded", () => {
-    // ดึงข้อมูล Realtime จาก Firestore
-    const q = query(casesCollection, orderBy("createdAt", "desc"));
-    onSnapshot(q, (snapshot) => {
-        rawCasesData = [];
-        snapshot.forEach((doc) => {
-            rawCasesData.push({ id: doc.id, ...doc.data() });
-        });
-        
-        // อัปเดตส่วนต่างๆ ของแดชบอร์ด
-        renderDashboardStats();
-        renderStaffSummary();
-        renderDashboardTable();
-    });
-
-    // ผูก Event Handler กับปุ่มปิด Modal
-    window.closeCaseModal = closeCaseModal;
-    window.filterByStaff = filterByStaff;
-    window.openCaseModal = openCaseModal;
+document.addEventListener('DOMContentLoaded', () => {
+    initDashboard();
 });
 
-// ==========================================
-// 3. STATS & SUMMARY CALCULATION
-// ==========================================
-function renderDashboardStats() {
-    let totalAmount = 0;
-    let collectedAmount = 0;
-    let blackCount = 0;
-    let redCount = 0;
-    let yellowCount = 0;
-    let greenCount = 0;
-
-    rawCasesData.forEach(item => {
-        totalAmount += Number(item.amount || 0);
-        
-        if (item.statusFlag === 'green') {
-            collectedAmount += Number(item.amount || 0);
-            greenCount++;
-        } else if (item.statusFlag === 'black') {
-            blackCount++;
-        } else if (item.statusFlag === 'red') {
-            redCount++;
-        } else if (item.statusFlag === 'yellow') {
-            yellowCount++;
-        }
-    });
-
-    // อัปเดต Element บน DOM
-    const totalElem = document.getElementById("stat-total-amount");
-    const collectedElem = document.getElementById("stat-collected-amount");
-    const blackElem = document.getElementById("stat-black-count");
-    const redElem = document.getElementById("stat-red-count");
-    const yellowElem = document.getElementById("stat-yellow-count");
-    const greenElem = document.getElementById("stat-green-count");
-
-    if (totalElem) totalElem.innerText = `฿${totalAmount.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-    if (collectedElem) collectedElem.innerText = `฿${collectedAmount.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-    if (blackElem) blackElem.innerText = `${blackCount} เคส`;
-    if (redElem) redElem.innerText = `${redCount} เคส`;
-    if (yellowElem) yellowElem.innerText = `${yellowCount} เคส`;
-    if (greenElem) greenElem.innerText = `${greenCount} เคส`;
-}
-
-// ==========================================
-// 4. STAFF SUMMARY GRID RENDERER
-// ==========================================
-function renderStaffSummary() {
-    const container = document.getElementById("staff-summary-grid");
-    if (!container) return;
-
-    // สรุปข้อมูลแยกตามรายชื่อเจ้าหน้าที่
-    const staffMap = {};
-
-    rawCasesData.forEach(item => {
-        const staffName = item.officerName || "ไม่ระบุเจ้าหน้าที่";
-        if (!staffMap[staffName]) {
-            staffMap[staffName] = { total: 0, black: 0, red: 0, yellow: 0, green: 0, amount: 0 };
-        }
-        staffMap[staffName].total += 1;
-        staffMap[staffName].amount += Number(item.amount || 0);
-        if (item.statusFlag === 'black') staffMap[staffName].black += 1;
-        if (item.statusFlag === 'red') staffMap[staffName].red += 1;
-        if (item.statusFlag === 'yellow') staffMap[staffName].yellow += 1;
-        if (item.statusFlag === 'green') staffMap[staffName].green += 1;
-    });
-
-    if (Object.keys(staffMap).length === 0) {
-        container.innerHTML = `<p class="col-span-full text-center text-xs text-slate-400 py-4">ยังไม่มีข้อมูลภาระงานเจ้าหน้าที่</p>`;
-        return;
-    }
-
-    let html = "";
-    for (const [name, data] of Object.entries(staffMap)) {
-        const isSelected = currentStaffFilter === name;
-        html += `
-            <div onclick="filterByStaff('${name}')" 
-                 class="p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                     isSelected 
-                     ? 'border-pink-500 bg-pink-50/50 shadow-md ring-2 ring-pink-200' 
-                     : 'border-slate-100 bg-slate-50/50 hover:border-pink-300 hover:bg-white'
-                 }">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="font-semibold text-slate-800 text-sm truncate">${name}</span>
-                    <span class="text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full font-bold">${data.total} เคส</span>
-                </div>
-                <div class="text-xs text-slate-500 mb-3">
-                    ทุนทรัพย์รวม: <span class="font-bold text-slate-700">฿${data.amount.toLocaleString()}</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-xs">
-                    <span class="px-1.5 py-0.5 rounded bg-slate-900 text-white font-medium" title="ด่วนมาก">${data.black}</span>
-                    <span class="px-1.5 py-0.5 rounded bg-rose-500 text-white font-medium" title="ค้างชำระ">${data.red}</span>
-                    <span class="px-1.5 py-0.5 rounded bg-amber-400 text-white font-medium" title="ติดตาม">${data.yellow}</span>
-                    <span class="px-1.5 py-0.5 rounded bg-emerald-500 text-white font-medium" title="เสร็จสิ้น">${data.green}</span>
-                </div>
-            </div>
-        `;
-    }
-    container.innerHTML = html;
-}
-
-function filterByStaff(name) {
-    currentStaffFilter = currentStaffFilter === name ? "" : name; // กดซ้ำเพื่อยกเลิก Filter
+function initDashboard() {
+    updateMainStats();
+    updateTaxTypeStats();
     renderStaffSummary();
     renderDashboardTable();
 }
 
 // ==========================================
-// 5. DASHBOARD TABLE RENDERER
+// 3. STATS CALCULATION & REAL-TIME FILTERING
+// ==========================================
+
+// สถิติสถานะรวม (🔴 ค้างชำระ / 🟡 ติดตาม / 🟢 เสร็จสิ้น)
+function updateMainStats() {
+    const redCount = revenueData.filter(d => d.status.includes('🔴') || d.status.includes('ค้างชำระ')).length;
+    const yellowCount = revenueData.filter(d => d.status.includes('🟡') || d.status.includes('ติดตาม')).length;
+    const greenCount = revenueData.filter(d => d.status.includes('🟢') || d.status.includes('เสร็จสิ้น')).length;
+
+    document.getElementById('stat-red-count').innerText = `${redCount} เคส`;
+    document.getElementById('stat-yellow-count').innerText = `${yellowCount} เคส`;
+    document.getElementById('stat-green-count').innerText = `${greenCount} เคส`;
+}
+
+// สถิติแยกตามประเภทภาษี และช่วงเวลาจริง (Real-Time)
+window.changeTimePeriod = function(period) {
+    currentPeriod = period;
+    
+    // UI Active state
+    ['month', 'quarter', 'year'].forEach(p => {
+        const btn = document.getElementById(`btn-period-${p}`);
+        if(p === period) {
+            btn.className = "px-3 py-1.5 rounded-xl font-medium transition-all bg-white text-pink-600 shadow-sm";
+        } else {
+            btn.className = "px-3 py-1.5 rounded-xl font-medium text-slate-600 hover:text-pink-600 transition-all";
+        }
+    });
+
+    updateTaxTypeStats();
+};
+
+function updateTaxTypeStats() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+    const currentQuarter = Math.floor(currentMonth / 3);
+
+    // Filter items based on real-time dates
+    const filteredData = revenueData.filter(item => {
+        if (!item.dueDate) return true;
+        const itemDate = new Date(item.dueDate);
+        const itemYear = itemDate.getFullYear();
+        const itemMonth = itemDate.getMonth();
+        const itemQuarter = Math.floor(itemMonth / 3);
+
+        if (currentPeriod === 'month') {
+            return itemYear === currentYear && itemMonth === currentMonth;
+        } else if (currentPeriod === 'quarter') {
+            return itemYear === currentYear && itemQuarter === currentQuarter;
+        } else if (currentPeriod === 'year') {
+            return itemYear === currentYear;
+        }
+        return true;
+    });
+
+    // Label texts
+    const periodTexts = {
+        month: 'ประจำเดือนนี้',
+        quarter: 'ประจำไตรมาสนี้',
+        year: 'ประจำปีนี้'
+    };
+    document.getElementById('label-land-period').innerText = periodTexts[currentPeriod];
+    document.getElementById('label-sign-period').innerText = periodTexts[currentPeriod];
+
+    // Calculate Land Tax
+    const landItems = filteredData.filter(i => i.taxType.includes('ที่ดิน'));
+    const landTotal = landItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+    document.getElementById('stat-land-total').innerText = `฿${landTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+    document.getElementById('stat-land-count').innerText = `${landItems.length} ราย`;
+
+    // Calculate Sign Tax
+    const signItems = filteredData.filter(i => i.taxType.includes('ป้าย'));
+    const signTotal = signItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+    document.getElementById('stat-sign-total').innerText = `฿${signTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+    document.getElementById('stat-sign-count').innerText = `${signItems.length} ราย`;
+}
+
+// ==========================================
+// 4. STAFF SUMMARY & FILTERING
+// ==========================================
+function renderStaffSummary() {
+    const staffMap = {};
+
+    revenueData.forEach(item => {
+        const name = item.officer || 'ไม่ระบุ';
+        if (!staffMap[name]) {
+            staffMap[name] = { total: 0, pending: 0 };
+        }
+        staffMap[name].total += 1;
+        if (!item.status.includes('เสร็จสิ้น')) {
+            staffMap[name].pending += 1;
+        }
+    });
+
+    const grid = document.getElementById('staff-summary-grid');
+    grid.innerHTML = '';
+
+    Object.keys(staffMap).forEach(staff => {
+        const isSelected = selectedOfficerFilter === staff;
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-2xl cursor-pointer border-2 transition-all ${
+            isSelected 
+                ? 'bg-pink-50 border-pink-500 shadow-md' 
+                : 'bg-white border-pink-100 hover:border-pink-300'
+        }`;
+        card.onclick = () => filterByOfficer(staff);
+
+        card.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-bold text-slate-800 text-sm">${staff}</span>
+                <span class="text-xs ${isSelected ? 'bg-pink-500 text-white' : 'bg-pink-100 text-pink-600'} px-2 py-0.5 rounded-full">
+                    ${staffMap[staff].total} รายการ
+                </span>
+            </div>
+            <p class="text-xs text-slate-500">ค้างดำเนินการ: <strong class="text-rose-500 font-bold">${staffMap[staff].pending}</strong> ราย</p>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function filterByOfficer(officer) {
+    if (selectedOfficerFilter === officer) {
+        selectedOfficerFilter = null; // Toggle Off
+    } else {
+        selectedOfficerFilter = officer;
+    }
+    renderStaffSummary();
+    renderDashboardTable();
+}
+
+// ==========================================
+// 5. TABLE RENDERING WITH HIGHLIGHTED TAX ID
 // ==========================================
 window.renderDashboardTable = function() {
-    const tbody = document.getElementById("dashboard-data-table");
-    const searchInput = document.getElementById("search-input");
-    if (!tbody) return;
+    const searchVal = document.getElementById('search-input')?.value.toLowerCase() || '';
+    const tbody = document.getElementById('dashboard-data-table');
+    tbody.innerHTML = '';
 
-    const queryText = searchInput ? searchInput.value.trim().toLowerCase() : "";
-
-    // กรองข้อมูลตาม Search Query และ Staff Filter
-    const filtered = rawCasesData.filter(item => {
-        const matchesStaff = currentStaffFilter === "" || item.officerName === currentStaffFilter;
+    const filtered = revenueData.filter(item => {
         const matchesSearch = 
-            (item.taxpayerName && item.taxpayerName.toLowerCase().includes(queryText)) ||
-            (item.officerName && item.officerName.toLowerCase().includes(queryText)) ||
-            (item.taxId && item.taxId.toLowerCase().includes(queryText)) ||
-            (item.taxType && item.taxType.toLowerCase().includes(queryText));
+            item.name.toLowerCase().includes(searchVal) || 
+            item.taxId.toLowerCase().includes(searchVal) ||
+            item.taxType.toLowerCase().includes(searchVal);
         
-        return matchesStaff && matchesSearch;
+        const matchesOfficer = selectedOfficerFilter ? item.officer === selectedOfficerFilter : true;
+
+        return matchesSearch && matchesOfficer;
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center py-8 text-slate-400 text-xs">
-                    ไม่พบข้อมูลที่ตรงกับการค้นหา
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">ไม่พบข้อมูลที่ค้นหา</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = filtered.map(item => {
-        // แปลง Flag เป็น Badge สี
-        let flagBadge = "";
-        switch (item.statusFlag) {
-            case 'black': flagBadge = '<span class="px-2.5 py-1 bg-slate-900 text-white text-xs rounded-lg font-medium">⚫ เร่งด่วน</span>'; break;
-            case 'red': flagBadge = '<span class="px-2.5 py-1 bg-rose-100 text-rose-600 text-xs rounded-lg font-medium">🔴 ค้างชำระ</span>'; break;
-            case 'yellow': flagBadge = '<span class="px-2.5 py-1 bg-amber-100 text-amber-700 text-xs rounded-lg font-medium">🟡 ติดตาม</span>'; break;
-            case 'green': flagBadge = '<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-lg font-medium">🟢 เสร็จสิ้น</span>'; break;
-            default: flagBadge = '<span class="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg">⚪ ทั่วไป</span>';
-        }
+    filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-pink-50/30 transition-colors";
 
-        return `
-            <tr class="hover:bg-pink-50/30 transition-colors">
-                <td class="p-3">${flagBadge}</td>
-                <td class="p-3 font-semibold text-slate-800">${item.taxpayerName || '-'}</td>
-                <td class="p-3 text-slate-600">${item.taxType || '-'} / ${item.taxYear || '-'}</td>
-                <td class="p-3 font-bold text-slate-700">฿${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
-                <td class="p-3 text-slate-500 text-xs">${item.processStep || '-'}</td>
-                <td class="p-3 text-slate-600 text-xs">${item.officerName || '-'}</td>
-                <td class="p-3 text-center">
-                    <button onclick="openCaseModal('${item.id}')" class="px-3 py-1 bg-pink-100 text-pink-600 hover:bg-pink-500 hover:text-white transition-colors rounded-xl text-xs font-semibold">
-                        <i class="fa-solid fa-eye"></i> ดูข้อมูล
-                    </button>
-                </td>
-            </tr>
+        tr.innerHTML = `
+            <td class="p-3 font-medium">${item.status}</td>
+            <td class="p-3">
+                <!-- เน้นสีเลขประจำตัวภาษีให้เด่นชัด -->
+                <span class="font-bold text-indigo-950 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md tracking-wide">
+                    ${item.taxId}
+                </span>
+            </td>
+            <td class="p-3 font-semibold text-slate-800">${item.name}</td>
+            <td class="p-3 text-slate-600">${item.taxType} (${item.taxYear})</td>
+            <td class="p-3 font-bold text-slate-900">฿${Number(item.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
+            <td class="p-3 text-slate-600">${item.step}</td>
+            <td class="p-3 text-slate-600">${item.officer}</td>
+            <td class="p-3 text-center">
+                <button onclick="viewCaseDetail('${item.id}')" class="px-3 py-1 bg-pink-100 hover:bg-pink-500 hover:text-white text-pink-600 rounded-xl transition-all font-semibold">
+                    <i class="fa-solid fa-eye mr-1"></i> ดูข้อมูล
+                </button>
+            </td>
         `;
-    }).join("");
+        tbody.appendChild(tr);
+    });
 };
 
 // ==========================================
-// 6. MODAL DETAIL CONTROLLER
+// 6. MODAL & PRINTING FUNCTIONS
 // ==========================================
-function openCaseModal(docId) {
-    const item = rawCasesData.find(c => c.id === docId);
+window.viewCaseDetail = function(id) {
+    const item = revenueData.find(d => d.id === id);
     if (!item) return;
 
-    const modal = document.getElementById("case-detail-modal");
-    const container = document.getElementById("modal-content");
-    if (!modal || !container) return;
+    const modal = document.getElementById('case-detail-modal');
+    const content = document.getElementById('modal-content');
 
-    let flagBadge = "";
-    switch (item.statusFlag) {
-        case 'black': flagBadge = '<span class="px-3 py-1 bg-slate-900 text-white text-xs rounded-lg">⚫ เร่งด่วนวิกฤต</span>'; break;
-        case 'red': flagBadge = '<span class="px-3 py-1 bg-rose-100 text-rose-600 text-xs rounded-lg">🔴 ค้างชำระนาน</span>'; break;
-        case 'yellow': flagBadge = '<span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs rounded-lg">🟡 อยู่ระหว่างติดตาม</span>'; break;
-        case 'green': flagBadge = '<span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-lg">🟢 ชำระครบถ้วนแล้ว</span>'; break;
-    }
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="border-b pb-3">
+                <span class="text-xs text-pink-500 font-bold uppercase tracking-wider">รายละเอียดเคส</span>
+                <h3 class="text-xl font-bold text-slate-800">${item.name}</h3>
+                <p class="text-xs text-slate-500">${item.address || 'ไม่ระบุที่อยู่'}</p>
+            </div>
 
-    container.innerHTML = `
-        <div class="flex items-center gap-2 mb-2">
-            ${flagBadge}
-            <span class="text-xs text-slate-400">เลขภาษี / ID: ${item.taxId || item.id}</span>
-        </div>
-        <h3 class="font-cute text-2xl font-bold text-slate-800 mb-4">${item.taxpayerName || 'ไม่ระบุชื่อ'}</h3>
-        
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-pink-50/50 p-4 rounded-2xl mb-4 border border-pink-100 text-xs">
-            <div>
-                <p class="text-slate-400">ประเภทภาษี</p>
-                <p class="font-semibold text-slate-700 text-sm mt-0.5">${item.taxType || '-'}</p>
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-400 block mb-0.5">เลขประจำตัวภาษี</span>
+                    <strong class="text-indigo-950 font-bold text-sm">${item.taxId}</strong>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-400 block mb-0.5">ประเภทภาษี</span>
+                    <strong class="text-slate-800">${item.taxType}</strong>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-400 block mb-0.5">ยอดประเมิน</span>
+                    <strong class="text-emerald-600 text-sm">฿${Number(item.amount).toLocaleString('th-TH')}</strong>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-400 block mb-0.5">เจ้าหน้าที่ผู้รับผิดชอบ</span>
+                    <strong class="text-slate-800">${item.officer}</strong>
+                </div>
             </div>
-            <div>
-                <p class="text-slate-400">ปีภาษี</p>
-                <p class="font-semibold text-slate-700 text-sm mt-0.5">${item.taxYear || '-'}</p>
-            </div>
-            <div>
-                <p class="text-slate-400">ยอดประเมิน / ค้างชำระ</p>
-                <p class="font-bold text-pink-600 text-base mt-0.5">฿${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}</p>
-            </div>
-            <div>
-                <p class="text-slate-400">ขั้นตอนการดำเนินงาน</p>
-                <p class="font-semibold text-slate-700 text-sm mt-0.5">${item.processStep || '-'}</p>
-            </div>
-        </div>
 
-        <div class="space-y-3 text-xs mb-6">
-            <div class="border-b pb-2">
-                <span class="text-slate-400 block mb-1">ที่อยู่ / สถานที่ประกอบการ:</span>
-                <span class="text-slate-700 font-medium">${item.address || 'ไม่ระบุ'}</span>
+            <div class="bg-pink-50/50 p-3 rounded-2xl border border-pink-100">
+                <span class="text-xs text-slate-500 block">ขั้นตอนปัจจุบัน:</span>
+                <p class="font-bold text-pink-600 text-sm mt-0.5">${item.step}</p>
             </div>
-            <div class="border-b pb-2">
-                <span class="text-slate-400 block mb-1">เบอร์โทรศัพท์ติดต่อ:</span>
-                <span class="text-slate-700 font-medium">${item.phone || 'ไม่ระบุ'}</span>
-            </div>
-            <div class="border-b pb-2">
-                <span class="text-slate-400 block mb-1">บันทึกหมายเหตุการลงพื้นที่ / ติดตาม:</span>
-                <p class="text-slate-700 bg-slate-50 p-3 rounded-xl mt-1 leading-relaxed">${item.notes || 'ไม่มีบันทึกเพิ่มเติม'}</p>
-            </div>
-            <div>
-                <span class="text-slate-400 block mb-1">เจ้าหน้าที่ผู้รับผิดชอบเคส:</span>
-                <span class="text-slate-800 font-semibold">${item.officerName || 'ไม่ระบุ'}</span>
-            </div>
-        </div>
 
-        <div class="flex justify-end">
-            <button onclick="closeCaseModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-colors">
-                ปิดหน้าต่าง
-            </button>
+            <div class="flex gap-2 pt-2">
+                <button onclick="printOfficialDocument('${item.id}')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> พิมพ์หนังสือติดตาม
+                </button>
+                <button onclick="closeModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs rounded-xl transition-all">
+                    ปิด
+                </button>
+            </div>
         </div>
     `;
 
-    modal.classList.remove("hidden");
-}
+    modal.classList.remove('hidden');
+};
 
-function closeCaseModal() {
-    const modal = document.getElementById("case-detail-modal");
-    if (modal) modal.classList.add("hidden");
-}
+window.closeModal = function() {
+    document.getElementById('case-detail-modal').classList.add('hidden');
+};
+
+// 🖨️ พิมพ์หนังสือแจ้งเตือนรายบุคคล (รูปแบบราชการ TH Sarabun)
+window.printOfficialDocument = function(id) {
+    const item = revenueData.find(d => d.id === id);
+    if (!item) return;
+
+    const printArea = document.getElementById('printable-area');
+    const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    printArea.innerHTML = `
+        <div style="font-family: 'TH Sarabun New', sans-serif; font-size: 16pt; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="font-size: 22pt; font-weight: bold; margin: 0;">หนังสือแจ้งเตือนชำระภาษี</h2>
+                <p style="margin: 0;">หน่วยงานจัดเก็บรายได้ กองคลัง</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div>ที่ ชร 52001/..............</div>
+                <div>วันที่ ${todayTH}</div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <strong>เรื่อง:</strong> เตือนให้ดำเนินการชำระ${item.taxType} ประจำปี ${item.taxYear}<br>
+                <strong>เรียน:</strong> ${item.name}<br>
+                <strong>เลขประจำตัวผู้เสียภาษี:</strong> <span style="font-size: 18pt; font-weight: bold;">${item.taxId}</span>
+            </div>
+
+            <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 15px;">
+                ตามที่ท่านมีหน้าที่ต้องชำระ <strong>${item.taxType}</strong> ประจำปี พ.ศ. ${item.taxYear} เป็นจำนวนเงินทั้งสิ้น 
+                <strong>${Number(item.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</strong> นั้น 
+                จากการตรวจสอบระบบข้อมูลพบว่า ปัจจุบันสถานะของท่านอยู่ระหว่าง <em>"${item.step}"</em> และยังไม่ได้ดำเนินการชำระให้เสร็จสิ้นตามกำหนด
+            </p>
+
+            <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 30px;">
+                จึงขอเรียนมาเพื่อโปรดติดต่อนำส่งชำระภาษีดังกล่าว ณ กองคลัง ภายใน 15 วัน นับแต่วันที่ได้รับหนังสือฉบับนี้ หากท่านชำระเงินเรียบร้อยแล้วก่อนได้รับหนังสือฉบับนี้ ทางเจ้าหน้าที่ต้องขออภัยมา ณ ที่นี้ด้วย
+            </p>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 50px;">
+                <div style="text-align: center; width: 250px;">
+                    <p style="margin-bottom: 60px;">ขอแสดงความนับถือ</p>
+                    <p style="margin: 0;">(....................................................)</p>
+                    <p style="margin: 0;">เจ้าพนักงานจัดเก็บรายได้</p>
+                    <p style="margin: 0;">เจ้าหน้าที่ผู้รับผิดชอบ: ${item.officer}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    window.print();
+};
+
+// 🖨️ พิมพ์รายงานสรุปตาราง (รองรับการกรองแยกรายบุคคล)
+window.printFilteredReport = function() {
+    const printArea = document.getElementById('printable-area');
+    const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const filtered = revenueData.filter(item => selectedOfficerFilter ? item.officer === selectedOfficerFilter : true);
+
+    let rowsHTML = filtered.map((item, idx) => `
+        <tr style="border-bottom: 1px solid #ddd; text-align: center;">
+            <td style="padding: 6px;">${idx + 1}</td>
+            <td style="padding: 6px; font-weight: bold;">${item.taxId}</td>
+            <td style="padding: 6px; text-align: left;">${item.name}</td>
+            <td style="padding: 6px; text-align: left;">${item.taxType}</td>
+            <td style="padding: 6px; text-align: right;">${Number(item.amount).toLocaleString('th-TH')}</td>
+            <td style="padding: 6px;">${item.status}</td>
+            <td style="padding: 6px;">${item.officer}</td>
+        </tr>
+    `).join('');
+
+    printArea.innerHTML = `
+        <div style="font-family: 'TH Sarabun New', sans-serif; font-size: 14pt; padding: 10px;">
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h3 style="font-size: 18pt; font-weight: bold; margin: 0;">รายงานสรุปการติดตามและเร่งรัดจัดเก็บรายได้</h3>
+                <p style="margin: 0;">
+                    ${selectedOfficerFilter ? `เฉพาะเจ้าหน้าที่: <strong>${selectedOfficerFilter}</strong> | ` : 'เจ้าหน้าที่ทุกคน | '}
+                    ข้อมูล ณ วันที่ ${todayTH}
+                </p>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;" border="1">
+                <thead>
+                    <tr style="background-color: #f2f2f2; text-align: center; font-weight: bold;">
+                        <th style="padding: 6px;">ลำดับ</th>
+                        <th style="padding: 6px;">เลขประจำตัวภาษี</th>
+                        <th style="padding: 6px;">ชื่อผู้เสียภาษี</th>
+                        <th style="padding: 6px;">ประเภทภาษี</th>
+                        <th style="padding: 6px;">ยอดเงิน (บาท)</th>
+                        <th style="padding: 6px;">สถานะ</th>
+                        <th style="padding: 6px;">เจ้าหน้าที่</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHTML}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    window.print();
+};
