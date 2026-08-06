@@ -6,19 +6,15 @@
   <title>👑 Dashboard รายงานติดตามภาษี</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
   <style>
     body { font-family: 'Mali', cursive, sans-serif; }
-    @media print {
-      .no-print { display: none !important; }
-      .print-only { display: block !important; }
-      body { background: white; p: 0; }
-    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 p-4 md:p-8 min-h-screen">
 
   <div class="max-w-6xl mx-auto space-y-6">
-    <!-- Navigation Bar -->
+    <!-- Header / Navigation -->
     <div class="no-print bg-white rounded-3xl shadow-md border-2 border-purple-100 p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
       <div>
         <span class="bg-purple-100 text-purple-700 px-4 py-1.5 rounded-full text-xs font-bold">👑 Executive Portal</span>
@@ -34,7 +30,7 @@
       </div>
     </div>
 
-    <!-- ตารางสรุปข้อมูล -->
+    <!-- ตารางแสดงข้อมูล -->
     <div class="bg-white rounded-3xl shadow-md border-2 border-purple-100 p-6 overflow-x-auto">
       <h2 class="text-lg font-bold text-slate-700 mb-4">รายการบันทึกทั้งหมด</h2>
       <table class="w-full text-left border-collapse text-sm">
@@ -58,53 +54,6 @@
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // 🔴 ใส่ Firebase Config จริงของคุณที่นี่
-    const firebaseConfig = {
-      apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
-  authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
-  projectId: "tax-tracking-app-25fb7",
-  storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
-  messagingSenderId: "122118718226",
-  appId: "1:122118718226:web:df2d284fe543ec799da9cb"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // ดึงข้อมูล Realtime
-    const q = query(collection(db, "tax_records"), orderBy("createdAt", "desc"));
-    onSnapshot(q, (snapshot) => {
-      const tbody = document.getElementById("dataTable");
-      if (snapshot.empty) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>`;
-        return;
-      }
-
-      let html = "";
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const dateStr = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString('th-TH') : '-';
-        
-        html += `
-          <tr class="hover:bg-slate-50 transition">
-            <td class="p-3 text-xs text-slate-500">${dateStr}</td>
-            <td class="p-3 font-bold text-slate-700">${data.fullName || '-'}</td>
-            <td class="p-3">${data.taxType || '-'}</td>
-            <td class="p-3 font-semibold text-pink-600">${(data.taxAmount || 0).toLocaleString()}</td>
-            <td class="p-3"><span class="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-bold">${data.followResult || '-'}</span></td>
-            <td class="p-3">
-              ${data.photoUrl ? `<a href="${data.photoUrl}" target="_blank" class="text-xs text-purple-600 underline font-bold">🖼️ ดูรูปภาพ</a>` : '<span class="text-slate-300">-</span>'}
-            </td>
-            <td class="p-3 text-xs text-slate-500">${data.reporterName || '-'}</td>
-          </tr>
-        `;
-      });
-      tbody.innerHTML = html;
-    });
-  </script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
