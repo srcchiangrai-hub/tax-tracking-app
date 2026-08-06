@@ -13,7 +13,7 @@ const firebaseConfig = {
 };
 
 // 🔴 2. URL Google Apps Script สำหรับเก็บรูปบน Google Drive
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJVT-FV_TxiRBXW4CnJIcPrOjoclfJDQZSUJDmyCUOuTypaD3ogrYGorNnVMPfHtvBkQ/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyU75Glrqy6VFhzvhQB8DZRIGuFYvJJm95ppbOMq7bk35w90gKl47h86ChG8ZettT2gg/exec
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
