@@ -3,227 +3,567 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบบันทึกการออกติดตามภาษี</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f6f9fc; color: #495057; min-height: 100vh; }
-        .navbar-cute { background: linear-gradient(90deg, #a8edea 0%, #fed6e3 100%); }
-        .card-cute { border: none; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.05); background: #ffffff; }
-        .section-header { background: #fff5f7; border-left: 5px solid #ff9a9e; padding: 10px 15px; border-radius: 8px; font-weight: 600; color: #ff6b81; }
-        .btn-pastel-primary { background-color: #a8edea; border: none; color: #2d545e; font-weight: 600; border-radius: 12px; }
-        .btn-pastel-primary:hover { background-color: #92e0dc; color: #1f3b42; }
-        .btn-pastel-danger { background-color: #ffb8b8; border: none; color: #721c24; font-weight: 600; border-radius: 12px; }
-        .form-control, .form-select { border-radius: 10px; border: 1.5px solid #e3e8ee; padding: 8px 12px; }
-        .form-control:focus, .form-select:focus { border-color: #ff9a9e; box-shadow: 0 0 0 0.2rem rgba(255,154,158,0.25); }
-        
-        .login-wrapper { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 120px); }
-        .login-card { border: none; border-radius: 24px; box-shadow: 0 10px 30px rgba(168, 237, 234, 0.4); background: rgba(255, 255, 255, 0.95); max-width: 420px; width: 100%; }
-        .btn-cute { background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%); border: none; color: #555; font-weight: 600; border-radius: 12px; padding: 12px; }
+    <title>จัดการข้อมูลผู้เสียภาษี - RevenueCute Tracker</title>
 
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Prompt, Mali และ TH Sarabun New (สำหรับพิมพ์งานราชการ) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Prompt:wght@300;400;500;600&family=TH+Sarabun+New:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastelBg: '#FFF9F5',
+                        brandPrimary: '#F472B6',
+                    },
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                        cute: ['Mali', 'cursive'],
+                        sarabun: ['"TH Sarabun New"', '"TH Sarabun PSK"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #FFF9F5;
+            background-image: radial-gradient(#FDE68A 0.75px, transparent 0.75px);
+            background-size: 16px 16px;
+        }
+        .cute-card {
+            background: #FFFFFF;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.1);
+            border: 2px solid #FFF0F5;
+        }
+        .cute-btn {
+            border-radius: 16px;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .cute-btn:hover {
+            transform: translateY(-2px) scale(1.01);
+        }
+        .cute-input {
+            border-radius: 14px;
+            border: 2px solid #F1F5F9;
+            transition: all 0.2s ease;
+        }
+        .cute-input:focus {
+            border-color: #F472B6;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.15);
+        }
+
+        /* 🖨️ มาตรฐานสไตล์พิมพ์เอกสารทางราชการ A4 (TH Sarabun 16pt) */
         @media print {
-            body * { visibility: hidden; }
-            #printableArea, #printableArea * { visibility: visible; }
-            #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+            body { 
+                background: white !important; 
+                font-family: 'TH Sarabun New', 'TH Sarabun PSK', sans-serif !important;
+                color: #000 !important;
+            }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .cute-card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+            
+            @page { 
+                size: A4 portrait; 
+                margin: 2cm 2cm 2cm 2.5cm;
+            }
+
+            .official-doc {
+                font-family: 'TH Sarabun New', 'TH Sarabun PSK', sans-serif !important;
+                font-size: 16pt !important;
+                line-height: 1.25 !important;
+                color: #000 !important;
+            }
+            .official-doc h2 { font-size: 20pt !important; font-weight: bold !important; }
+            .official-doc table { font-size: 16pt !important; border-collapse: collapse !important; width: 100% !important; }
+            .official-doc th, .official-doc td { border: 1px solid #000 !important; padding: 4px 6px !important; }
         }
     </style>
 </head>
-<body>
+<body class="font-sans text-slate-700 min-h-screen pb-12">
 
-    <nav class="navbar navbar-expand-lg navbar-light navbar-cute shadow-sm mb-4">
-        <div class="container">
-            <a class="navbar-brand fw-bold text-secondary" href="#"><span class="fs-4">🌸</span> ระบบออกติดตามภาษี</a>
-            <div class="d-flex align-items-center gap-2">
-                <span id="userInfo" class="badge bg-white text-dark p-2 border me-2" style="display:none;"></span>
-                <a href="index.html" class="btn btn-sm btn-white rounded-pill px-3 shadow-sm">📊 Dashboard ผู้บริหาร</a>
-                <button id="btnLogout" class="btn btn-sm btn-pastel-danger px-3" style="display:none;">🚪 ออกจากระบบ</button>
+    <!-- 🌸 Header / Navbar -->
+    <header class="no-print bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b-2 border-pink-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                    📝✨
+                </div>
+                <div>
+                    <h1 class="font-cute font-bold text-xl sm:text-2xl text-pink-500 tracking-wide">
+                        RevenueCute Admin
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">จัดการข้อมูลผู้เสียภาษีและบันทึกเร่งรัดรายได้</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-pink-500 hover:bg-pink-50 transition-all">
+                    <i class="fa-solid fa-chart-pie mr-1"></i> แดชบอร์ด
+                </a>
+                <a href="admin.html" class="px-4 py-2 rounded-xl text-sm font-semibold bg-pink-500 text-white shadow-sm">
+                    <i class="fa-solid fa-folder-plus mr-1"></i> จัดการข้อมูล
+                </a>
             </div>
         </div>
-    </nav>
+    </header>
 
-    <div class="container pb-5">
-        
-        <!-- หน้า Login (จะแสดงเมื่อยังไม่ยืนยันตัวตนใน Firebase Auth) -->
-        <div id="loginSection" class="login-wrapper">
-            <div class="card login-card p-4 p-sm-5 text-center">
-                <div class="mb-3">
-                    <span class="fs-1">🌸</span>
-                    <h3 class="fw-bold text-dark mt-2">ลงชื่อเข้าใช้งาน</h3>
-                    <p class="text-muted small">ใช้ไอดีจาก Firebase Authentication</p>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+
+        <!-- 📝 FORM SECTION: บันทึก/แก้ไขข้อมูล -->
+        <section class="no-print cute-card p-6">
+            <div class="flex items-center justify-between border-b-2 border-pink-50 pb-4 mb-6">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">📝</span>
+                    <div>
+                        <h2 class="font-cute font-bold text-xl text-slate-800">บันทึก / แก้ไข ข้อมูลผู้เสียภาษี</h2>
+                        <p class="text-xs text-slate-400">กรอกรายละเอียดเพื่อสร้างเคสเร่งรัดและอัปเดตสถานะการติดตาม</p>
+                    </div>
+                </div>
+                <button type="button" onclick="resetForm()" class="text-xs font-semibold text-pink-500 hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-left"></i> ล้างฟอร์ม
+                </button>
+            </div>
+
+            <form id="tax-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                <input type="hidden" id="doc-id">
+
+                <!-- Section 1: ข้อมูลบุคคล -->
+                <div>
+                    <h3 class="text-sm font-bold text-pink-500 mb-3 flex items-center gap-2">
+                        <span>1️⃣</span> ข้อมูลผู้เสียภาษี
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อ-สกุล / นิติบุคคล *</label>
+                            <input type="text" id="taxpayerName" required placeholder="นายกิตติศักดิ์ ใจดี" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">เลขบัตรประชาชน / เลขภาษี (13 หลัก)</label>
+                            <input type="text" id="taxId" placeholder="1509900XXXXXX" maxlength="13" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">เบอร์โทรศัพท์ / Line ID</label>
+                            <input type="text" id="phone" placeholder="081-234-5678" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ที่อยู่ผู้เสียภาษี / ที่อยู่ส่งเอกสาร</label>
+                            <input type="text" id="address" placeholder="123 ม.4 ต.เวียง อ.เมือง จ.เชียงราย" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+                    </div>
                 </div>
 
-                <form id="loginForm">
-                    <div class="mb-3 text-start">
-                        <label class="form-label text-secondary small fw-bold">อีเมลผู้ใช้งาน</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0"><i class="fa-solid fa-envelope text-muted"></i></span>
-                            <input type="email" id="loginEmail" class="form-control" placeholder="admin@tax.go.th" required autocomplete="username">
+                <!-- Section 2: รายละเอียดภาษี -->
+                <div>
+                    <h3 class="text-sm font-bold text-pink-500 mb-3 flex items-center gap-2">
+                        <span>2️⃣</span> รายละเอียดทรัพย์สิน & ยอดเงินประเมิน
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ประเภทภาษี *</label>
+                            <select id="taxType" class="cute-input w-full p-2.5 text-sm font-medium">
+                                <option value="ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีที่ดินและสิ่งปลูกสร้าง</option>
+                                <option value="ภาษีป้าย">ภาษีป้าย</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ปีประเมินภาษี *</label>
+                            <input type="text" id="taxYear" required placeholder="เช่น 2569" class="cute-input w-full p-2.5 text-sm font-semibold text-pink-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสแปลง (P-Code) / รหัสป้าย</label>
+                            <input type="text" id="propertyCode" placeholder="57A0123" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ชุมชน / หมู่ที่ / โซน</label>
+                            <input type="text" id="zone" placeholder="หมู่ 4 ชุมชนสันติสุข" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ยอดภาษีประเมินหลัก (บาท) *</label>
+                            <input type="number" step="0.01" id="mainTaxAmount" oninput="calculateTotalTax()" required placeholder="0.00" class="cute-input w-full p-2.5 text-sm font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">เบี้ยปรับ (บาท)</label>
+                            <input type="number" step="0.01" id="penaltyAmount" oninput="calculateTotalTax()" placeholder="0.00" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">เงินเพิ่ม (บาท)</label>
+                            <input type="number" step="0.01" id="surchargeAmount" oninput="calculateTotalTax()" placeholder="0.00" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ยอดรวมค้างชำระทั้งสิ้น</label>
+                            <input type="number" step="0.01" id="totalDueAmount" readonly placeholder="0.00" class="cute-input w-full p-2.5 text-sm font-bold text-rose-500 bg-rose-50/50">
                         </div>
                     </div>
+                </div>
 
-                    <div class="mb-4 text-start">
-                        <label class="form-label text-secondary small fw-bold">รหัสผ่าน</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0"><i class="fa-solid fa-key text-muted"></i></span>
-                            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+                <!-- Section 3: ขั้นตอนและสถานะการติดตาม -->
+                <div>
+                    <h3 class="text-sm font-bold text-pink-500 mb-3 flex items-center gap-2">
+                        <span>3️⃣</span> ขั้นตอนกฎหมาย & บันทึกติดตามภาคสนาม
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ขั้นตอนการดำเนินงานปัจจุบัน</label>
+                            <select id="trackingStep" class="cute-input w-full p-2.5 text-sm">
+                                <option value="1. ออกหนังสือแจ้งประเมิน (ภ.ด.ส.6 / ภ.ป.3)">1. ออกหนังสือแจ้งประเมิน (ภ.ด.ส.6 / ภ.ป.3)</option>
+                                <option value="2. ออกหนังสือเตือนค้างชำระ (ครั้งที่ 1)">2. ออกหนังสือเตือนค้างชำระ (ครั้งที่ 1)</option>
+                                <option value="3. ออกหนังสือเตือนค้างชำระ (ครั้งที่ 2)">3. ออกหนังสือเตือนค้างชำระ (ครั้งที่ 2)</option>
+                                <option value="4. ออกหนังสือเตือนครั้งสุดท้าย">4. ออกหนังสือเตือนครั้งสุดท้าย 🚨</option>
+                                <option value="5. ลงพื้นที่ติดตาม/เร่งรัดภาคสนาม">5. ลงพื้นที่ติดตาม/เร่งรัดภาคสนาม 🛵</option>
+                                <option value="6. ทำหนังสือข้อตกลงผ่อนชำระ">6. ทำหนังสือข้อตกลงผ่อนชำระ 📝</option>
+                                <option value="7. ส่งเรื่องอายัดทรัพย์สิน / ดำเนินคดี">7. ส่งเรื่องอายัดทรัพย์สิน / ดำเนินคดี ⚖️</option>
+                                <option value="8. ชำระเงินเรียบร้อยแล้ว">8. ชำระเงินเรียบร้อยแล้ว 🎉</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ระดับความด่วน (Color Flag)</label>
+                            <select id="priorityFlag" class="cute-input w-full p-2.5 text-sm font-bold">
+                                <option value="BLACK" class="bg-slate-900 text-white">⚫ ดำ - เร่งด่วนมาก / เตือนครั้งสุดท้าย</option>
+                                <option value="RED" class="bg-rose-500 text-white">🔴 แดง - ค้างชำระเกินกำหนด</option>
+                                <option value="YELLOW" class="bg-amber-400 text-slate-900">🟡 เหลือง - อยู่ระหว่างติดตาม / ผ่อนชำระ</option>
+                                <option value="GREEN" class="bg-emerald-500 text-white">🟢 เขียว - ชำระเงินเรียบร้อยแล้ว</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">เจ้าหน้าที่ผู้รับผิดชอบ *</label>
+                            <input type="text" id="assignedStaff" required placeholder="นายเร่งรัด จัดเก็บดี" class="cute-input w-full p-2.5 text-sm">
+                        </div>
+
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">บันทึกผลลงพื้นที่ / หมายเหตุ / อุปสรรค</label>
+                            <textarea id="fieldNotes" rows="2" placeholder="เช่น ลงพื้นที่พบเจ้าบ้าน แจ้งขอผ่อนชำระ 2 งวด..." class="cute-input w-full p-2.5 text-sm"></textarea>
                         </div>
                     </div>
+                </div>
 
-                    <button type="submit" id="btnLoginSubmit" class="btn btn-cute w-100 mb-3">
-                        🚀 เข้าสู่ระบบ
+                <!-- Section 4: ข้อมูลชำระเงิน -->
+                <div class="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                    <h3 class="text-sm font-bold text-emerald-600 mb-2 flex items-center gap-2">
+                        <span>4️⃣</span> ข้อมูลการชำระเงิน (กรอกเมื่อรับชำระแล้ว)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่ชำระเงิน</label>
+                            <input type="date" id="paymentDate" class="cute-input w-full p-2.5 text-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">เลขที่ใบเสร็จรับเงิน</label>
+                            <input type="text" id="receiptNo" placeholder="REC-2569/001" class="cute-input w-full p-2.5 text-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ช่องทางการชำระ</label>
+                            <select id="paymentChannel" class="cute-input w-full p-2.5 text-sm bg-white">
+                                <option value="เงินสด">เงินสด</option>
+                                <option value="โอนผ่าน QR / ธนาคาร">โอนผ่าน QR / ธนาคาร</option>
+                                <option value="เช็คธนาคาร">เช็คธนาคาร</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="submit" class="cute-btn px-8 py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-2xl shadow-lg shadow-pink-200 flex items-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูล
                     </button>
-                </form>
-            </div>
-        </div>
+                </div>
+            </form>
+        </section>
 
-        <!-- หน้าแอดมิน (จะแสดงเมื่อผ่าน Firebase Auth สำเร็จ) -->
-        <div id="adminSection" style="display:none;">
-            <div class="row g-4">
-                <div class="col-lg-7">
-                    <div class="card card-cute p-4">
-                        <h4 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-clipboard-list me-2"></i>บันทึกข้อมูลออกติดตาม</h4>
+        <!-- 📋 DATA TABLE SECTION: ตารางจัดการข้อมูล -->
+        <section class="no-print cute-card p-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <div>
+                    <h3 class="font-cute font-bold text-lg text-slate-800 flex items-center gap-2">
+                        <span>📋</span> รายการผู้เสียภาษีทั้งหมดในระบบ
+                    </h3>
+                    <p class="text-xs text-slate-400">สามารถค้นหา แก้ไข หรือกดพิมพ์ใบบันทึกรายบุคคลได้จากตารางนี้</p>
+                </div>
+                <div class="w-full sm:w-auto">
+                    <input type="text" id="search-input" onkeyup="renderAdminTable()" placeholder="🔍 ค้นชื่อ / เลขบัตร / ปีภาษี..." class="cute-input px-4 py-2 text-sm w-full sm:w-64">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-pink-50 text-pink-600 font-semibold rounded-xl">
+                        <tr>
+                            <th class="p-3">ระดับด่วน</th>
+                            <th class="p-3">ชื่อผู้เสียภาษี</th>
+                            <th class="p-3">ประเภท / ปีภาษี</th>
+                            <th class="p-3">ยอดค้างชำระ</th>
+                            <th class="p-3">สถานะติดตาม</th>
+                            <th class="p-3">เจ้าหน้าที่</th>
+                            <th class="p-3 text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-data-table" class="divide-y divide-slate-100">
+                        <!-- Dynamic Data Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 🖨️ PRINT SECTION: โครงสร้างซ่อนไว้เพื่อพิมพ์ลงกระดาษ A4 รูปแบบทางราชการ -->
+        <section id="official-print-area" class="hidden print-only">
+            <!-- JS จะวาดใบบันทึกราชการ A4 สำหรับพิมพ์ที่นี่ -->
+        </section>
+
+    </main>
+
+    <!-- 📦 FIREBASE v10 SDK & SCRIPT LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
+            authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
+            projectId: "tax-tracking-app-25fb7",
+            storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
+            messagingSenderId: "122118718226",
+            appId: "1:122118718226:web:df2d284fe543ec799da9cb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const TAX_COLLECTION = "tax_records";
+
+        window.recordsData = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchRecords();
+        });
+
+        async function fetchRecords() {
+            try {
+                const q = query(collection(db, TAX_COLLECTION));
+                const querySnapshot = await getDocs(q);
+                window.recordsData = [];
+                querySnapshot.forEach((doc) => {
+                    window.recordsData.push({ id: doc.id, ...doc.data() });
+                });
+                renderAdminTable();
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        window.handleFormSubmit = async function(e) {
+            e.preventDefault();
+            const docId = document.getElementById('doc-id').value;
+
+            const payload = {
+                taxpayerName: document.getElementById('taxpayerName').value,
+                taxId: document.getElementById('taxId').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                taxType: document.getElementById('taxType').value,
+                taxYear: document.getElementById('taxYear').value,
+                propertyCode: document.getElementById('propertyCode').value,
+                zone: document.getElementById('zone').value,
+                mainTaxAmount: parseFloat(document.getElementById('mainTaxAmount').value) || 0,
+                penaltyAmount: parseFloat(document.getElementById('penaltyAmount').value) || 0,
+                surchargeAmount: parseFloat(document.getElementById('surchargeAmount').value) || 0,
+                totalDueAmount: parseFloat(document.getElementById('totalDueAmount').value) || 0,
+                trackingStep: document.getElementById('trackingStep').value,
+                priorityFlag: document.getElementById('priorityFlag').value,
+                assignedStaff: document.getElementById('assignedStaff').value,
+                fieldNotes: document.getElementById('fieldNotes').value,
+                paymentDate: document.getElementById('paymentDate').value,
+                receiptNo: document.getElementById('receiptNo').value,
+                paymentChannel: document.getElementById('paymentChannel').value,
+                updatedAt: new Date().toISOString()
+            };
+
+            try {
+                if (docId) {
+                    await updateDoc(doc(db, TAX_COLLECTION, docId), payload);
+                    alert("🐱 อัปเดตข้อมูลสำเร็จเรียบร้อยแล้ว!");
+                } else {
+                    payload.createdAt = new Date().toISOString();
+                    await addDoc(collection(db, TAX_COLLECTION), payload);
+                    alert("🎉 บันทึกผู้เสียภาษีรายใหม่สำเร็จ!");
+                }
+                resetForm();
+                fetchRecords();
+            } catch (err) {
+                alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message);
+            }
+        };
+
+        window.renderAdminTable = function() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const tbody = document.getElementById('admin-data-table');
+            tbody.innerHTML = '';
+
+            const filtered = window.recordsData.filter(r => 
+                (r.taxpayerName || '').toLowerCase().includes(search) ||
+                (r.taxId || '').includes(search) ||
+                (r.taxYear || '').includes(search)
+            );
+
+            filtered.forEach(r => {
+                const badgeColor = getFlagBadge(r.priorityFlag);
+                tbody.innerHTML += `
+                    <tr class="hover:bg-pink-50/20 text-slate-700">
+                        <td class="p-3">${badgeColor}</td>
+                        <td class="p-3 font-semibold">${r.taxpayerName}<br><span class="text-xs text-slate-400">ID: ${r.taxId || '-'}</span></td>
+                        <td class="p-3">${r.taxType}<br><span class="text-xs font-bold text-pink-500">ปี ${r.taxYear || '-'}</span></td>
+                        <td class="p-3 font-bold text-rose-500">฿${(r.totalDueAmount || 0).toLocaleString('th-TH', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 text-xs font-medium">${r.trackingStep || '-'}</td>
+                        <td class="p-3 text-xs">${r.assignedStaff || '-'}</td>
+                        <td class="p-3 text-center space-x-1">
+                            <button onclick="editRecord('${r.id}')" title="แก้ไข" class="text-blue-500 hover:text-blue-700 p-1.5"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="printSingleOfficialDoc('${r.id}')" title="พิมพ์ใบบันทึก A4" class="text-slate-600 hover:text-slate-900 p-1.5"><i class="fa-solid fa-print"></i></button>
+                            <button onclick="deleteRecord('${r.id}')" title="ลบ" class="text-rose-400 hover:text-rose-600 p-1.5"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        };
+
+        function getFlagBadge(flag) {
+            switch(flag) {
+                case 'BLACK': return '<span class="px-2.5 py-1 bg-slate-900 text-white text-xs font-bold rounded-lg">⚫ เร่งด่วนมาก</span>';
+                case 'RED': return '<span class="px-2.5 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg">🔴 ค้างชำระ</span>';
+                case 'YELLOW': return '<span class="px-2.5 py-1 bg-amber-400 text-slate-900 text-xs font-bold rounded-lg">🟡 ติดตาม</span>';
+                case 'GREEN': return '<span class="px-2.5 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg">🟢 ชำระแล้ว</span>';
+                default: return '-';
+            }
+        }
+
+        window.calculateTotalTax = function() {
+            const main = parseFloat(document.getElementById('mainTaxAmount').value) || 0;
+            const penalty = parseFloat(document.getElementById('penaltyAmount').value) || 0;
+            const surcharge = parseFloat(document.getElementById('surchargeAmount').value) || 0;
+            document.getElementById('totalDueAmount').value = (main + penalty + surcharge).toFixed(2);
+        };
+
+        window.editRecord = function(id) {
+            const item = window.recordsData.find(r => r.id === id);
+            if (!item) return;
+
+            document.getElementById('doc-id').value = item.id;
+            document.getElementById('taxpayerName').value = item.taxpayerName || '';
+            document.getElementById('taxId').value = item.taxId || '';
+            document.getElementById('phone').value = item.phone || '';
+            document.getElementById('address').value = item.address || '';
+            document.getElementById('taxType').value = item.taxType || 'ภาษีที่ดินและสิ่งปลูกสร้าง';
+            document.getElementById('taxYear').value = item.taxYear || '';
+            document.getElementById('propertyCode').value = item.propertyCode || '';
+            document.getElementById('zone').value = item.zone || '';
+            document.getElementById('mainTaxAmount').value = item.mainTaxAmount || 0;
+            document.getElementById('penaltyAmount').value = item.penaltyAmount || 0;
+            document.getElementById('surchargeAmount').value = item.surchargeAmount || 0;
+            document.getElementById('totalDueAmount').value = item.totalDueAmount || 0;
+            document.getElementById('trackingStep').value = item.trackingStep || '';
+            document.getElementById('priorityFlag').value = item.priorityFlag || 'RED';
+            document.getElementById('assignedStaff').value = item.assignedStaff || '';
+            document.getElementById('fieldNotes').value = item.fieldNotes || '';
+            document.getElementById('paymentDate').value = item.paymentDate || '';
+            document.getElementById('receiptNo').value = item.receiptNo || '';
+            document.getElementById('paymentChannel').value = item.paymentChannel || 'เงินสด';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.deleteRecord = async function(id) {
+            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) {
+                await deleteDoc(doc(db, TAX_COLLECTION, id));
+                fetchRecords();
+            }
+        };
+
+        window.resetForm = function() {
+            document.getElementById('tax-form').reset();
+            document.getElementById('doc-id').value = '';
+        };
+
+        <!-- 🖨️ สั่งพิมพ์ใบบันทึกรายบุคคลทางราชการ A4 (TH Sarabun 16pt) -->
+        window.printSingleOfficialDoc = function(id) {
+            const person = window.recordsData.find(r => r.id === id);
+            if (!person) return;
+
+            const printArea = document.getElementById('official-print-area');
+            printArea.innerHTML = `
+                <div class="official-doc bg-white max-w-[210mm] mx-auto leading-relaxed">
+                    <!-- ตราครุฑมาตรฐานราชการ -->
+                    <div class="text-center mb-4">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c9/Garuda_Emblem_of_Thailand.svg" alt="ตราครุฑ" class="h-20 mx-auto mb-2">
+                        <h2 class="font-bold text-xl">ใบบันทึกการติดตามและเร่งรัดจัดเก็บรายได้</h2>
+                        <p class="font-semibold text-base">ฝ่ายจัดเก็บรายได้ กองคลัง องค์กรปกครองส่วนท้องถิ่น</p>
+                    </div>
+
+                    <div class="mt-6 space-y-3">
+                        <div class="flex justify-between">
+                            <div><strong>ชื่อผู้เสียภาษี / นิติบุคคล:</strong> ${person.taxpayerName}</div>
+                            <div><strong>เลขประจำตัวผู้เสียภาษี:</strong> ${person.taxId || '-'}</div>
+                        </div>
+                        <div><strong>ที่อยู่ส่งเอกสาร:</strong> ${person.address || '-'} <strong>โทรศัพท์:</strong> ${person.phone || '-'}</div>
                         
-                        <form id="taxForm">
-                            <div class="section-header mb-3"><i class="fa-solid fa-file-invoice me-2"></i>ส่วนที่ 1: ข้อมูลประเมิน & สถานะภาษี</div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">ประเภทภาษี</label>
-                                    <select id="taxType" class="form-select" required>
-                                        <option value="ภาษีที่ดินและสิ่งปลูกสร้าง (ภ.ด.ส.)">ภาษีที่ดินและสิ่งปลูกสร้าง (ภ.ด.ส.)</option>
-                                        <option value="ภาษีป้าย">ภาษีป้าย</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">เลขผู้เสียภาษี / เลขบัตรประชาชน</label>
-                                    <input type="text" id="taxId" class="form-control" placeholder="13 หลัก หรือ เลขนิติบุคคล" required>
-                                </div>
-                                <div class="col-md-12">
-                                    <label class="form-label small fw-bold">แปลงที่ดิน / เลขที่แปลง (UTM / R-Code)</label>
-                                    <input type="text" id="landCode" class="form-control" placeholder="ระบุเลขแปลงที่ดิน (ถ้ามี)">
-                                </div>
-                            </div>
+                        <div class="border-t border-b border-black py-2 my-3 grid grid-cols-3 gap-2 font-semibold">
+                            <div>ประเภทภาษี: ${person.taxType}</div>
+                            <div>ประจำปีประเมิน: ${person.taxYear}</div>
+                            <div>รหัสแปลง/ป้าย: ${person.propertyCode || '-'}</div>
+                        </div>
 
-                            <div class="section-header mb-3"><div class="d-flex justify-content-between align-items-center"><span><i class="fa-solid fa-location-dot me-2"></i>ส่วนที่ 2: สถานที่ออกติดตาม</span><button type="button" id="btnGetGPS" class="btn btn-sm btn-pastel-primary"><i class="fa-solid fa-crosshairs me-1"></i>ดึงตำแหน่ง GPS</button></div></div>
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-6"><input type="text" id="name" class="form-control" placeholder="ชื่อ-นามสกุล ผู้เสียภาษี" required></div>
-                                <div class="col-md-3"><input type="text" id="houseNo" class="form-control" placeholder="บ้านเลขที่" required></div>
-                                <div class="col-md-3"><input type="text" id="moo" class="form-control" placeholder="หมู่ที่"></div>
-                                <div class="col-md-4"><input type="text" id="alley" class="form-control" placeholder="ตรอก/ซอย"></div>
-                                <div class="col-md-4"><input type="text" id="road" class="form-control" placeholder="ถนน"></div>
-                                <div class="col-md-4"><input type="text" id="subDistrict" class="form-control" placeholder="ตำบล" required></div>
-                                <div class="col-md-4"><input type="text" id="district" class="form-control" placeholder="อำเภอ" required></div>
-                                <div class="col-md-4"><input type="text" id="province" class="form-control" placeholder="จังหวัด" required></div>
-                                <div class="col-md-4"><input type="text" id="zipcode" class="form-control" placeholder="รหัสไปรษณีย์"></div>
-                                <div class="col-md-6"><input type="text" id="lat" class="form-control bg-light" placeholder="Latitude" readonly></div>
-                                <div class="col-md-6"><input type="text" id="lng" class="form-control bg-light" placeholder="Longitude" readonly></div>
+                        <div class="p-3 border border-black my-4">
+                            <h3 class="font-bold underline mb-1">สรุปรายการประเมินและยอดค้างชำระ</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>• ภาษีประเมินหลัก: ${(person.mainTaxAmount||0).toLocaleString('th-TH', {minimumFractionDigits:2})} บาท</div>
+                                <div>• เบี้ยปรับ: ${(person.penaltyAmount||0).toLocaleString('th-TH', {minimumFractionDigits:2})} บาท</div>
+                                <div>• เงินเพิ่ม (1%/เดือน): ${(person.surchargeAmount||0).toLocaleString('th-TH', {minimumFractionDigits:2})} บาท</div>
+                                <div class="font-bold">• ยอดเงินรวมทั้งสิ้น: ${(person.totalDueAmount||0).toLocaleString('th-TH', {minimumFractionDigits:2})} บาท</div>
                             </div>
+                        </div>
 
-                            <div class="section-header mb-3"><i class="fa-solid fa-paperclip me-2"></i>ส่วนที่ 3: วัตถุประสงค์ & ยอดค้าง</div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">ประเภทหนังสือที่นำส่ง</label>
-                                    <select id="docType" class="form-select" required>
-                                        <option value="หนังสือแจ้งการประเมิน">หนังสือแจ้งการประเมิน</option>
-                                        <option value="หนังสือแจ้งเตือนค้างชำระ ครั้งที่ 1">หนังสือแจ้งเตือนค้างชำระ ครั้งที่ 1</option>
-                                        <option value="หนังสือแจ้งเตือนค้างชำระ ครั้งที่ 2">หนังสือแจ้งเตือนค้างชำระ ครั้งที่ 2</option>
-                                        <option value="หนังสือประเมินแบบลงทะเบียนตอบรับ">หนังสือประเมินแบบลงทะเบียนตอบรับ</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small fw-bold">ปีภาษี</label>
-                                    <input type="number" id="taxYear" class="form-control" value="2567" required>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small fw-bold">ยอดเงินค้าง (บาท)</label>
-                                    <input type="number" id="amount" class="form-control" step="0.01" placeholder="0.00" required>
-                                </div>
+                        <div>
+                            <strong>ขั้นตอนการดำเนินงานตามกฎหมายปัจจุบัน:</strong> ${person.trackingStep || '-'}
+                        </div>
+
+                        <div class="mt-4">
+                            <strong>บันทึกการลงพื้นที่และอุปสรรคการติดตาม:</strong>
+                            <div class="p-3 border border-black min-h-[120px] mt-1 bg-white">
+                                ${person.fieldNotes || 'ไม่มีบันทึกเพิ่มเติม'}
                             </div>
-
-                            <div class="section-header mb-3"><i class="fa-solid fa-square-check me-2"></i>ส่วนที่ 4: ผลการออกติดตาม</div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">ผลการติดตาม (Status)</label>
-                                    <select id="followStatus" class="form-select" required>
-                                        <option value="พบผู้ค้างชำระ (บุคคลเดิม)">พบผู้ค้างชำระ (บุคคลเดิม)</option>
-                                        <option value="ไม่พบผู้ค้างชำระ / ไม่เจอตัว">ไม่พบผู้ค้างชำระ / ไม่เจอตัว</option>
-                                        <option value="พบผู้อยู่อาศัยอื่น / ผู้เชี่ยว / รับแทน">พบผู้อยู่อาศัยอื่น / ผู้เชี่ยว / รับแทน</option>
-                                        <option value="ร้าง / ย้ายออก / หาไม่พบ">ร้าง / ย้ายออก / หาไม่พบ</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">แนวโน้มชำระเงิน (Action)</label>
-                                    <select id="actionTaken" class="form-select" required>
-                                        <option value="ยินยอมชำระทันที / นัดชำระ">ยินยอมชำระทันที / นัดชำระ</option>
-                                        <option value="ขอผ่อนชำระ">ขอผ่อนชำระ</option>
-                                        <option value="คัดค้านการประเมิน">คัดค้านการประเมิน</option>
-                                        <option value="ปฏิเสธการชำระ / ไม่ชำระ">ปฏิเสธการชำระ / ไม่ชำระ</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-12">
-                                    <textarea id="remark" class="form-control" rows="2" placeholder="หมายเหตุ / รายละเอียดเพิ่มเติม..."></textarea>
-                                </div>
-                            </div>
-
-                            <div class="section-header mb-3"><i class="fa-solid fa-camera me-2"></i>ส่วนที่ 5: รูปถ่าย & ผู้บันทึก</div>
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">ผู้บันทึกข้อมูล</label>
-                                    <input type="text" id="officerName" class="form-control" placeholder="ชื่อ-นามสกุล เจ้าหน้าที่" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">ตำแหน่ง</label>
-                                    <input type="text" id="officerPosition" class="form-control" placeholder="นักวิชาการจัดเก็บรายได้" required>
-                                </div>
-                                <div class="col-md-12">
-                                    <label class="form-label small fw-bold">ถ่ายรูป / รูปภาพหลักฐาน (ส่งขึ้น Google Drive)</label>
-                                    <input type="file" id="imageFile" class="form-control" accept="image/*" capture="environment">
-                                </div>
-                            </div>
-
-                            <button type="submit" id="btnSubmit" class="btn btn-pastel-primary w-100 py-3 fs-5 shadow-sm">
-                                💾 บันทึกข้อมูลเข้าฐานข้อมูล
-                            </button>
-                        </form>
+                        </div>
                     </div>
-                </div>
 
-                <div class="col-lg-5">
-                    <div class="card card-cute p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-bold m-0 text-secondary"><i class="fa-solid fa-list me-2"></i>รายการล่าสุด</h5>
-                            <button id="btnPrintAll" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-print me-1"></i>พิมพ์รวมทั้งหมด</button>
+                    <!-- ลายเซ็นงานสารบรรณ -->
+                    <div class="mt-20 grid grid-cols-2 gap-8 text-center">
+                        <div class="space-y-8">
+                            <p>ลงชื่อ..........................................................<br>(${person.assignedStaff || '..........................................................'})<br>ตำแหน่ง เจ้าหน้าที่ผู้ติดตาม/ผู้ลงบันทึก</p>
+                            <p>วันที่......../......................../............</p>
                         </div>
-
-                        <div class="input-group mb-3">
-                            <input type="text" id="searchInput" class="form-control" placeholder="🔍 ค้นชื่อ / เลขบัตร...">
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light small">
-                                    <tr>
-                                        <th>ชื่อผู้เสียภาษี</th>
-                                        <th class="text-end">ยอดค้าง (บาท)</th>
-                                        <th class="text-center">จัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dataTable" class="small">
-                                    <tr><td colspan="3" class="text-center">กำลังโหลด...</td></tr>
-                                </tbody>
-                            </table>
+                        <div class="space-y-8">
+                            <p>ลงชื่อ..........................................................<br>(..........................................................)<br>ตำแหน่ง ผู้อำนวยการกองคลัง / หัวหน้าฝ่ายจัดเก็บรายได้</p>
+                            <p>วันที่......../......................../............</p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            `;
 
-    </div>
-
-    <div id="printableArea" class="p-4" style="display:none;"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="app.js"></script>
+            window.print();
+        };
+    </script>
 </body>
 </html>
