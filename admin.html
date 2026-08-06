@@ -6,13 +6,14 @@
   <title>✏️ ระบบบันทึกข้อมูลการออกติดตามภาษี</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
   <style>
     body { font-family: 'Mali', cursive, sans-serif; }
   </style>
 </head>
 <body class="bg-pink-50/60 text-slate-700 p-4 md:p-8 min-h-screen flex items-center justify-center">
 
-  <!-- 1. หน้าล็อกอิน -->
+  <!-- 1. ส่วนล็อกอิน -->
   <div id="loginSection" class="w-full max-w-md bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border-4 border-pink-200 p-8 space-y-6">
     <div class="text-center space-y-2">
       <span class="bg-pink-100 text-pink-600 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">🔒 Staff Only</span>
@@ -39,7 +40,7 @@
     </div>
   </div>
 
-  <!-- 2. หน้าฟอร์มบันทึกข้อมูล -->
+  <!-- 2. ส่วนฟอร์มบันทึกข้อมูล -->
   <div id="adminSection" class="hidden w-full max-w-2xl mx-auto space-y-6">
     <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border-4 border-pink-200 p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
       <div>
@@ -141,122 +142,6 @@
     </form>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-
-    // 🔴 ใส่ Firebase Config จริงของคุณที่นี่
-    const firebaseConfig = {
-       apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
-  authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
-  projectId: "tax-tracking-app-25fb7",
-  storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
-  messagingSenderId: "122118718226",
-  appId: "1:122118718226:web:df2d284fe543ec799da9cb"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-    const storage = getStorage(app);
-
-    const loginSection = document.getElementById("loginSection");
-    const adminSection = document.getElementById("adminSection");
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loginSection.classList.add("hidden");
-        adminSection.classList.remove("hidden");
-        document.getElementById("userStatusText").innerText = `ผู้ใช้งาน: ${user.email}`;
-      } else {
-        loginSection.classList.remove("hidden");
-        adminSection.classList.add("hidden");
-      }
-    });
-
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("loginEmail").value;
-      const pass = document.getElementById("loginPassword").value;
-      const btnLogin = document.getElementById("btnLogin");
-
-      try {
-        btnLogin.disabled = true;
-        btnLogin.innerText = "⏳ กำลังเข้าสู่ระบบ...";
-        await signInWithEmailAndPassword(auth, email, pass);
-      } catch (err) {
-        alert("❌ เข้าสู่ระบบไม่สำเร็จ: อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-      } finally {
-        btnLogin.disabled = false;
-        btnLogin.innerText = "🔑 เข้าสู่ระบบ";
-      }
-    });
-
-    document.getElementById("btnLogout").addEventListener("click", () => {
-      if (confirm("ต้องการออกจากระบบใช่หรือไม่?")) signOut(auth);
-    });
-
-    document.getElementById("btnGetLocation").addEventListener("click", () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => { document.getElementById("location").value = `${pos.coords.latitude}, ${pos.coords.longitude}`; },
-          (err) => alert("ไม่สามารถดึงพิกัด GPS ได้: " + err.message)
-        );
-      } else {
-        alert("อุปกรณ์นี้ไม่รองรับ Geolocation");
-      }
-    });
-
-    document.getElementById("taxForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btnSubmit = document.getElementById("btnSubmit");
-      btnSubmit.disabled = true;
-      btnSubmit.innerText = "⏳ กำลังบันทึกข้อมูล...";
-
-      try {
-        let photoUrl = "";
-        const photoFile = document.getElementById("photoInput").files[0];
-
-        if (photoFile) {
-          const storageRef = ref(storage, `photos/${Date.now()}_${photoFile.name}`);
-          const uploadResult = await uploadBytes(storageRef, photoFile);
-          photoUrl = await getDownloadURL(uploadResult.ref);
-        }
-
-        const payload = {
-          fullName: document.getElementById("fullName").value,
-          taxId: document.getElementById("taxId").value,
-          taxType: document.getElementById("taxType").value,
-          taxAmount: Number(document.getElementById("taxAmount").value) || 0,
-          address: {
-            houseNo: document.getElementById("houseNo").value,
-            soi: document.getElementById("soi").value,
-            road: document.getElementById("road").value,
-            district: document.getElementById("district").value,
-            province: document.getElementById("province").value
-          },
-          followResult: document.getElementById("followResult").value,
-          docType: document.getElementById("docType").value,
-          otherDetail: document.getElementById("otherDetail").value,
-          photoUrl: photoUrl,
-          reporterName: document.getElementById("reporterName").value,
-          reporterPosition: document.getElementById("reporterPosition").value,
-          location: document.getElementById("location").value,
-          createdAt: serverTimestamp()
-        };
-
-        await addDoc(collection(db, "tax_records"), payload);
-        alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
-        document.getElementById("taxForm").reset();
-      } catch (err) {
-        alert("❌ เกิดข้อผิดพลาดในการบันทึก: " + err.message);
-      } finally {
-        btnSubmit.disabled = false;
-        btnSubmit.innerText = "💾 บันทึกข้อมูลเข้าระบบ";
-      }
-    });
-  </script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
