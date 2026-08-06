@@ -62,7 +62,7 @@
 </head>
 <body class="font-sans text-slate-700 min-h-screen pb-12">
 
-    <!-- 🌸 Header / Navbar -->
+    <!-- 🌸 Header / Navigation Bar (เมนูเต็มครบถ้วน) -->
     <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b-2 border-pink-100 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -73,7 +73,7 @@
                     <h1 class="font-cute font-bold text-xl sm:text-2xl text-pink-500 tracking-wide">
                         RevenueCute Admin
                     </h1>
-                    <p class="text-xs text-slate-400 font-medium">ระบบเพิ่ม/แก้ไขบันทึกการเร่งรัดจัดเก็บรายได้</p>
+                    <p class="text-xs text-slate-400 font-medium">ระบบจัดการและบันทึกการเร่งรัดจัดเก็บรายได้</p>
                 </div>
             </div>
 
@@ -91,7 +91,7 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- ✍️ FORM SECTION: ฟอร์มเพิ่ม/แก้ไขข้อมูล (5 Cols) -->
+        <!-- ✍️ FORM SECTION: ฟอร์มบันทึก/แก้ไขข้อมูลแบบละเอียด (5 Cols) -->
         <section class="lg:col-span-5">
             <div class="cute-card p-6 sticky top-28">
                 <div class="flex items-center justify-between border-b-2 border-pink-50 pb-3 mb-4">
@@ -103,18 +103,20 @@
                     </button>
                 </div>
 
-                <form id="case-form" class="space-y-4 text-xs">
+                <form id="case-form" class="space-y-3.5 text-xs">
                     <input type="hidden" id="edit-doc-id" value="">
 
+                    <!-- ชื่อผู้เสียภาษี / สถานประกอบการ -->
                     <div>
                         <label class="block font-semibold text-slate-600 mb-1">ชื่อผู้เสียภาษี / สถานประกอบการ <span class="text-rose-500">*</span></label>
                         <input type="text" id="taxpayerName" required class="cute-input" placeholder="เช่น บริษัท อบต.น่ารัก จำกัด หรือ นายสมชาย">
                     </div>
 
+                    <!-- เลขประจำตัวภาษี & ปีภาษี -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">เลขประจำตัวภาษี / ID</label>
-                            <input type="text" id="taxId" class="cute-input" placeholder="เลขผู้เสียภาษี">
+                            <input type="text" id="taxId" class="cute-input" placeholder="เลขผู้เสียภาษี / แปลงที่ดิน">
                         </div>
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">ปีภาษี <span class="text-rose-500">*</span></label>
@@ -122,6 +124,7 @@
                         </div>
                     </div>
 
+                    <!-- ประเภทภาษี & ยอดประเมิน -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">ประเภทภาษี <span class="text-rose-500">*</span></label>
@@ -133,11 +136,12 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">ยอดประเมิน (บาท) <span class="text-rose-500">*</span></label>
+                            <label class="block font-semibold text-slate-600 mb-1">ยอดประเมิน/ค้างชำระ (บาท) <span class="text-rose-500">*</span></label>
                             <input type="number" id="amount" step="0.01" required class="cute-input" placeholder="0.00">
                         </div>
                     </div>
 
+                    <!-- สถานะ Flag สี & ขั้นตอนดำเนินงาน -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">ระดับด่วน / Flag สี <span class="text-rose-500">*</span></label>
@@ -149,33 +153,37 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">ขั้นตอนดำเนินงาน</label>
+                            <label class="block font-semibold text-slate-600 mb-1">ขั้นตอนดำเนินงานปัจจุบัน</label>
                             <input type="text" id="processStep" class="cute-input" placeholder="เช่น ออกหนังสือเตือน ครั้งที่ 1">
                         </div>
                     </div>
 
+                    <!-- เจ้าหน้าที่ผู้รับผิดชอบ -->
                     <div>
                         <label class="block font-semibold text-slate-600 mb-1">เจ้าหน้าที่ผู้รับผิดชอบ <span class="text-rose-500">*</span></label>
-                        <input type="text" id="officerName" required class="cute-input" placeholder="ชื่อเจ้าหน้าที่ผู้บันทึก">
+                        <input type="text" id="officerName" required class="cute-input" placeholder="ระบุชื่อเจ้าหน้าที่ผู้รับผิดชอบ">
                     </div>
 
+                    <!-- เบอร์โทรศัพท์ & ที่อยู่/พิกัด -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">เบอร์โทรศัพท์</label>
+                            <label class="block font-semibold text-slate-600 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
                             <input type="text" id="phone" class="cute-input" placeholder="08X-XXX-XXXX">
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">ที่อยู่ / พิกัด</label>
+                            <label class="block font-semibold text-slate-600 mb-1">ที่อยู่ / พิกัดสถานที่</label>
                             <input type="text" id="address" class="cute-input" placeholder="ที่อยู่ผู้เสียภาษี">
                         </div>
                     </div>
 
+                    <!-- บันทึกหมายเหตุ / ผลการติดตาม -->
                     <div>
-                        <label class="block font-semibold text-slate-600 mb-1">บันทึกเพิ่มเติม / หมายเหตุ</label>
-                        <textarea id="notes" rows="2" class="cute-input" placeholder="ผลการลงพื้นที่ติดตาม..."></textarea>
+                        <label class="block font-semibold text-slate-600 mb-1">บันทึกเพิ่มเติม / ผลการลงพื้นที่</label>
+                        <textarea id="notes" rows="2" class="cute-input" placeholder="บันทึกรายละเอียดการติดต่อ หรือผลการลงพื้นที่..."></textarea>
                     </div>
 
-                    <button type="submit" id="save-btn" class="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                    <!-- ปุ่มบันทึกข้อมูล -->
+                    <button type="submit" id="save-btn" class="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mt-2">
                         <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูลลงระบบ
                     </button>
                 </form>
@@ -187,7 +195,7 @@
             <div class="cute-card p-6">
                 <div class="flex items-center justify-between border-b-2 border-pink-50 pb-3 mb-4">
                     <h3 class="font-cute font-bold text-lg text-slate-800 flex items-center gap-2">
-                        <span>🗂️</span> ข้อมูลในระบบทั้งหมด
+                        <span>🗂️</span> รายการข้อมูลในระบบทั้งหมด
                     </h3>
                     <span id="total-records-count" class="text-xs bg-pink-100 text-pink-600 px-3 py-1 rounded-full font-bold">0 รายการ</span>
                 </div>
@@ -220,14 +228,14 @@
             getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp 
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ⚠️ ใส่ Firebase Config เดียวกับใน app.js
+        // ⚠️ อย่าลืมใส่ค่า Firebase Config ของคุณตรงนี้ครับ
         const firebaseConfig = {
-            apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
-  authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
-  projectId: "tax-tracking-app-25fb7",
-  storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
-  messagingSenderId: "122118718226",
-  appId: "1:122118718226:web:df2d284fe543ec799da9cb"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -275,7 +283,7 @@
                             <div class="font-semibold text-slate-800">${item.taxpayerName || '-'}</div>
                             <div class="text-[10px] text-slate-400">${item.taxType} (${item.taxYear})</div>
                         </td>
-                        <td class="p-2.5 font-bold text-slate-700">฿${Number(item.amount || 0).toLocaleString()}</td>
+                        <td class="p-2.5 font-bold text-slate-700">฿${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
                         <td class="p-2.5 text-slate-500">${item.officerName || '-'}</td>
                         <td class="p-2.5 text-center">
                             <div class="flex items-center justify-center gap-1">
@@ -331,7 +339,7 @@
                 resetForm();
             } catch (error) {
                 console.error("Error saving doc: ", error);
-                alert(" เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูลลงระบบ`;
@@ -369,7 +377,7 @@
                     alert("🗑️ ลบข้อมูลเรียบร้อยแล้ว");
                 } catch (err) {
                     console.error("Error deleting doc: ", err);
-                    alert(" เกิดข้อผิดพลาดในการลบข้อมูล");
+                    alert("เกิดข้อผิดพลาดในการลบข้อมูล");
                 }
             }
         };
