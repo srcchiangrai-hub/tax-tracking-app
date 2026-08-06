@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🔴 1. วางค่า firebaseConfig ของคุณลงในนี้ได้เลยครับ
 const firebaseConfig = {
     apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
   authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
@@ -11,16 +11,76 @@ const firebaseConfig = {
   appId: "1:122118718226:web:df2d284fe543ec799da9cb"
 };
 
-// 🔴 2. URL Google Apps Script Web App ของคุณ
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJVT-FV_TxiRBXW4CnJIcPrOjoclfJDQZSUJDmyCUOuTypaD3ogrYGorNnVMPfHtvBkQ/exec";
 
-// เริ่มต้นใช้งาน Firebase
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
 
 let rawDataList = [];
 
-// ฟังก์ชันสำหรับแปลงไฟล์ภาพเป็น Base64 ส่งไป Google Drive
+// --- 1. ระบบตรวจสอบการ Login ---
+onAuthStateChanged(auth, (user) => {
+    const currentPage = window.location.pathname.split("/").pop();
+    
+    if (user) {
+        if (currentPage === "login.html" || currentPage === "") {
+            window.location.href = "admin.html";
+        }
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) userInfo.innerText = `👤 ${user.email}`;
+    } else {
+        if (currentPage !== "login.html") {
+            window.location.href = "login.html";
+        }
+    }
+});
+
+// ฟังก์ชัน Login
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const btnLogin = document.getElementById('btnLogin');
+
+        try {
+            btnLogin.disabled = true;
+            btnLogin.innerText = "⏳ กำลังเข้าสู่ระบบ...";
+            await signInWithEmailAndPassword(auth, email, password);
+            window.location.href = "admin.html";
+        } catch (error) {
+            alert("❌ เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+            btnLogin.disabled = false;
+            btnLogin.innerText = "🚀 เข้าสู่ระบบ";
+        }
+    });
+}
+
+// ฟังก์ชัน Logout
+const btnLogout = document.getElementById('btnLogout');
+if (btnLogout) {
+    btnLogout.addEventListener('click', () => signOut(auth));
+}
+
+// --- 2. ฟังก์ชัน ดึงพิกัด GPS ---
+const btnGetGPS = document.getElementById('btnGetGPS');
+if (btnGetGPS) {
+    btnGetGPS.addEventListener('click', () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+                document.getElementById('lng').value = pos.coords.longitude.toFixed(6);
+                alert("📍 ดึงพิกัด GPS สำเร็จ!");
+            }, (err) => alert("❌ ไม่สามารถดึงพิกัดได้: " + err.message));
+        } else {
+            alert("❌ เบราว์เซอร์นี้ไม่รองรับ GPS");
+        }
+    });
+}
+
+// แปลงไฟล์ภาพเป็น Base64
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -28,219 +88,206 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
     reader.onerror = error => reject(error);
 });
 
-// แสดงพรีวิวภาพเมื่อเลือกไฟล์ในหน้า admin.html
-const imageFile = document.getElementById('imageFile');
-const preview = document.getElementById('preview');
-if (imageFile && preview) {
-    imageFile.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            preview.src = URL.createObjectURL(file);
-            preview.style.display = 'block';
-        } else {
-            preview.style.display = 'none';
-        }
-    });
-}
-
-// --- 1. การทำงานในหน้า admin.html (ฟอร์มบันทึกข้อมูล) ---
+// --- 3. บันทึกฟอร์มลง Firebase & Google Drive ---
 const taxForm = document.getElementById('taxForm');
 if (taxForm) {
     taxForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังดำเนินการ...`;
+        const btnSubmit = document.getElementById('btnSubmit');
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = "⏳ กำลังบันทึกข้อมูล...";
 
         try {
-            const name = document.getElementById('name').value.trim();
-            const taxType = document.getElementById('taxType').value;
-            const amount = parseFloat(document.getElementById('amount').value);
-            const file = imageFile.files[0];
-
+            const imageFile = document.getElementById('imageFile').files[0];
             let imageUrl = "";
 
-            // หากมีการแนบรูปสลิป ให้อัปโหลดเข้า Google Drive ผ่าน Apps Script
-            if (file) {
-                submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up fa-bounce me-2"></i>กำลังอัปโหลดรูปไปยัง Google Drive...`;
-                const base64Data = await fileToBase64(file);
-                
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
+            if (imageFile) {
+                btnSubmit.innerHTML = "⏳ อัปโหลดภาพเข้า Google Drive...";
+                const base64Data = await fileToBase64(imageFile);
+                const res = await fetch(GOOGLE_SCRIPT_URL, {
                     method: "POST",
                     body: JSON.stringify({
-                        fileName: `${Date.now()}_${file.name}`,
-                        mimeType: file.type,
+                        fileName: `${Date.now()}_${imageFile.name}`,
+                        mimeType: imageFile.type,
                         fileData: base64Data
                     })
                 });
-
-                const result = await response.json();
-                if (result.status === "success") {
-                    imageUrl = result.url;
-                } else {
-                    throw new Error("Upload Drive Error: " + result.message);
-                }
+                const result = await res.json();
+                if (result.status === "success") imageUrl = result.url;
             }
 
-            submitBtn.innerHTML = `<i class="fa-solid fa-database fa-spin me-2"></i>กำลังบันทึกข้อมูลภาษี...`;
-
-            // บันทึกรายละเอียดทั้งหมดลงใน Firebase Firestore
             await addDoc(collection(db, "tax_records"), {
-                name: name,
-                taxType: taxType,
-                amount: amount,
-                imageUrl: imageUrl, // เก็บบันทึก URL รูปจาก Google Drive
+                taxType: document.getElementById('taxType').value,
+                taxId: document.getElementById('taxId').value,
+                landCode: document.getElementById('landCode').value,
+                name: document.getElementById('name').value,
+                houseNo: document.getElementById('houseNo').value,
+                moo: document.getElementById('moo').value,
+                alley: document.getElementById('alley').value,
+                road: document.getElementById('road').value,
+                subDistrict: document.getElementById('subDistrict').value,
+                district: document.getElementById('district').value,
+                province: document.getElementById('province').value,
+                zipcode: document.getElementById('zipcode').value,
+                lat: document.getElementById('lat').value,
+                lng: document.getElementById('lng').value,
+                docType: document.getElementById('docType').value,
+                taxYear: document.getElementById('taxYear').value,
+                amount: parseFloat(document.getElementById('amount').value || 0),
+                followStatus: document.getElementById('followStatus').value,
+                actionTaken: document.getElementById('actionTaken').value,
+                remark: document.getElementById('remark').value,
+                officerName: document.getElementById('officerName').value,
+                officerPosition: document.getElementById('officerPosition').value,
+                imageUrl: imageUrl,
                 createdAt: serverTimestamp()
             });
 
-            alert("✅ บันทึกข้อมูลและอัปโหลดสลิปเข้า Google Drive เรียบร้อยแล้ว!");
+            alert("✅ บันทึกข้อมูลและส่งรูปเข้า Google Drive เรียบร้อย!");
             taxForm.reset();
-            if (preview) preview.style.display = 'none';
-
-        } catch (error) {
-            console.error("Error: ", error);
-            alert("❌ เกิดข้อผิดพลาด: " + error.message);
+        } catch (err) {
+            alert("❌ เกิดข้อผิดพลาด: " + err.message);
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up me-2"></i>บันทึกข้อมูล`;
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = "💾 บันทึกข้อมูลเข้าฐานข้อมูล";
         }
     });
 }
 
-// --- 2. ฟังก์ชันแสดงผล ค้นหา จัดเรียง และ Modal ดูรูปภาพ ---
+// --- 4. ดึงข้อมูล Realtime & แสดงผล ---
 const dataTable = document.getElementById('dataTable');
 const dashboardTable = document.getElementById('dashboardTable');
-const searchInput = document.getElementById('searchInput');
-const sortSelect = document.getElementById('sortSelect');
 
-// ดึงข้อมูล Realtime จาก Firebase Firestore
 if (dataTable || dashboardTable) {
     const q = query(collection(db, "tax_records"), orderBy("createdAt", "desc"));
-    
     onSnapshot(q, (snapshot) => {
-        rawDataList = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
+        rawDataList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderData();
     });
 }
 
 function renderData() {
-    if (!rawDataList) return;
-
     let filtered = [...rawDataList];
-    const searchText = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const sortBy = sortSelect ? sortSelect.value : 'desc';
+    const searchText = document.getElementById('searchInput')?.value.toLowerCase().trim() || "";
 
-    // ระบบค้นหาตามชื่อ หรือประเภทภาษี
     if (searchText) {
-        filtered = filtered.filter(item => 
-            (item.name && item.name.toLowerCase().includes(searchText)) ||
-            (item.taxType && item.taxType.toLowerCase().includes(searchText))
+        filtered = filtered.filter(i => 
+            (i.name && i.name.toLowerCase().includes(searchText)) ||
+            (i.taxId && i.taxId.includes(searchText)) ||
+            (i.subDistrict && i.subDistrict.toLowerCase().includes(searchText))
         );
     }
 
-    // ระบบจัดเรียงข้อมูล
-    filtered.sort((a, b) => {
-        if (sortBy === 'asc') {
-            return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
-        } else if (sortBy === 'name_asc') {
-            return (a.name || '').localeCompare(b.name || '', 'th');
-        } else if (sortBy === 'name_desc') {
-            return (b.name || '').localeCompare(a.name || '', 'th');
-        } else {
-            return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-        }
-    });
-
-    // อัปเดตจำนวนรายการ
-    const recordCountEl = document.getElementById('recordCount');
-    if (recordCountEl) recordCountEl.innerText = `${filtered.length} รายการ`;
-
-    // 1. แสดงผลในหน้า admin.html
     if (dataTable) {
-        if (filtered.length === 0) {
-            dataTable.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">ไม่พบข้อมูลรายการภาษี</td></tr>`;
-        } else {
-            dataTable.innerHTML = filtered.map(item => `
+        dataTable.innerHTML = filtered.map(item => `
+            <tr>
+                <td><strong>${item.name}</strong><br><small class="text-muted">${item.taxType}</small></td>
+                <td class="text-end fw-bold text-danger">${(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-light border print-single-btn" data-id="${item.id}">🖨️ พิมพ์</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    if (dashboardTable) {
+        let total = 0;
+        let success = 0;
+        
+        dashboardTable.innerHTML = filtered.map(item => {
+            total += (item.amount || 0);
+            if(item.actionTaken?.includes("ยินยอม")) success++;
+            
+            return `
                 <tr>
-                    <td><strong>${item.name}</strong></td>
-                    <td><span class="badge bg-light text-dark border">${item.taxType}</span></td>
-                    <td class="text-end fw-bold text-primary">${item.amount ? item.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</td>
+                    <td><small>${item.createdAt ? new Date(item.createdAt.seconds*1000).toLocaleDateString('th-TH') : '-'}</small></td>
+                    <td><strong>${item.name}</strong><br><small class="text-muted">ID: ${item.taxId}</small></td>
+                    <td><span class="badge bg-info text-dark">${item.taxType}</span></td>
+                    <td class="text-end fw-bold text-danger">${(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td><span class="badge bg-warning text-dark">${item.followStatus}</span></td>
                     <td class="text-center">
-                        ${item.imageUrl 
-                            ? `<button class="btn btn-sm btn-outline-info view-img-btn" data-url="${item.imageUrl}">
-                                  <i class="fa-regular fa-image me-1"></i>ดูสลิป
-                               </button>` 
-                            : '<span class="text-muted fs-7">ไม่มีสลิป</span>'}
+                        <button class="btn btn-sm btn-outline-dark print-single-btn" data-id="${item.id}">🖨️ พิมพ์</button>
+                        ${item.imageUrl ? `<a href="${item.imageUrl}" target="_blank" class="btn btn-sm btn-outline-primary ms-1">🖼️ Drive</a>` : ''}
                     </td>
                 </tr>
-            `).join('');
-        }
+            `;
+        }).join('');
+
+        if (document.getElementById('totalAmount')) document.getElementById('totalAmount').innerText = `${total.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`;
+        if (document.getElementById('totalCount')) document.getElementById('totalCount').innerText = `${filtered.length} รายการ`;
+        if (document.getElementById('successCount')) document.getElementById('successCount').innerText = `${success} รายการ`;
     }
 
-    // 2. แสดงผลในหน้า index.html (Dashboard)
-    if (dashboardTable) {
-        let totalAmount = 0;
-
-        if (filtered.length === 0) {
-            dashboardTable.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">ไม่พบข้อมูลรายการภาษี</td></tr>`;
-        } else {
-            dashboardTable.innerHTML = filtered.map(item => {
-                totalAmount += (item.amount || 0);
-                
-                let dateStr = "-";
-                if (item.createdAt) {
-                    const date = item.createdAt.toDate ? item.createdAt.toDate() : new Date();
-                    dateStr = date.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
-                }
-
-                return `
-                    <tr>
-                        <td class="text-muted"><small><i class="fa-regular fa-clock me-1"></i>${dateStr}</small></td>
-                        <td><strong>${item.name}</strong></td>
-                        <td><span class="badge bg-secondary">${item.taxType}</span></td>
-                        <td class="text-end fw-bold text-success">${item.amount ? item.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</td>
-                        <td class="text-center">
-                            ${item.imageUrl 
-                                ? `<button class="btn btn-sm btn-primary view-img-btn" data-url="${item.imageUrl}">
-                                      <i class="fa-regular fa-image me-1"></i>เปิดดูสลิป
-                                   </button>` 
-                                : '<span class="text-muted fs-7">ไม่มีสลิป</span>'}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // อัปเดตการ์ดตัวเลขสรุปผล
-        const totalAmountEl = document.getElementById('totalAmount');
-        const totalCountEl = document.getElementById('totalCount');
-        
-        if (totalAmountEl) totalAmountEl.innerText = `${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
-        if (totalCountEl) totalCountEl.innerText = `${filtered.length} รายการ`;
-    }
-
-    // ผูกเหตุการณ์คลิกเปิดดูรูปภาพใน Modal
-    document.querySelectorAll('.view-img-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const url = e.currentTarget.getAttribute('data-url');
-            const modalImage = document.getElementById('modalImage');
-            const modalDriveLink = document.getElementById('modalDriveLink');
-            
-            if (modalImage && modalDriveLink) {
-                modalImage.src = url;
-                modalDriveLink.href = url;
-                const myModal = new bootstrap.Modal(document.getElementById('imageModal'));
-                myModal.show();
-            }
-        });
+    // ผูกปุ่มพิมพ์รายรายการ
+    document.querySelectorAll('.print-single-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => printSingle(e.target.dataset.id));
     });
 }
 
-// ลงทะเบียน Event สำหรับ ค้นหา และ จัดเรียง
-if (searchInput) searchInput.addEventListener('input', renderData);
-if (sortSelect) sortSelect.addEventListener('change', renderData);
+// --- 5. ระบบ พิมพ์หนังสือแบบราชการ ---
+function printSingle(id) {
+    const item = rawDataList.find(i => i.id === id);
+    if (!item) return;
+
+    const area = document.getElementById('printableArea');
+    area.innerHTML = `
+        <div style="font-family: 'Sarabun', sans-serif; padding: 20px; line-height: 1.6;">
+            <h3 style="text-align: center; font-weight: bold;">รายงานผลการออกติดตามภาษีท้องถิ่น</h3>
+            <hr>
+            <p><strong>ประเภทภาษี:</strong> ${item.taxType} (ปี ${item.taxYear})</p>
+            <p><strong>ชื่อผู้เสียภาษี:</strong> ${item.name} (เลขประจำตัว: ${item.taxId})</p>
+            <p><strong>ที่อยู่ติดตาม:</strong> บ้านเลขที่ ${item.houseNo} หมู่ ${item.moo || '-'} ต.${item.subDistrict} อ.${item.district} จ.${item.province}</p>
+            <p><strong>เอกสารนำส่ง:</strong> ${item.docType}</p>
+            <p><strong>ยอดภาษีค้างชำระ:</strong> ${item.amount.toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</p>
+            <p><strong>ผลการติดตาม:</strong> ${item.followStatus}</p>
+            <p><strong>แนวโน้มการชำระ:</strong> ${item.actionTaken}</p>
+            <p><strong>หมายเหตุ:</strong> ${item.remark || '-'}</p>
+            <br><br>
+            <div style="float: right; text-align: center;">
+                <p>ลงชื่อ........................................................</p>
+                <p>(${item.officerName})</p>
+                <p>ตำแหน่ง ${item.officerPosition}</p>
+            </div>
+        </div>
+    `;
+    area.style.display = 'block';
+    window.print();
+    area.style.display = 'none';
+}
+
+// ระบบพิมพ์รวมทั้งหมด
+const printAll = () => {
+    const area = document.getElementById('printableArea');
+    area.innerHTML = `
+        <h3 style="text-align:center;">รายงานสรุปการออกติดตามภาษีทั้งหมด</h3>
+        <table border="1" style="width:100%; border-collapse:collapse; margin-top:20px; font-size:12px;">
+            <thead>
+                <tr>
+                    <th>ชื่อผู้เสียภาษี</th>
+                    <th>ประเภทภาษี</th>
+                    <th>เอกสาร</th>
+                    <th>ยอดค้าง (บาท)</th>
+                    <th>ผลการติดตาม</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rawDataList.map(i => `
+                    <tr>
+                        <td>${i.name}</td>
+                        <td>${i.taxType}</td>
+                        <td>${i.docType}</td>
+                        <td style="text-align:right;">${i.amount.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
+                        <td>${i.followStatus}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    area.style.display = 'block';
+    window.print();
+    area.style.display = 'none';
+};
+
+document.getElementById('btnPrintAll')?.addEventListener('click', printAll);
+document.getElementById('btnPrintDashboard')?.addEventListener('click', printAll);
+document.getElementById('searchInput')?.addEventListener('input', renderData);
