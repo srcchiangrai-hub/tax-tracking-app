@@ -3,22 +3,8 @@
 // ==========================================
 const STORAGE_KEY = 'revenue_data';
 
-// ข้อมูลตั้งต้นชุดใหม่ (เอาชื่อเดิมออกทั้งหมด)
-const initialMockData = [
-    {
-        id: 'TAX-69001',
-        taxId: '1-5099-00123-45-1',
-        name: 'นายกิตติศักดิ์ เจริญสุข',
-        taxType: 'ภาษีที่ดินและสิ่งปลูกสร้าง',
-        taxYear: '2026',
-        amount: 5200,
-        status: '🔴 ค้างชำระ',
-        step: 'ส่งหนังสือเตือน ครั้งที่ 1',
-        officer: 'นายสมศักดิ์ มั่นคง',
-        dueDate: '2026-08-01',
-        address: '123/4 หมู่ 2 ต.ในเมือง อ.เมือง จ.เชียงราย'
-    }
-];
+// ไม่ใช้ Mock Data (ตั้งต้นเป็นอาร์เรย์ว่าง)
+const initialMockData = [];
 
 function loadData() {
     const dataStr = localStorage.getItem(STORAGE_KEY);
@@ -131,7 +117,6 @@ function updateTaxTypeStats() {
 
     const periodTexts = { month: 'ประจำเดือนนี้', quarter: 'ประจำไตรมาสนี้', year: 'ประจำปีนี้' };
     
-    // ปรับเปลี่ยนข้อความหัวข้อการ์ดเป็น "ยอดที่ติดตาม"
     const lblLand = document.getElementById('label-land-period');
     const lblSign = document.getElementById('label-sign-period');
     if (lblLand) lblLand.innerText = `ยอดที่ติดตาม (${periodTexts[currentPeriod]})`;
@@ -170,6 +155,12 @@ function renderStaffSummary() {
     });
 
     grid.innerHTML = '';
+    
+    if (Object.keys(staffMap).length === 0) {
+        grid.innerHTML = `<p class="text-xs text-slate-400 col-span-full">ยังไม่มีข้อมูลเจ้าหน้าที่</p>`;
+        return;
+    }
+
     Object.keys(staffMap).forEach(staff => {
         const isSelected = selectedOfficerFilter === staff;
         const card = document.createElement('div');
@@ -219,7 +210,7 @@ window.renderDashboardTable = function() {
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">ไม่พบข้อมูลที่ค้นหา</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>`;
         return;
     }
 
