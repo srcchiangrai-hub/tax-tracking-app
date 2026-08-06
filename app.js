@@ -1,7 +1,9 @@
 // ==========================================
-// 1. MOCK DATA & INITIAL STATE
+// 1. DATA INITIALIZATION & LOCALSTORAGE SYNC
 // ==========================================
-let revenueData = JSON.parse(localStorage.getItem('revenue_data')) || [
+const STORAGE_KEY = 'revenue_data';
+
+const initialMockData = [
     {
         id: 'TAX-69001',
         taxId: '1-5099-00123-45-1',
@@ -27,83 +29,109 @@ let revenueData = JSON.parse(localStorage.getItem('revenue_data')) || [
         officer: 'นายวิชัย รักษ์ดี',
         dueDate: '2026-08-15',
         address: '45/1 ถนนพาณิชย์ ต.เวียง อ.เมือง จ.เชียงราย'
-    },
-    {
-        id: 'TAX-69003',
-        taxId: '1-5099-00999-00-2',
-        name: 'นางสาววิภาดาว มณีวรรณ',
-        taxType: 'ภาษีที่ดินและสิ่งปลูกสร้าง',
-        taxYear: '2026',
-        amount: 12500,
-        status: '🟢 เสร็จสิ้น',
-        step: 'ชำระเงินเรียบร้อย',
-        officer: 'นางสาวนภา มีสุข',
-        dueDate: '2026-07-20',
-        address: '88/9 หมู่ 5 ต.รอบเวียง อ.เมือง จ.เชียงราย'
     }
 ];
 
-let selectedOfficerFilter = null;
-let currentPeriod = 'month'; // 'month', 'quarter', 'year'
-
-// Save data to LocalStorage
-function saveData() {
-    localStorage.setItem('revenue_data', JSON.stringify(revenueData));
+// โหลดข้อมูลจาก LocalStorage
+function loadData() {
+    const dataStr = localStorage.getItem(STORAGE_KEY);
+    if (!dataStr) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(initialMockData));
+        return initialMockData;
+    }
+    try {
+        return JSON.parse(dataStr);
+    } catch (e) {
+        return initialMockData;
+    }
 }
 
-// ==========================================
-// 2. DOM LOAD & INITIALIZATION
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-    initDashboard();
+// เซฟข้อมูลลง LocalStorage
+function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let revenueData = loadData();
+let selectedStatusFilter = null;
+let selectedOfficerFilter = null;
+let currentPeriod = 'month';
+
+// ตรวจจับการเปลี่ยนแปลงจากหน้า Admin แบบ Real-time
+window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) {
+        revenueData = loadData();
+        renderAll();
+    }
 });
 
-function initDashboard() {
+// ==========================================
+// 2. RENDER & REFRESH FUNCTIONS
+// ==========================================
+function renderAll() {
     updateMainStats();
     updateTaxTypeStats();
     renderStaffSummary();
     renderDashboardTable();
 }
 
-// ==========================================
-// 3. STATS CALCULATION & REAL-TIME FILTERING
-// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    renderAll();
 
-// สถิติสถานะรวม (🔴 ค้างชำระ / 🟡 ติดตาม / 🟢 เสร็จสิ้น)
+    // ผูกช่องค้นหา
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderDashboardTable();
+        });
+    }
+});
+
+// ==========================================
+// 3. STATS & FILTERS
+// ==========================================
 function updateMainStats() {
     const redCount = revenueData.filter(d => d.status.includes('🔴') || d.status.includes('ค้างชำระ')).length;
     const yellowCount = revenueData.filter(d => d.status.includes('🟡') || d.status.includes('ติดตาม')).length;
     const greenCount = revenueData.filter(d => d.status.includes('🟢') || d.status.includes('เสร็จสิ้น')).length;
 
-    document.getElementById('stat-red-count').innerText = `${redCount} เคส`;
-    document.getElementById('stat-yellow-count').innerText = `${yellowCount} เคส`;
-    document.getElementById('stat-green-count').innerText = `${greenCount} เคส`;
+    const elRed = document.getElementById('stat-red-count');
+    const elYellow = document.getElementById('stat-yellow-count');
+    const elGreen = document.getElementById('stat-green-count');
+
+    if (elRed) elRed.innerText = `${redCount} เคส`;
+    if (elYellow) elYellow.innerText = `${yellowCount} เคส`;
+    if (elGreen) elGreen.innerText = `${greenCount} เคส`;
 }
 
-// สถิติแยกตามประเภทภาษี และช่วงเวลาจริง (Real-Time)
+// ฟังก์ชันกรองตามสถานะ (🔴/🟡/🟢) เมื่อผู้ใช้คลิกการ์ด
+window.filterByStatus = function(statusType) {
+    if (selectedStatusFilter === statusType) {
+        selectedStatusFilter = null; // ปลดกรองถ้าคลิกซ้ำ
+    } else {
+        selectedStatusFilter = statusType;
+    }
+    renderDashboardTable();
+};
+
 window.changeTimePeriod = function(period) {
     currentPeriod = period;
-    
-    // UI Active state
     ['month', 'quarter', 'year'].forEach(p => {
         const btn = document.getElementById(`btn-period-${p}`);
-        if(p === period) {
-            btn.className = "px-3 py-1.5 rounded-xl font-medium transition-all bg-white text-pink-600 shadow-sm";
-        } else {
-            btn.className = "px-3 py-1.5 rounded-xl font-medium text-slate-600 hover:text-pink-600 transition-all";
+        if (btn) {
+            btn.className = (p === period) 
+                ? "px-3 py-1.5 rounded-xl font-medium transition-all bg-white text-pink-600 shadow-sm"
+                : "px-3 py-1.5 rounded-xl font-medium text-slate-600 hover:text-pink-600 transition-all";
         }
     });
-
     updateTaxTypeStats();
 };
 
 function updateTaxTypeStats() {
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-11
+    const currentMonth = now.getMonth();
     const currentQuarter = Math.floor(currentMonth / 3);
 
-    // Filter items based on real-time dates
     const filteredData = revenueData.filter(item => {
         if (!item.dueDate) return true;
         const itemDate = new Date(item.dueDate);
@@ -111,67 +139,62 @@ function updateTaxTypeStats() {
         const itemMonth = itemDate.getMonth();
         const itemQuarter = Math.floor(itemMonth / 3);
 
-        if (currentPeriod === 'month') {
-            return itemYear === currentYear && itemMonth === currentMonth;
-        } else if (currentPeriod === 'quarter') {
-            return itemYear === currentYear && itemQuarter === currentQuarter;
-        } else if (currentPeriod === 'year') {
-            return itemYear === currentYear;
-        }
+        if (currentPeriod === 'month') return itemYear === currentYear && itemMonth === currentMonth;
+        if (currentPeriod === 'quarter') return itemYear === currentYear && itemQuarter === currentQuarter;
+        if (currentPeriod === 'year') return itemYear === currentYear;
         return true;
     });
 
-    // Label texts
-    const periodTexts = {
-        month: 'ประจำเดือนนี้',
-        quarter: 'ประจำไตรมาสนี้',
-        year: 'ประจำปีนี้'
-    };
-    document.getElementById('label-land-period').innerText = periodTexts[currentPeriod];
-    document.getElementById('label-sign-period').innerText = periodTexts[currentPeriod];
+    const periodTexts = { month: 'ประจำเดือนนี้', quarter: 'ประจำไตรมาสนี้', year: 'ประจำปีนี้' };
+    const lblLand = document.getElementById('label-land-period');
+    const lblSign = document.getElementById('label-sign-period');
+    if (lblLand) lblLand.innerText = periodTexts[currentPeriod];
+    if (lblSign) lblSign.innerText = periodTexts[currentPeriod];
 
-    // Calculate Land Tax
     const landItems = filteredData.filter(i => i.taxType.includes('ที่ดิน'));
     const landTotal = landItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-    document.getElementById('stat-land-total').innerText = `฿${landTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-    document.getElementById('stat-land-count').innerText = `${landItems.length} ราย`;
+    const elLandTotal = document.getElementById('stat-land-total');
+    const elLandCount = document.getElementById('stat-land-count');
+    if (elLandTotal) elLandTotal.innerText = `฿${landTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+    if (elLandCount) elLandCount.innerText = `${landItems.length} ราย`;
 
-    // Calculate Sign Tax
     const signItems = filteredData.filter(i => i.taxType.includes('ป้าย'));
     const signTotal = signItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-    document.getElementById('stat-sign-total').innerText = `฿${signTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-    document.getElementById('stat-sign-count').innerText = `${signItems.length} ราย`;
+    const elSignTotal = document.getElementById('stat-sign-total');
+    const elSignCount = document.getElementById('stat-sign-count');
+    if (elSignTotal) elSignTotal.innerText = `฿${signTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+    if (elSignCount) elSignCount.innerText = `${signItems.length} ราย`;
 }
 
 // ==========================================
-// 4. STAFF SUMMARY & FILTERING
+// 4. STAFF SUMMARY & TABLE RENDERING
 // ==========================================
 function renderStaffSummary() {
-    const staffMap = {};
+    const grid = document.getElementById('staff-summary-grid');
+    if (!grid) return;
 
+    const staffMap = {};
     revenueData.forEach(item => {
         const name = item.officer || 'ไม่ระบุ';
-        if (!staffMap[name]) {
-            staffMap[name] = { total: 0, pending: 0 };
-        }
+        if (!staffMap[name]) staffMap[name] = { total: 0, pending: 0 };
         staffMap[name].total += 1;
-        if (!item.status.includes('เสร็จสิ้น')) {
+        if (!item.status.includes('เสร็จสิ้น') && !item.status.includes('🟢')) {
             staffMap[name].pending += 1;
         }
     });
 
-    const grid = document.getElementById('staff-summary-grid');
     grid.innerHTML = '';
-
     Object.keys(staffMap).forEach(staff => {
         const isSelected = selectedOfficerFilter === staff;
         const card = document.createElement('div');
         card.className = `p-4 rounded-2xl cursor-pointer border-2 transition-all ${
-            isSelected 
-                ? 'bg-pink-50 border-pink-500 shadow-md' 
-                : 'bg-white border-pink-100 hover:border-pink-300'
+            isSelected ? 'bg-pink-50 border-pink-500 shadow-md' : 'bg-white border-pink-100 hover:border-pink-300'
         }`;
-        card.onclick = () => filterByOfficer(staff);
+        card.onclick = () => {
+            selectedOfficerFilter = selectedOfficerFilter === staff ? null : staff;
+            renderStaffSummary();
+            renderDashboardTable();
+        };
 
         card.innerHTML = `
             <div class="flex items-center justify-between mb-2">
@@ -186,22 +209,11 @@ function renderStaffSummary() {
     });
 }
 
-function filterByOfficer(officer) {
-    if (selectedOfficerFilter === officer) {
-        selectedOfficerFilter = null; // Toggle Off
-    } else {
-        selectedOfficerFilter = officer;
-    }
-    renderStaffSummary();
-    renderDashboardTable();
-}
-
-// ==========================================
-// 5. TABLE RENDERING WITH HIGHLIGHTED TAX ID
-// ==========================================
 window.renderDashboardTable = function() {
-    const searchVal = document.getElementById('search-input')?.value.toLowerCase() || '';
     const tbody = document.getElementById('dashboard-data-table');
+    if (!tbody) return;
+
+    const searchVal = document.getElementById('search-input')?.value.toLowerCase() || '';
     tbody.innerHTML = '';
 
     const filtered = revenueData.filter(item => {
@@ -209,10 +221,15 @@ window.renderDashboardTable = function() {
             item.name.toLowerCase().includes(searchVal) || 
             item.taxId.toLowerCase().includes(searchVal) ||
             item.taxType.toLowerCase().includes(searchVal);
-        
+            
         const matchesOfficer = selectedOfficerFilter ? item.officer === selectedOfficerFilter : true;
+        
+        let matchesStatus = true;
+        if (selectedStatusFilter === 'red') matchesStatus = item.status.includes('🔴') || item.status.includes('ค้างชำระ');
+        if (selectedStatusFilter === 'yellow') matchesStatus = item.status.includes('🟡') || item.status.includes('ติดตาม');
+        if (selectedStatusFilter === 'green') matchesStatus = item.status.includes('🟢') || item.status.includes('เสร็จสิ้น');
 
-        return matchesSearch && matchesOfficer;
+        return matchesSearch && matchesOfficer && matchesStatus;
     });
 
     if (filtered.length === 0) {
@@ -223,11 +240,9 @@ window.renderDashboardTable = function() {
     filtered.forEach(item => {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-pink-50/30 transition-colors";
-
         tr.innerHTML = `
             <td class="p-3 font-medium">${item.status}</td>
             <td class="p-3">
-                <!-- เน้นสีเลขประจำตัวภาษีให้เด่นชัด -->
                 <span class="font-bold text-indigo-950 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md tracking-wide">
                     ${item.taxId}
                 </span>
@@ -248,7 +263,7 @@ window.renderDashboardTable = function() {
 };
 
 // ==========================================
-// 6. MODAL & PRINTING FUNCTIONS
+// 5. MODAL & PRINTING
 // ==========================================
 window.viewCaseDetail = function(id) {
     const item = revenueData.find(d => d.id === id);
@@ -256,6 +271,7 @@ window.viewCaseDetail = function(id) {
 
     const modal = document.getElementById('case-detail-modal');
     const content = document.getElementById('modal-content');
+    if (!modal || !content) return;
 
     content.innerHTML = `
         <div class="space-y-4">
@@ -304,10 +320,10 @@ window.viewCaseDetail = function(id) {
 };
 
 window.closeModal = function() {
-    document.getElementById('case-detail-modal').classList.add('hidden');
+    const modal = document.getElementById('case-detail-modal');
+    if (modal) modal.classList.add('hidden');
 };
 
-// 🖨️ พิมพ์หนังสือแจ้งเตือนรายบุคคล (รูปแบบราชการ TH Sarabun)
 window.printOfficialDocument = function(id) {
     const item = revenueData.find(d => d.id === id);
     if (!item) return;
@@ -321,28 +337,23 @@ window.printOfficialDocument = function(id) {
                 <h2 style="font-size: 22pt; font-weight: bold; margin: 0;">หนังสือแจ้งเตือนชำระภาษี</h2>
                 <p style="margin: 0;">หน่วยงานจัดเก็บรายได้ กองคลัง</p>
             </div>
-
             <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
                 <div>ที่ ชร 52001/..............</div>
                 <div>วันที่ ${todayTH}</div>
             </div>
-
             <div style="margin-bottom: 15px;">
                 <strong>เรื่อง:</strong> เตือนให้ดำเนินการชำระ${item.taxType} ประจำปี ${item.taxYear}<br>
                 <strong>เรียน:</strong> ${item.name}<br>
                 <strong>เลขประจำตัวผู้เสียภาษี:</strong> <span style="font-size: 18pt; font-weight: bold;">${item.taxId}</span>
             </div>
-
             <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 15px;">
                 ตามที่ท่านมีหน้าที่ต้องชำระ <strong>${item.taxType}</strong> ประจำปี พ.ศ. ${item.taxYear} เป็นจำนวนเงินทั้งสิ้น 
                 <strong>${Number(item.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</strong> นั้น 
                 จากการตรวจสอบระบบข้อมูลพบว่า ปัจจุบันสถานะของท่านอยู่ระหว่าง <em>"${item.step}"</em> และยังไม่ได้ดำเนินการชำระให้เสร็จสิ้นตามกำหนด
             </p>
-
             <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 30px;">
                 จึงขอเรียนมาเพื่อโปรดติดต่อนำส่งชำระภาษีดังกล่าว ณ กองคลัง ภายใน 15 วัน นับแต่วันที่ได้รับหนังสือฉบับนี้ หากท่านชำระเงินเรียบร้อยแล้วก่อนได้รับหนังสือฉบับนี้ ทางเจ้าหน้าที่ต้องขออภัยมา ณ ที่นี้ด้วย
             </p>
-
             <div style="display: flex; justify-content: flex-end; margin-top: 50px;">
                 <div style="text-align: center; width: 250px;">
                     <p style="margin-bottom: 60px;">ขอแสดงความนับถือ</p>
@@ -353,15 +364,12 @@ window.printOfficialDocument = function(id) {
             </div>
         </div>
     `;
-
     window.print();
 };
 
-// 🖨️ พิมพ์รายงานสรุปตาราง (รองรับการกรองแยกรายบุคคล)
 window.printFilteredReport = function() {
     const printArea = document.getElementById('printable-area');
     const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-
     const filtered = revenueData.filter(item => selectedOfficerFilter ? item.officer === selectedOfficerFilter : true);
 
     let rowsHTML = filtered.map((item, idx) => `
@@ -385,7 +393,6 @@ window.printFilteredReport = function() {
                     ข้อมูล ณ วันที่ ${todayTH}
                 </p>
             </div>
-
             <table style="width: 100%; border-collapse: collapse; margin-top: 10px;" border="1">
                 <thead>
                     <tr style="background-color: #f2f2f2; text-align: center; font-weight: bold;">
@@ -404,6 +411,5 @@ window.printFilteredReport = function() {
             </table>
         </div>
     `;
-
     window.print();
 };
