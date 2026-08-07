@@ -1,401 +1,373 @@
 // ==========================================
-// 1. DATA INITIALIZATION & LOCALSTORAGE SYNC
+// 1. Firebase Configuration & Initialization
 // ==========================================
-const STORAGE_KEY = 'revenue_data';
-
-// ดึงข้อมูลจาก LocalStorage ตรงๆ ไม่เขียนทับข้อมูลที่มีอยู่เดิม
-function loadData() {
-    const dataStr = localStorage.getItem(STORAGE_KEY);
-    if (!dataStr) {
-        return []; // ถ้ายังไม่มีข้อมูล ให้คืนค่าเป็นอาร์เรย์ว่าง
-    }
-    try {
-        return JSON.parse(dataStr);
-    } catch (e) {
-        console.error("Error parsing revenue_data:", e);
-        return [];
-    }
-}
-
-function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-let revenueData = loadData();
-let selectedStatusFilter = null;
-let selectedOfficerFilter = null;
-let currentPeriod = 'month';
-
-// ตรวจจับการเปลี่ยนแปลงจากหน้า Admin แบบ Real-time (ข้ามหน้า/ข้ามแท็บ)
-window.addEventListener('storage', (e) => {
-    if (e.key === STORAGE_KEY) {
-        revenueData = loadData();
-        renderAll();
-    }
-});
-
-// ==========================================
-// 2. RENDER & REFRESH FUNCTIONS
-// ==========================================
-function renderAll() {
-    revenueData = loadData(); // โหลดข้อมูลใหม่อีกครั้งก่อนเรนเดอร์ทุกส่วน
-    updateMainStats();
-    updateTaxTypeStats();
-    renderStaffSummary();
-    renderDashboardTable();
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    renderAll();
-
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            renderDashboardTable();
-        });
-    }
-});
-
-// Focus/Visibility Change: โหลดข้อมูลใหม่ทันทีที่กดสลับแท็บกลับมาหน้า Dashboard
-window.addEventListener('focus', () => {
-    renderAll();
-});
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-        renderAll();
-    }
-});
-
-// ==========================================
-// 3. STATS & FILTERS
-// ==========================================
-function updateMainStats() {
-    const redCount = revenueData.filter(d => d.status && (d.status.includes('🔴') || d.status.includes('ค้างชำระ'))).length;
-    const yellowCount = revenueData.filter(d => d.status && (d.status.includes('🟡') || d.status.includes('ติดตาม'))).length;
-    const greenCount = revenueData.filter(d => d.status && (d.status.includes('🟢') || d.status.includes('เสร็จสิ้น'))).length;
-
-    const elRed = document.getElementById('stat-red-count');
-    const elYellow = document.getElementById('stat-yellow-count');
-    const elGreen = document.getElementById('stat-green-count');
-
-    if (elRed) elRed.innerText = `${redCount} เคส`;
-    if (elYellow) elYellow.innerText = `${yellowCount} เคส`;
-    if (elGreen) elGreen.innerText = `${greenCount} เคส`;
-}
-
-window.filterByStatus = function(statusType) {
-    if (selectedStatusFilter === statusType) {
-        selectedStatusFilter = null;
-    } else {
-        selectedStatusFilter = statusType;
-    }
-    renderDashboardTable();
+const firebaseConfig = {
+  apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
+  authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
+  databaseURL: "https://tax-tracking-app-25fb7-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tax-tracking-app-25fb7",
+  storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
+  messagingSenderId: "122118718226",
+  appId: "1:122118718226:web:df2d284fe543ec799da9cb"
 };
 
-window.changeTimePeriod = function(period) {
-    currentPeriod = period;
-    ['month', 'quarter', 'year'].forEach(p => {
-        const btn = document.getElementById(`btn-period-${p}`);
-        if (btn) {
-            btn.className = (p === period) 
-                ? "px-3 py-1.5 rounded-xl font-medium transition-all bg-white text-pink-600 shadow-sm"
-                : "px-3 py-1.5 rounded-xl font-medium text-slate-600 hover:text-pink-600 transition-all";
-        }
-    });
-    updateTaxTypeStats();
-};
-
-function updateTaxTypeStats() {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const currentQuarter = Math.floor(currentMonth / 3);
-
-    const filteredData = revenueData.filter(item => {
-        if (!item.dueDate) return true;
-        const itemDate = new Date(item.dueDate);
-        const itemYear = itemDate.getFullYear();
-        const itemMonth = itemDate.getMonth();
-        const itemQuarter = Math.floor(itemMonth / 3);
-
-        if (currentPeriod === 'month') return itemYear === currentYear && itemMonth === currentMonth;
-        if (currentPeriod === 'quarter') return itemYear === currentYear && itemQuarter === currentQuarter;
-        if (currentPeriod === 'year') return itemYear === currentYear;
-        return true;
-    });
-
-    const periodTexts = { month: 'ประจำเดือนนี้', quarter: 'ประจำไตรมาสนี้', year: 'ประจำปีนี้' };
-    
-    const lblLand = document.getElementById('label-land-period');
-    const lblSign = document.getElementById('label-sign-period');
-    if (lblLand) lblLand.innerText = `ยอดที่ติดตาม (${periodTexts[currentPeriod]})`;
-    if (lblSign) lblSign.innerText = `ยอดที่ติดตาม (${periodTexts[currentPeriod]})`;
-
-    const landItems = filteredData.filter(i => i.taxType && i.taxType.includes('ที่ดิน'));
-    const landTotal = landItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-    const elLandTotal = document.getElementById('stat-land-total');
-    const elLandCount = document.getElementById('stat-land-count');
-    if (elLandTotal) elLandTotal.innerText = `฿${landTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-    if (elLandCount) elLandCount.innerText = `${landItems.length} ราย`;
-
-    const signItems = filteredData.filter(i => i.taxType && i.taxType.includes('ป้าย'));
-    const signTotal = signItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-    const elSignTotal = document.getElementById('stat-sign-total');
-    const elSignCount = document.getElementById('stat-sign-count');
-    if (elSignTotal) elSignTotal.innerText = `฿${signTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-    if (elSignCount) elSignCount.innerText = `${signItems.length} ราย`;
+// ตรวจสอบการ Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
 }
+const db = firebase.database();
+
+// ตัวแปรส่วนกลางสำหรับจัดการช่วงเวลา
+const now = new Date();
+const todayStr = now.toISOString().split('T')[0];
+const currentYear = now.getFullYear();
+const currentMonth = now.getMonth();
+const currentQuarter = Math.floor(currentMonth / 3) + 1;
+
+// ตัวแปรสำหรับคลังเก็บ ข้อมูล Realtime
+let globalSurveyData = [];
+let cachedSurveysObj = {};
 
 // ==========================================
-// 4. STAFF SUMMARY & TABLE RENDERING
+// 2. ฟังก์ชันฝั่ง Dashboard (index.html)
 // ==========================================
-function renderStaffSummary() {
-    const grid = document.getElementById('staff-summary-grid');
-    if (!grid) return;
 
-    const staffMap = {};
-    revenueData.forEach(item => {
-        const name = item.officer || 'ไม่ระบุ';
-        if (!staffMap[name]) staffMap[name] = { total: 0, pending: 0 };
-        staffMap[name].total += 1;
-        if (item.status && !item.status.includes('เสร็จสิ้น') && !item.status.includes('🟢')) {
-            staffMap[name].pending += 1;
-        }
-    });
-
-    grid.innerHTML = '';
-    
-    if (Object.keys(staffMap).length === 0) {
-        grid.innerHTML = `<p class="text-xs text-slate-400 col-span-full">ยังไม่มีข้อมูลเจ้าหน้าที่</p>`;
-        return;
+/**
+ * ดึงข้อมูล Realtime สำหรับหน้า Dashboard
+ */
+function initDashboard() {
+  db.ref('surveys').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      showEmptyStateDashboard();
+      return;
     }
 
-    Object.keys(staffMap).forEach(staff => {
-        const isSelected = selectedOfficerFilter === staff;
-        const card = document.createElement('div');
-        card.className = `p-4 rounded-2xl cursor-pointer border-2 transition-all ${
-            isSelected ? 'bg-pink-50 border-pink-500 shadow-md' : 'bg-white border-pink-100 hover:border-pink-300'
-        }`;
-        card.onclick = () => {
-            selectedOfficerFilter = selectedOfficerFilter === staff ? null : staff;
-            renderStaffSummary();
-            renderDashboardTable();
-        };
+    let dailyTotal = 0;
+    let monthlyTotal = 0;
+    let quarterlyTotal = 0;
+    let officerStats = {};
+    let recentRecords = [];
+    globalSurveyData = [];
 
-        card.innerHTML = `
-            <div class="flex items-center justify-between mb-2">
-                <span class="font-bold text-slate-800 text-sm">${staff}</span>
-                <span class="text-xs ${isSelected ? 'bg-pink-500 text-white' : 'bg-pink-100 text-pink-600'} px-2 py-0.5 rounded-full">
-                    ${staffMap[staff].total} รายการ
-                </span>
-            </div>
-            <p class="text-xs text-slate-500">ค้างดำเนินการ: <strong class="text-rose-500 font-bold">${staffMap[staff].pending}</strong> ราย</p>
-        `;
-        grid.appendChild(card);
+    Object.keys(data).forEach(key => {
+      const item = data[key];
+      const docDate = new Date(item.docDate);
+      const officer = item.officerName || 'ไม่ระบุชื่อ';
+
+      globalSurveyData.push(item);
+
+      if (!officerStats[officer]) {
+        officerStats[officer] = { daily: 0, monthly: 0, quarterly: 0 };
+      }
+
+      // สรุปยอดรายวัน
+      if (item.docDate === todayStr) {
+        dailyTotal++;
+        officerStats[officer].daily++;
+      }
+
+      // สรุปยอดรายเดือน
+      if (docDate.getFullYear() === currentYear && docDate.getMonth() === currentMonth) {
+        monthlyTotal++;
+        officerStats[officer].monthly++;
+      }
+
+      // สรุปยอดรายไตรมาส
+      const itemQuarter = Math.floor(docDate.getMonth() / 3) + 1;
+      if (docDate.getFullYear() === currentYear && itemQuarter === currentQuarter) {
+        quarterlyTotal++;
+        officerStats[officer].quarterly++;
+      }
+
+      recentRecords.push(item);
     });
+
+    // อัปเดตตัวเลขการ์ด KPI
+    document.getElementById('dailyCount').textContent = dailyTotal;
+    document.getElementById('monthlyCount').textContent = monthlyTotal;
+    document.getElementById('quarterlyCount').textContent = quarterlyTotal;
+
+    // แสดงผลตารางสรุปผลงาน
+    renderOfficerTable(officerStats);
+    renderRecentTable(recentRecords.reverse().slice(0, 10));
+    updateOfficerDropdown(Object.keys(officerStats));
+  });
 }
 
-window.renderDashboardTable = function() {
-    const tbody = document.getElementById('dashboard-data-table');
+function renderOfficerTable(stats) {
+  const tbody = document.getElementById('officerTableBody');
+  const printTbody = document.getElementById('printOfficerTable');
+  if (!tbody || !printTbody) return;
+
+  tbody.innerHTML = '';
+  printTbody.innerHTML = '';
+
+  let index = 1;
+  for (const [officer, stat] of Object.entries(stats)) {
+    tbody.innerHTML += `
+      <tr class="hover:bg-purple-50/40 transition">
+        <td class="p-3 font-semibold text-slate-700">${officer}</td>
+        <td class="p-3 text-center font-bold text-emerald-600">${stat.daily}</td>
+        <td class="p-3 text-center font-bold text-orange-600">${stat.monthly}</td>
+        <td class="p-3 text-center font-bold text-indigo-600">${stat.quarterly}</td>
+      </tr>
+    `;
+
+    printTbody.innerHTML += `
+      <tr>
+        <td class="border border-black p-1.5 text-center">${index++}</td>
+        <td class="border border-black p-1.5">${officer}</td>
+        <td class="border border-black p-1.5 text-center">${stat.daily}</td>
+        <td class="border border-black p-1.5 text-center">${stat.monthly}</td>
+        <td class="border border-black p-1.5 text-center">${stat.quarterly}</td>
+      </tr>
+    `;
+  }
+}
+
+function renderRecentTable(records) {
+  const tbody = document.getElementById('recentTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  records.forEach(item => {
+    let statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-semibold">🟢 พบผู้ค้างภาษี</span>';
+    if (item.followStatus === 'ไม่พบผู้ค้างภาษี') {
+      statusBadge = '<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-xs font-semibold">🔴 ไม่พบผู้ค้างภาษี</span>';
+    } else if (item.followStatus === 'พบบุคคลอื่น') {
+      statusBadge = '<span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-xs font-semibold">🟡 พบบุคคลอื่น</span>';
+    }
+
+    tbody.innerHTML += `
+      <tr class="hover:bg-amber-50/40 transition">
+        <td class="p-3 text-slate-500">${item.docDate || '-'}</td>
+        <td class="p-3 font-medium text-slate-700">${item.officerName || '-'}</td>
+        <td class="p-3 text-slate-800 font-medium">${item.taxName || '-'}</td>
+        <td class="p-3">${statusBadge}</td>
+        <td class="p-3 text-slate-600">${item.receiptStatus || '-'}</td>
+        <td class="p-3 text-slate-500 text-xs">${item.note || '-'}</td>
+      </tr>
+    `;
+  });
+}
+
+function updateOfficerDropdown(officerList) {
+  const select = document.getElementById('exportOfficerFilter');
+  if (!select) return;
+  select.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
+  officerList.forEach(name => {
+    select.innerHTML += `<option value="${name}">${name}</option>`;
+  });
+}
+
+function showEmptyStateDashboard() {
+  const tbody1 = document.getElementById('officerTableBody');
+  const tbody2 = document.getElementById('recentTableBody');
+  if (tbody1) tbody1.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลการสำรวจในระบบ</td></tr>`;
+  if (tbody2) tbody2.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลการสำรวจในระบบ</td></tr>`;
+}
+
+/**
+ * ส่งออกไฟล์ Excel แบบกรองข้อมูล
+ */
+function exportFilteredExcel() {
+  const periodFilter = document.getElementById('exportPeriodFilter').value;
+  const officerFilter = document.getElementById('exportOfficerFilter').value;
+
+  let filtered = globalSurveyData.filter(item => {
+    const docDate = new Date(item.docDate);
+    let matchPeriod = true;
+    let matchOfficer = true;
+
+    if (periodFilter === 'daily') {
+      matchPeriod = (item.docDate === todayStr);
+    } else if (periodFilter === 'monthly') {
+      matchPeriod = (docDate.getFullYear() === currentYear && docDate.getMonth() === currentMonth);
+    } else if (periodFilter === 'quarterly') {
+      const itemQuarter = Math.floor(docDate.getMonth() / 3) + 1;
+      matchPeriod = (docDate.getFullYear() === currentYear && itemQuarter === currentQuarter);
+    }
+
+    if (officerFilter !== 'all') {
+      matchOfficer = (item.officerName === officerFilter);
+    }
+
+    return matchPeriod && matchOfficer;
+  });
+
+  if (filtered.length === 0) {
+    alert('ไม่พบข้อมูลตามเงื่อนไขที่เลือกส่งออก');
+    return;
+  }
+
+  const excelRows = filtered.map((item, index) => ({
+    'ลำดับ': index + 1,
+    'วันที่สำรวจ': item.docDate || '',
+    'เจ้าหน้าที่ผู้สำรวจ': item.officerName || '',
+    'รหัสผู้เสียภาษี': item.taxId || '',
+    'ชื่อผู้เสียภาษี/ร้านค้า': item.taxName || '',
+    'สถานที่/ที่อยู่': item.address || '',
+    'ประเภทภาษี': item.taxType || '',
+    'ขั้นตอนเอกสาร': item.docType || '',
+    'ปีที่ค้าง': item.overdueYears || '',
+    'ผลการติดตาม': item.followStatus || '',
+    'การรับเอกสาร': item.receiptStatus || '',
+    'หมายเหตุเพิ่มเติม': item.note || ''
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(excelRows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "รายงานการลงพื้นที่");
+
+  const fileName = `รายงานการลงพื้นที่_${periodFilter}_${officerFilter}_${todayStr}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+}
+
+// ==========================================
+// 3. ฟังก์ชันฝั่ง Admin Management (admin.html)
+// ==========================================
+
+/**
+ * ดึงข้อมูล Realtime สำหรับหน้า Admin
+ */
+function initAdmin() {
+  const docDateInput = document.getElementById('docDate');
+  if (docDateInput) docDateInput.value = todayStr;
+
+  db.ref('surveys').on('value', (snapshot) => {
+    const data = snapshot.val();
+    const tbody = document.getElementById('historyTableBody');
     if (!tbody) return;
 
-    const searchVal = document.getElementById('search-input')?.value.toLowerCase() || '';
     tbody.innerHTML = '';
+    cachedSurveysObj = data || {};
 
-    const filtered = revenueData.filter(item => {
-        const matchesSearch = 
-            (item.name && item.name.toLowerCase().includes(searchVal)) || 
-            (item.taxId && item.taxId.toLowerCase().includes(searchVal)) ||
-            (item.taxType && item.taxType.toLowerCase().includes(searchVal));
-            
-        const matchesOfficer = selectedOfficerFilter ? item.officer === selectedOfficerFilter : true;
-        
-        let matchesStatus = true;
-        if (selectedStatusFilter === 'red') matchesStatus = item.status && (item.status.includes('🔴') || item.status.includes('ค้างชำระ'));
-        if (selectedStatusFilter === 'yellow') matchesStatus = item.status && (item.status.includes('🟡') || item.status.includes('ติดตาม'));
-        if (selectedStatusFilter === 'green') matchesStatus = item.status && (item.status.includes('🟢') || item.status.includes('เสร็จสิ้น'));
-
-        return matchesSearch && matchesOfficer && matchesStatus;
-    });
-
-    if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>`;
-        return;
+    if (!data) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">ยังไม่มีประวัติการบันทึกข้อมูล</td></tr>`;
+      return;
     }
 
-    filtered.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-pink-50/30 transition-colors";
-        tr.innerHTML = `
-            <td class="p-3 font-medium">${item.status || ''}</td>
-            <td class="p-3">
-                <span class="font-bold text-indigo-950 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md tracking-wide">
-                    ${item.taxId || ''}
-                </span>
-            </td>
-            <td class="p-3 font-semibold text-slate-800">${item.name || ''}</td>
-            <td class="p-3 text-slate-600">${item.taxType || ''} (${item.taxYear || ''})</td>
-            <td class="p-3 font-bold text-slate-900">฿${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
-            <td class="p-3 text-slate-600">${item.step || ''}</td>
-            <td class="p-3 text-slate-600">${item.officer || ''}</td>
-            <td class="p-3 text-center">
-                <button onclick="viewCaseDetail('${item.id}')" class="px-3 py-1 bg-pink-100 hover:bg-pink-500 hover:text-white text-pink-600 rounded-xl transition-all font-semibold">
-                    <i class="fa-solid fa-eye mr-1"></i> ดูข้อมูล
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-};
+    const keys = Object.keys(data).reverse();
+    keys.forEach(key => {
+      const item = data[key];
+      
+      let statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">🟢 พบผู้ค้างภาษี</span>';
+      if (item.followStatus === 'ไม่พบผู้ค้างภาษี') {
+        statusBadge = '<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-semibold">🔴 ไม่พบผู้ค้างภาษี</span>';
+      } else if (item.followStatus === 'พบบุคคลอื่น') {
+        statusBadge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs font-semibold">🟡 พบบุคคลอื่น</span>';
+      }
 
-// ==========================================
-// 5. MODAL & PRINTING
-// ==========================================
-window.viewCaseDetail = function(id) {
-    const item = revenueData.find(d => String(d.id) === String(id));
-    if (!item) return;
-
-    const modal = document.getElementById('case-detail-modal');
-    const content = document.getElementById('modal-content');
-    if (!modal || !content) return;
-
-    content.innerHTML = `
-        <div class="space-y-4">
-            <div class="border-b pb-3">
-                <span class="text-xs text-pink-500 font-bold uppercase tracking-wider">รายละเอียดเคส</span>
-                <h3 class="text-xl font-bold text-slate-800">${item.name || ''}</h3>
-                <p class="text-xs text-slate-500">${item.address || 'ไม่ระบุที่อยู่'}</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 text-xs">
-                <div class="bg-slate-50 p-2.5 rounded-xl">
-                    <span class="text-slate-400 block mb-0.5">เลขประจำตัวภาษี</span>
-                    <strong class="text-indigo-950 font-bold text-sm">${item.taxId || ''}</strong>
-                </div>
-                <div class="bg-slate-50 p-2.5 rounded-xl">
-                    <span class="text-slate-400 block mb-0.5">ประเภทภาษี</span>
-                    <strong class="text-slate-800">${item.taxType || ''}</strong>
-                </div>
-                <div class="bg-slate-50 p-2.5 rounded-xl">
-                    <span class="text-slate-400 block mb-0.5">ยอดประเมิน</span>
-                    <strong class="text-emerald-600 text-sm">฿${Number(item.amount || 0).toLocaleString('th-TH')}</strong>
-                </div>
-                <div class="bg-slate-50 p-2.5 rounded-xl">
-                    <span class="text-slate-400 block mb-0.5">เจ้าหน้าที่ผู้รับผิดชอบ</span>
-                    <strong class="text-slate-800">${item.officer || ''}</strong>
-                </div>
-            </div>
-
-            <div class="bg-pink-50/50 p-3 rounded-2xl border border-pink-100">
-                <span class="text-xs text-slate-500 block">ขั้นตอนปัจจุบัน:</span>
-                <p class="font-bold text-pink-600 text-sm mt-0.5">${item.step || ''}</p>
-            </div>
-
-            <div class="flex gap-2 pt-2">
-                <button onclick="printOfficialDocument('${item.id}')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-print"></i> พิมพ์หนังสือติดตาม
-                </button>
-                <button onclick="closeModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs rounded-xl transition-all">
-                    ปิด
-                </button>
-            </div>
-        </div>
-    `;
-
-    modal.classList.remove('hidden');
-};
-
-window.closeModal = function() {
-    const modal = document.getElementById('case-detail-modal');
-    if (modal) modal.classList.add('hidden');
-};
-
-window.printOfficialDocument = function(id) {
-    const item = revenueData.find(d => String(d.id) === String(id));
-    if (!item) return;
-
-    const printArea = document.getElementById('printable-area');
-    const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-
-    printArea.innerHTML = `
-        <div style="font-family: 'TH Sarabun New', sans-serif; font-size: 16pt; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="font-size: 22pt; font-weight: bold; margin: 0;">หนังสือแจ้งเตือนชำระภาษี</h2>
-                <p style="margin: 0;">หน่วยงานจัดเก็บรายได้ กองคลัง</p>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <div>ที่ ชร 52001/..............</div>
-                <div>วันที่ ${todayTH}</div>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <strong>เรื่อง:</strong> เตือนให้ดำเนินการชำระ${item.taxType || ''} ประจำปี ${item.taxYear || ''}<br>
-                <strong>เรียน:</strong> ${item.name || ''}<br>
-                <strong>เลขประจำตัวผู้เสียภาษี:</strong> <span style="font-size: 18pt; font-weight: bold;">${item.taxId || ''}</span>
-            </div>
-            <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 15px;">
-                ตามที่ท่านมีหน้าที่ต้องชำระ <strong>${item.taxType || ''}</strong> ประจำปี พ.ศ. ${item.taxYear || ''} เป็นจำนวนเงินทั้งสิ้น 
-                <strong>${Number(item.amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</strong> นั้น 
-                จากการตรวจสอบระบบข้อมูลพบว่า ปัจจุบันสถานะของท่านอยู่ระหว่าง <em>"${item.step || ''}"</em> และยังไม่ได้ดำเนินการชำระให้เสร็จสิ้นตามกำหนด
-            </p>
-            <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 30px;">
-                จึงขอเรียนมาเพื่อโปรดติดต่อนำส่งชำระภาษีดังกล่าว ณ กองคลัง ภายใน 15 วัน นับแต่วันที่ได้รับหนังสือฉบับนี้ หากท่านชำระเงินเรียบร้อยแล้วก่อนได้รับหนังสือฉบับนี้ ทางเจ้าหน้าที่ต้องขออภัยมา ณ ที่นี้ด้วย
-            </p>
-            <div style="display: flex; justify-content: flex-end; margin-top: 50px;">
-                <div style="text-align: center; width: 250px;">
-                    <p style="margin-bottom: 60px;">ขอแสดงความนับถือ</p>
-                    <p style="margin: 0;">(....................................................)</p>
-                    <p style="margin: 0;">เจ้าพนักงานจัดเก็บรายได้</p>
-                    <p style="margin: 0;">เจ้าหน้าที่ผู้รับผิดชอบ: ${item.officer || ''}</p>
-                </div>
-            </div>
-        </div>
-    `;
-    window.print();
-};
-
-window.printFilteredReport = function() {
-    const printArea = document.getElementById('printable-area');
-    const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-    const filtered = revenueData.filter(item => selectedOfficerFilter ? item.officer === selectedOfficerFilter : true);
-
-    let rowsHTML = filtered.map((item, idx) => `
-        <tr style="border-bottom: 1px solid #ddd; text-align: center;">
-            <td style="padding: 6px;">${idx + 1}</td>
-            <td style="padding: 6px; font-weight: bold;">${item.taxId || ''}</td>
-            <td style="padding: 6px; text-align: left;">${item.name || ''}</td>
-            <td style="padding: 6px; text-align: left;">${item.taxType || ''}</td>
-            <td style="padding: 6px; text-align: right;">${Number(item.amount || 0).toLocaleString('th-TH')}</td>
-            <td style="padding: 6px;">${item.status || ''}</td>
-            <td style="padding: 6px;">${item.officer || ''}</td>
+      tbody.innerHTML += `
+        <tr class="hover:bg-amber-50/40 transition">
+          <td class="p-3 text-slate-500">${item.docDate || '-'}</td>
+          <td class="p-3 font-medium text-slate-700">${item.officerName || '-'}</td>
+          <td class="p-3 font-medium text-slate-800">${item.taxName || '-'}</td>
+          <td class="p-3">${statusBadge}</td>
+          <td class="p-3 text-center space-x-1">
+            <button onclick="editRecord('${key}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded-xl text-xs font-semibold transition">✏️ แก้ไข</button>
+            <button onclick="deleteRecord('${key}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-xl text-xs font-semibold transition">🗑️ ลบ</button>
+          </td>
         </tr>
-    `).join('');
+      `;
+    });
+  });
+}
 
-    printArea.innerHTML = `
-        <div style="font-family: 'TH Sarabun New', sans-serif; font-size: 14pt; padding: 10px;">
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h3 style="font-size: 18pt; font-weight: bold; margin: 0;">รายงานสรุปการติดตามและเร่งรัดจัดเก็บรายได้</h3>
-                <p style="margin: 0;">
-                    ${selectedOfficerFilter ? `เฉพาะเจ้าหน้าที่: <strong>${selectedOfficerFilter}</strong> | ` : 'เจ้าหน้าที่ทุกคน | '}
-                    ข้อมูล ณ วันที่ ${todayTH}
-                </p>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;" border="1">
-                <thead>
-                    <tr style="background-color: #f2f2f2; text-align: center; font-weight: bold;">
-                        <th style="padding: 6px;">ลำดับ</th>
-                        <th style="padding: 6px;">เลขประจำตัวภาษี</th>
-                        <th style="padding: 6px;">ชื่อผู้เสียภาษี</th>
-                        <th style="padding: 6px;">ประเภทภาษี</th>
-                        <th style="padding: 6px;">ยอดเงิน (บาท)</th>
-                        <th style="padding: 6px;">สถานะ</th>
-                        <th style="padding: 6px;">เจ้าหน้าที่</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rowsHTML}
-                </tbody>
-            </table>
-        </div>
-    `;
-    window.print();
-};
+/**
+ * บันทึก หรือ แก้ไขข้อมูลใน Firebase
+ */
+function handleFormSubmit(event) {
+  event.preventDefault();
+  const editKey = document.getElementById('editKeyId').value;
+
+  const formData = {
+    docDate: document.getElementById('docDate').value,
+    officerName: document.getElementById('officerName').value,
+    taxId: document.getElementById('taxId').value,
+    taxName: document.getElementById('taxName').value,
+    address: document.getElementById('address').value,
+    taxType: document.getElementById('taxType').value,
+    docType: document.getElementById('docType').value,
+    overdueYears: document.getElementById('overdueYears').value,
+    followStatus: document.getElementById('followStatus').value,
+    receiptStatus: document.getElementById('receiptStatus').value,
+    note: document.getElementById('note').value,
+    updatedAt: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  if (editKey) {
+    db.ref('surveys/' + editKey).update(formData)
+      .then(() => {
+        alert('อัปเดตข้อมูลเรียบร้อยแล้ว!');
+        resetForm();
+      })
+      .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
+  } else {
+    formData.createdAt = firebase.database.ServerValue.TIMESTAMP;
+    db.ref('surveys').push(formData)
+      .then(() => {
+        alert('บันทึกข้อมูลสำเร็จ!');
+        resetForm();
+      })
+      .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
+  }
+}
+
+/**
+ * ดึงข้อมูลเดิมมาใส่ Form เพื่อแก้ไข
+ */
+function editRecord(key) {
+  const item = cachedSurveysObj[key];
+  if (!item) return;
+
+  document.getElementById('editKeyId').value = key;
+  document.getElementById('docDate').value = item.docDate || '';
+  document.getElementById('officerName').value = item.officerName || '';
+  document.getElementById('taxId').value = item.taxId || '';
+  document.getElementById('taxName').value = item.taxName || '';
+  document.getElementById('address').value = item.address || '';
+  document.getElementById('taxType').value = item.taxType || 'ภาษีป้าย';
+  document.getElementById('docType').value = item.docType || 'ลงพื้นที่สำรวจทั่วไป';
+  document.getElementById('overdueYears').value = item.overdueYears || '';
+  document.getElementById('followStatus').value = item.followStatus || 'พบผู้ค้างภาษี';
+  document.getElementById('receiptStatus').value = item.receiptStatus || 'ผู้ค้างภาษีรับเอง';
+  document.getElementById('note').value = item.note || '';
+
+  document.getElementById('formTitle').innerHTML = '<span>✏️</span> แก้ไขข้อมูลการสำรวจ';
+  document.getElementById('editBadge').classList.remove('hidden');
+  document.getElementById('submitBtn').innerHTML = '💾 บันทึกการแก้ไข';
+  document.getElementById('submitBtn').className = 'bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-2xl text-sm font-semibold transition shadow-md flex-1';
+  document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * ลบรายการออกจาก Firebase
+ */
+function deleteRecord(key) {
+  if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+    db.ref('surveys/' + key).remove()
+      .then(() => alert('ลบรายการเรียบร้อยแล้ว'))
+      .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
+  }
+}
+
+/**
+ * ล้างข้อมูลใน Form
+ */
+function resetForm() {
+  const form = document.getElementById('surveyForm');
+  if (form) form.reset();
+  
+  document.getElementById('editKeyId').value = '';
+  document.getElementById('docDate').value = todayStr;
+
+  document.getElementById('formTitle').innerHTML = '<span>📝</span> กรอกข้อมูลการลงพื้นที่สำรวจ';
+  document.getElementById('editBadge').classList.add('hidden');
+  document.getElementById('submitBtn').innerHTML = '➕ บันทึกข้อมูล';
+  document.getElementById('submitBtn').className = 'bg-orange-400 hover:bg-orange-500 text-white px-6 py-3 rounded-2xl text-sm font-semibold transition shadow-md flex-1';
+  document.getElementById('cancelEditBtn').classList.add('hidden');
+}
