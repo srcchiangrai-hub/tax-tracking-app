@@ -66,11 +66,11 @@
         width: 100%;
         border-collapse: collapse;
         margin-top: 10px;
-        font-size: 16pt !important;
+        font-size: 14pt !important;
       }
       .print-table th, .print-table td {
         border: 1px solid #000000;
-        padding: 4px 8px;
+        padding: 4px 6px;
         vertical-align: top;
       }
       .print-table th {
@@ -181,6 +181,7 @@
             <option value="ภาษีป้าย">ภาษีป้าย</option>
             <option value="ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีที่ดินฯ</option>
             <option value="ภาษีป้าย / ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีป้าย + ที่ดินฯ</option>
+            <option value="อื่นๆ">อื่นๆ</option>
           </select>
         </div>
 
@@ -217,30 +218,67 @@
       </div>
     </div>
 
-    <!-- KPI Cards -->
+    <!-- KPI Cards (ปรับปรุงแสดงแยกประเภทภาษี) -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      <div class="pastel-card p-6 rounded-3xl border-emerald-100 bg-emerald-50/30 flex items-center justify-between">
-        <div>
-          <p class="text-xs font-semibold text-emerald-800 mb-1 flex items-center gap-1">🐱 วันนี้ (Daily)</p>
-          <div class="text-3xl font-bold text-emerald-950"><span id="dailyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
+      <!-- วันนี้ -->
+      <div class="pastel-card p-5 rounded-3xl border-emerald-100 bg-emerald-50/30 flex flex-col justify-between space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-emerald-800 flex items-center gap-1">🐱 วันนี้ (Daily)</p>
+            <div class="text-3xl font-bold text-emerald-950 mt-1"><span id="dailyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
+          </div>
+          <div class="w-11 h-11 bg-emerald-100 rounded-2xl flex items-center justify-center text-xl shadow-inner">📅</div>
         </div>
-        <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">📅</div>
+        <div class="border-t border-emerald-100 pt-2 text-xs space-y-1 text-emerald-900">
+          <div class="flex justify-between"><span>🏷️ ภาษีป้าย:</span> <span id="dailySignCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>🏠 ภาษีที่ดินฯ:</span> <span id="dailyLandCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>🏷️+🏠 ป้าย+ที่ดินฯ:</span> <span id="dailyBothCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>📌 อื่นๆ:</span> <span id="dailyOtherCount" class="font-bold">0 ราย</span></div>
+        </div>
       </div>
 
-      <div class="pastel-card p-6 rounded-3xl border-orange-100 bg-orange-50/30 flex items-center justify-between">
-        <div>
-          <p class="text-xs font-semibold text-orange-800 mb-1 flex items-center gap-1">🦊 เดือนนี้ (Monthly)</p>
-          <div class="text-3xl font-bold text-orange-950"><span id="monthlyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
+      <!-- เดือนนี้ -->
+      <div class="pastel-card p-5 rounded-3xl border-orange-100 bg-orange-50/30 flex flex-col justify-between space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-orange-800 flex items-center gap-1">🦊 เดือนนี้ (Monthly)</p>
+            <div class="text-3xl font-bold text-orange-950 mt-1"><span id="monthlyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
+          </div>
+          <div class="w-11 h-11 bg-orange-100 rounded-2xl flex items-center justify-center text-xl shadow-inner">📊</div>
         </div>
-        <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">📊</div>
+        <div class="border-t border-orange-100 pt-2 text-xs space-y-1 text-orange-900">
+          <div class="flex justify-between"><span>🏷️ ภาษีป้าย:</span> <span id="monthlySignCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>🏠 ภาษีที่ดินฯ:</span> <span id="monthlyLandCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>🏷️+🏠 ป้าย+ที่ดินฯ:</span> <span id="monthlyBothCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>📌 อื่นๆ:</span> <span id="monthlyOtherCount" class="font-bold">0 ราย</span></div>
+        </div>
       </div>
 
-      <div class="pastel-card p-6 rounded-3xl border-indigo-100 bg-indigo-50/30 flex items-center justify-between">
-        <div>
-          <p class="text-xs font-semibold text-indigo-800 mb-1 flex items-center gap-1">🐰 ไตรมาสนี้ (Quarterly)</p>
-          <div class="text-3xl font-bold text-indigo-950"><span id="quarterlyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
+      <!-- ไตรมาสนี้ -->
+      <div class="pastel-card p-5 rounded-3xl border-indigo-100 bg-indigo-50/30 flex flex-col justify-between space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-indigo-800 flex items-center gap-1">🐰 ไตรมาสนี้ (Quarterly)</p>
+            <div class="text-3xl font-bold text-indigo-950 mt-1"><span id="quarterlyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
+          </div>
+          <div class="w-11 h-11 bg-indigo-100 rounded-2xl flex items-center justify-center text-xl shadow-inner">📈</div>
         </div>
-        <div class="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">📈</div>
+        <div class="border-t border-indigo-100 pt-2 text-xs space-y-1 text-indigo-900">
+          <div class="flex justify-between"><span>🏷️ ภาษีป้าย:</span> <span id="quarterlySignCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>🏠 ภาษีที่ดินฯ:</span> <span id="quarterlyLandCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>🏷️+🏠 ป้าย+ที่ดินฯ:</span> <span id="quarterlyBothCount" class="font-bold">0 ราย</span></div>
+          <div class="flex justify-between"><span>📌 อื่นๆ:</span> <span id="quarterlyOtherCount" class="font-bold">0 ราย</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ส่วนสรุปรายการยื่น/ส่งเอกสารประเภทต่างๆ -->
+    <div class="pastel-card p-5 rounded-3xl border-purple-100 bg-purple-50/20 space-y-3">
+      <h3 class="text-sm font-bold text-purple-950 flex items-center gap-2">
+        <span>📄</span> สรุปจำนวนการยื่น/ส่งมอบเอกสารและหนังสือแจ้งประเมินสนาม
+      </h3>
+      <div id="docTypeSummaryContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-xs">
+        <!-- สรุปเอกสารจะแสดงตรงนี้แบบอัตโนมัติ -->
       </div>
     </div>
 
@@ -282,9 +320,9 @@
           <thead>
             <tr class="border-b-2 border-purple-100 text-xs font-semibold text-slate-500">
               <th class="p-3">เจ้าหน้าที่ผู้สำรวจ (คลิกเพื่อกรอง)</th>
-              <th class="p-3 text-center">วันนี้ (ราย)</th>
-              <th class="p-3 text-center">เดือนนี้ (ราย)</th>
-              <th class="p-3 text-center">ไตรมาสนี้ (ราย)</th>
+              <th class="p-3 text-center">วันนี้ (ป้าย / ที่ดิน / รวม)</th>
+              <th class="p-3 text-center">เดือนนี้ (ป้าย / ที่ดิน / รวม)</th>
+              <th class="p-3 text-center">ไตรมาสนี้ (ป้าย / ที่ดิน / รวม)</th>
             </tr>
           </thead>
           <tbody id="officerTableBody" class="divide-y divide-purple-50 text-sm">
@@ -307,6 +345,7 @@
               <th class="p-3">เจ้าหน้าที่</th>
               <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
               <th class="p-3">ผลการติดตาม</th>
+              <th class="p-3">การรับ/ส่งเอกสาร</th>
               <th class="p-3">สถานะการชำระ</th>
               <th class="p-3">รูปถ่ายสนาม</th>
               <th class="p-3">หมายเหตุ</th>
@@ -314,7 +353,7 @@
             </tr>
           </thead>
           <tbody id="recentTableBody" class="divide-y divide-amber-50 text-sm">
-            <tr><td colspan="8" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+            <tr><td colspan="9" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
@@ -330,11 +369,11 @@
     <table class="print-table">
       <thead>
         <tr>
-          <th style="width: 10%; text-align: center;">ลำดับ</th>
-          <th style="width: 45%; text-align: center;">ชื่อ-นามสกุล เจ้าหน้าที่</th>
-          <th style="width: 15%; text-align: center;">ผลงานวันนี้ (ราย)</th>
-          <th style="width: 15%; text-align: center;">ผลงานเดือนนี้ (ราย)</th>
-          <th style="width: 15%; text-align: center;">ผลงานไตรมาสนี้ (ราย)</th>
+          <th style="width: 6%; text-align: center;">ลำดับ</th>
+          <th style="width: 34%; text-align: center;">ชื่อ-นามสกุล เจ้าหน้าที่</th>
+          <th style="width: 20%; text-align: center;">ผลงานวันนี้<br>(ป้าย/ที่ดิน/รวม)</th>
+          <th style="width: 20%; text-align: center;">ผลงานเดือนนี้<br>(ป้าย/ที่ดิน/รวม)</th>
+          <th style="width: 20%; text-align: center;">ผลงานไตรมาสนี้<br>(ป้าย/ที่ดิน/รวม)</th>
         </tr>
       </thead>
       <tbody id="printOfficerTable">
@@ -533,6 +572,20 @@
     function cleanOfficerName(nameStr) {
       if (!nameStr) return 'ไม่ระบุเจ้าหน้าที่';
       return String(nameStr).replace(/[\s\u00A0]+/g, '').trim();
+    }
+
+    // ฟังก์ชันจัดกลุ่มประเภทภาษีให้ได้มาตรฐาน
+    function normalizeTaxCategory(taxTypeStr) {
+      if (!taxTypeStr) return 'other';
+      const str = String(taxTypeStr).trim();
+      if (str.includes('ภาษีป้าย / ภาษีที่ดินและสิ่งปลูกสร้าง') || (str.includes('ป้าย') && str.includes('ที่ดิน'))) {
+        return 'both';
+      } else if (str.includes('ภาษีป้าย') || str.includes('ป้าย')) {
+        return 'sign';
+      } else if (str.includes('ภาษีที่ดิน') || str.includes('ภดส') || str.includes('ที่ดินและสิ่งปลูกสร้าง')) {
+        return 'land';
+      }
+      return 'other';
     }
 
     function extractImageUrls(item) {
@@ -833,38 +886,76 @@
 
       const now = new Date();
 
-      // คำนวณ KPI ภาพรวมทั้งหมด (ไม่ถูกกระทบจาก Filter)
-      let dailyTotal = 0, monthlyTotal = 0, quarterlyTotal = 0;
+      // คำนวณ KPI ภาพรวมจำแนกประเภทภาษี
+      let dailyTotal = 0, dailySign = 0, dailyLand = 0, dailyBoth = 0, dailyOther = 0;
+      let monthlyTotal = 0, monthlySign = 0, monthlyLand = 0, monthlyBoth = 0, monthlyOther = 0;
+      let quarterlyTotal = 0, quarterlySign = 0, quarterlyLand = 0, quarterlyBoth = 0, quarterlyOther = 0;
+
       const officerStats = {};
 
       allCasesData.forEach(item => {
         const dateStr = item.docDate || item.date;
         const itemDate = dateStr ? new Date(dateStr) : null;
         const officer = cleanOfficerName(item.officerName || item.officer);
+        const category = normalizeTaxCategory(item.taxType);
 
         if (!officerStats[officer]) {
-          officerStats[officer] = { daily: 0, monthly: 0, quarterly: 0 };
+          officerStats[officer] = { 
+            dailyTotal: 0, dailySign: 0, dailyLand: 0,
+            monthlyTotal: 0, monthlySign: 0, monthlyLand: 0,
+            quarterlyTotal: 0, quarterlySign: 0, quarterlyLand: 0
+          };
         }
 
         if (itemDate && !isNaN(itemDate.getTime())) {
+          // วันนี้
           if (isSameDay(itemDate, now)) {
             dailyTotal++;
-            officerStats[officer].daily++;
+            officerStats[officer].dailyTotal++;
+            if (category === 'sign') { dailySign++; officerStats[officer].dailySign++; }
+            else if (category === 'land') { dailyLand++; officerStats[officer].dailyLand++; }
+            else if (category === 'both') { dailyBoth++; officerStats[officer].dailySign++; officerStats[officer].dailyLand++; }
+            else { dailyOther++; }
           }
+          // เดือนนี้
           if (isSameMonth(itemDate, now)) {
             monthlyTotal++;
-            officerStats[officer].monthly++;
+            officerStats[officer].monthlyTotal++;
+            if (category === 'sign') { monthlySign++; officerStats[officer].monthlySign++; }
+            else if (category === 'land') { monthlyLand++; officerStats[officer].monthlyLand++; }
+            else if (category === 'both') { monthlyBoth++; officerStats[officer].monthlySign++; officerStats[officer].monthlyLand++; }
+            else { monthlyOther++; }
           }
+          // ไตรมาสนี้
           if (isSameQuarter(itemDate, now)) {
             quarterlyTotal++;
-            officerStats[officer].quarterly++;
+            officerStats[officer].quarterlyTotal++;
+            if (category === 'sign') { quarterlySign++; officerStats[officer].quarterlySign++; }
+            else if (category === 'land') { quarterlyLand++; officerStats[officer].quarterlyLand++; }
+            else if (category === 'both') { quarterlyBoth++; officerStats[officer].quarterlySign++; officerStats[officer].quarterlyLand++; }
+            else { quarterlyOther++; }
           }
         }
       });
 
+      // อัปเดตตัวเลขใน KPI Cards
       document.getElementById('dailyCount').innerText = dailyTotal;
+      document.getElementById('dailySignCount').innerText = dailySign + ' ราย';
+      document.getElementById('dailyLandCount').innerText = dailyLand + ' ราย';
+      document.getElementById('dailyBothCount').innerText = dailyBoth + ' ราย';
+      document.getElementById('dailyOtherCount').innerText = dailyOther + ' ราย';
+
       document.getElementById('monthlyCount').innerText = monthlyTotal;
+      document.getElementById('monthlySignCount').innerText = monthlySign + ' ราย';
+      document.getElementById('monthlyLandCount').innerText = monthlyLand + ' ราย';
+      document.getElementById('monthlyBothCount').innerText = monthlyBoth + ' ราย';
+      document.getElementById('monthlyOtherCount').innerText = monthlyOther + ' ราย';
+
       document.getElementById('quarterlyCount').innerText = quarterlyTotal;
+      document.getElementById('quarterlySignCount').innerText = quarterlySign + ' ราย';
+      document.getElementById('quarterlyLandCount').innerText = quarterlyLand + ' ราย';
+      document.getElementById('quarterlyBothCount').innerText = quarterlyBoth + ' ราย';
+      document.getElementById('quarterlyOtherCount').innerText = quarterlyOther + ' ราย';
 
       // ตารางสรุปรายเจ้าหน้าที่
       const officerTableBody = document.getElementById('officerTableBody');
@@ -884,9 +975,21 @@
               <td class="p-3 font-semibold text-purple-950 cursor-pointer hover:underline" onclick="selectOfficerAndScroll('${escapeHtml(officer)}')">
                 👷‍♂️ ${escapeHtml(officer)}
               </td>
-              <td class="p-3 text-center font-bold text-emerald-600">${stats.daily}</td>
-              <td class="p-3 text-center font-bold text-orange-600">${stats.monthly}</td>
-              <td class="p-3 text-center font-bold text-indigo-600">${stats.quarterly}</td>
+              <td class="p-3 text-center">
+                <span class="text-amber-700 font-medium">${stats.dailySign}</span> / 
+                <span class="text-emerald-700 font-medium">${stats.dailyLand}</span> / 
+                <span class="font-bold text-slate-800">${stats.dailyTotal}</span>
+              </td>
+              <td class="p-3 text-center">
+                <span class="text-amber-700 font-medium">${stats.monthlySign}</span> / 
+                <span class="text-emerald-700 font-medium">${stats.monthlyLand}</span> / 
+                <span class="font-bold text-slate-800">${stats.monthlyTotal}</span>
+              </td>
+              <td class="p-3 text-center">
+                <span class="text-amber-700 font-medium">${stats.quarterlySign}</span> / 
+                <span class="text-emerald-700 font-medium">${stats.quarterlyLand}</span> / 
+                <span class="font-bold text-slate-800">${stats.quarterlyTotal}</span>
+              </td>
             </tr>
           `;
 
@@ -894,15 +997,15 @@
             <tr>
               <td style="text-align: center;">${index + 1}</td>
               <td>${escapeHtml(officer)}</td>
-              <td style="text-align: center;">${stats.daily}</td>
-              <td style="text-align: center;">${stats.monthly}</td>
-              <td style="text-align: center;">${stats.quarterly}</td>
+              <td style="text-align: center;">${stats.dailySign} / ${stats.dailyLand} / <strong>${stats.dailyTotal}</strong></td>
+              <td style="text-align: center;">${stats.monthlySign} / ${stats.monthlyLand} / <strong>${stats.monthlyTotal}</strong></td>
+              <td style="text-align: center;">${stats.quarterlySign} / ${stats.quarterlyLand} / <strong>${stats.quarterlyTotal}</strong></td>
             </tr>
           `;
         });
       }
 
-      // กรองข้อมูลรายการสำหรับการแสดงผลตารางและกราฟ
+      // กรองข้อมูลรายการสำหรับการแสดงผลตาราง กราฟ และการจำแนกประเภทเอกสาร
       const filteredCases = allCasesData.filter(item => {
         const dateStr = item.docDate || item.date;
         const itemDate = dateStr ? new Date(dateStr) : null;
@@ -913,6 +1016,7 @@
         const taxType = item.taxType || '';
         const result = item.result || item.followStatus || '';
         const payment = item.paymentStatus || 'ยังไม่ชำระ';
+        const category = normalizeTaxCategory(taxType);
 
         // Filter ช่วงเวลา
         if (periodFilter === 'daily' && (!itemDate || !isSameDay(itemDate, now))) return false;
@@ -923,7 +1027,10 @@
         if (officerFilter !== 'all' && officer !== officerFilter) return false;
 
         // Filter ประเภทภาษี
-        if (taxTypeFilter !== 'all' && taxType !== taxTypeFilter) return false;
+        if (taxTypeFilter !== 'all') {
+          if (taxTypeFilter === 'อื่นๆ' && category !== 'other') return false;
+          if (taxTypeFilter !== 'อื่นๆ' && taxType !== taxTypeFilter) return false;
+        }
 
         // Filter ผลการติดตาม
         if (resultFilter !== 'all' && result !== resultFilter) return false;
@@ -933,7 +1040,7 @@
 
         // Search Keyword
         if (searchKeyword) {
-          const matchString = `${taxName} ${taxId} ${address} ${officer} ${result}`.toLowerCase();
+          const matchString = `${taxName} ${taxId} ${address} ${officer} ${result} ${item.docType || ''}`.toLowerCase();
           if (!matchString.includes(searchKeyword)) return false;
         }
 
@@ -943,6 +1050,32 @@
       document.getElementById('filteredMatchCount').innerText = filteredCases.length;
       document.getElementById('totalMatchCount').innerText = allCasesData.length;
 
+      // สรุปการยื่น/ส่งเอกสารประเภทต่างๆ
+      const docTypeCounts = {};
+      filteredCases.forEach(item => {
+        const doc = (item.docType || item.receiptStatus || 'ไม่ระบุประเภทเอกสาร').trim();
+        if (doc) {
+          docTypeCounts[doc] = (docTypeCounts[doc] || 0) + 1;
+        }
+      });
+
+      const docTypeContainer = document.getElementById('docTypeSummaryContainer');
+      docTypeContainer.innerHTML = '';
+      const docKeys = Object.keys(docTypeCounts);
+
+      if (docKeys.length === 0) {
+        docTypeContainer.innerHTML = '<span class="text-slate-400 col-span-full">ไม่พบข้อมูลการยื่นเอกสาร</span>';
+      } else {
+        docKeys.forEach(docName => {
+          docTypeContainer.innerHTML += `
+            <div class="bg-white/80 p-2.5 rounded-2xl border border-purple-100 flex flex-col justify-between shadow-xs">
+              <span class="text-slate-500 font-medium truncate" title="${escapeHtml(docName)}">📜 ${escapeHtml(docName)}</span>
+              <span class="font-bold text-purple-900 text-sm mt-1">${docTypeCounts[docName]} ราย</span>
+            </div>
+          `;
+        });
+      }
+
       // Render Charts
       renderCharts(filteredCases);
 
@@ -951,7 +1084,7 @@
       recentTableBody.innerHTML = '';
 
       if (filteredCases.length === 0) {
-        recentTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400">ไม่พบข้อมูลตรงตามเงื่อนไขการค้นหา</td></tr>';
+        recentTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-slate-400">ไม่พบข้อมูลตรงตามเงื่อนไขการค้นหา</td></tr>';
         return;
       }
 
@@ -975,6 +1108,8 @@
           paymentBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">🟡 นัดชำระ</span>';
         }
 
+        const docText = item.docType ? `${escapeHtml(item.receiptStatus || '')} (${escapeHtml(item.docType)})` : escapeHtml(item.receiptStatus || '-');
+
         recentTableBody.innerHTML += `
           <tr class="hover:bg-amber-50/40 transition">
             <td class="p-3 text-xs text-slate-600 whitespace-nowrap">${escapeHtml(item.docDate || item.date || '-')}</td>
@@ -984,6 +1119,7 @@
               <div class="text-xs text-slate-400">ID: ${escapeHtml(item.taxId || '-')} | ${escapeHtml(item.taxType || '-')}</div>
             </td>
             <td class="p-3 font-medium text-slate-700">${escapeHtml(item.result || item.followStatus || '-')}</td>
+            <td class="p-3 text-xs text-purple-900 font-medium">${docText}</td>
             <td class="p-3 whitespace-nowrap">${paymentBadge}</td>
             <td class="p-3">${imgHtml}</td>
             <td class="p-3 text-xs text-slate-500 max-w-xs truncate">${escapeHtml(item.note || '-')}</td>
@@ -1110,7 +1246,7 @@
       renderDashboard();
 
       // ตั้งค่าวันที่ปัจจุบันสำหรับการพิมพ์
-      const options = { year: 'numeric', month: 'long', day: 'numeric', calendar: 'thailard' };
+      const options = { year: 'numeric', month: 'long', day: 'numeric', calendar: 'thailand' };
       const todayThai = new Date().toLocaleDateString('th-TH', options);
       document.getElementById('printCurrentDate').innerText = todayThai;
     });
