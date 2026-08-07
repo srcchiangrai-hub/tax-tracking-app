@@ -27,12 +27,12 @@
       border: 2px solid #FFF0E5;
       box-shadow: 0 8px 25px -5px rgba(255, 183, 178, 0.15);
     }
-    .pastel-select {
+    .pastel-select, .pastel-input {
       background-color: #FFFDFB;
       border: 2px solid #FFE5D9;
       transition: all 0.2s ease;
     }
-    .pastel-select:focus {
+    .pastel-select:focus, .pastel-input:focus {
       background-color: #FFFFFF;
       border-color: #FFB5A7;
       outline: none;
@@ -78,42 +78,88 @@
       </div>
     </div>
 
-    <!-- แถบกรองข้อมูลแดชบอร์ด & Export / Import Excel -->
-    <div class="pastel-card p-5 rounded-3xl border-teal-100 bg-teal-50/20 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-teal-100 rounded-2xl flex items-center justify-center text-xl">
-          🔍
+    <!-- แถบกรองข้อมูลแดชบอร์ด & ค้นหาขั้นสูง & Excel -->
+    <div class="pastel-card p-5 rounded-3xl border-teal-100 bg-teal-50/20 space-y-4">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-teal-100 rounded-2xl flex items-center justify-center text-xl">
+            🔍
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-teal-950">ระบบค้นหาและตัวกรองข้อมูลขั้นสูง</h3>
+            <p class="text-xs text-teal-700/70">กรองข้อมูลแบบ Real-time ตามช่วงเวลา เจ้าหน้าที่ คำค้นหา หรือสถานะ</p>
+          </div>
         </div>
-        <div>
-          <h3 class="text-sm font-bold text-teal-950">ตัวกรองข้อมูลแดชบอร์ด & Excel</h3>
-          <p class="text-xs text-teal-700/70">เลือกช่วงเวลาหรือเจ้าหน้าที่เพื่อกรองการแสดงผลและนำเข้า/ส่งออก Excel</p>
+
+        <div class="flex items-center gap-2">
+          <!-- ปุ่ม Export Excel -->
+          <button onclick="exportFilteredExcel()" class="bg-teal-500 hover:bg-teal-600 text-white px-3.5 py-2 rounded-2xl text-xs font-semibold transition shadow-md flex items-center gap-1.5">
+            <span>📤</span> ส่งออก Excel
+          </button>
+
+          <!-- ปุ่ม Import Excel -->
+          <label class="bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-2xl text-xs font-semibold transition shadow-md flex items-center gap-1.5 cursor-pointer">
+            <span>📥</span> นำเข้า Excel
+            <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="importExcelData(event)">
+          </label>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
+      <!-- แถบตัวกรองและช่องค้นหา -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        
+        <!-- ช่องค้นหาด้วยคีย์เวิร์ด -->
+        <div class="lg:col-span-2">
+          <input type="text" id="searchInput" oninput="renderDashboard()" placeholder="🔎 ค้นชื่อร้าน, รหัสภาษี, ที่อยู่..." class="pastel-input w-full text-xs p-2.5 rounded-xl font-medium placeholder-slate-400">
+        </div>
+
         <!-- ตัวกรองช่วงเวลา -->
-        <select id="exportPeriodFilter" onchange="renderDashboard()" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
-          <option value="all">🗓️ ช่วงเวลา: ทั้งหมด (All)</option>
-          <option value="daily">📅 ช่วงเวลา: วันนี้ (Daily)</option>
-          <option value="monthly">📊 ช่วงเวลา: เดือนนี้ (Monthly)</option>
-          <option value="quarterly">📈 ช่วงเวลา: ไตรมาสนี้ (Quarterly)</option>
-        </select>
+        <div>
+          <select id="exportPeriodFilter" onchange="renderDashboard()" class="pastel-select w-full text-xs p-2.5 rounded-xl font-medium">
+            <option value="all">🗓️ เวลา: ทั้งหมด</option>
+            <option value="daily">📅 เวลา: วันนี้</option>
+            <option value="monthly">📊 เวลา: เดือนนี้</option>
+            <option value="quarterly">📈 เวลา: ไตรมาสนี้</option>
+          </select>
+        </div>
 
         <!-- ตัวกรองเจ้าหน้าที่ -->
-        <select id="exportOfficerFilter" onchange="renderDashboard()" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
-          <option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>
-        </select>
+        <div>
+          <select id="exportOfficerFilter" onchange="renderDashboard()" class="pastel-select w-full text-xs p-2.5 rounded-xl font-medium">
+            <option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>
+          </select>
+        </div>
 
-        <!-- ปุ่ม Export Excel -->
-        <button onclick="exportFilteredExcel()" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2.5 rounded-2xl text-xs font-semibold transition shadow-md flex items-center gap-1.5">
-          <span>📤</span> ส่งออก Excel
+        <!-- ตัวกรองประเภทภาษี -->
+        <div>
+          <select id="taxTypeFilter" onchange="renderDashboard()" class="pastel-select w-full text-xs p-2.5 rounded-xl font-medium">
+            <option value="all">🏷️ ภาษี: ทั้งหมด</option>
+            <option value="ภาษีป้าย">ภาษีป้าย</option>
+            <option value="ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีที่ดินฯ</option>
+            <option value="ภาษีป้าย / ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีป้าย + ที่ดินฯ</option>
+          </select>
+        </div>
+
+        <!-- ตัวกรองผลการติดตาม -->
+        <div>
+          <select id="resultFilter" onchange="renderDashboard()" class="pastel-select w-full text-xs p-2.5 rounded-xl font-medium">
+            <option value="all">🎯 ผล: ทั้งหมด</option>
+            <option value="พบผู้ค้างภาษี">พบผู้ค้างภาษี</option>
+            <option value="ไม่พบผู้ค้างภาษี">ไม่พบผู้ค้างภาษี</option>
+            <option value="พบบุคคลอื่น">พบบุคคลอื่น</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- ปุ่ม Reset ตัวกรอง -->
+      <div class="flex justify-between items-center pt-1 text-xs text-slate-500">
+        <div>
+          แสดงผล <span id="filteredMatchCount" class="font-bold text-teal-800">0</span> จากทั้งหมด <span id="totalMatchCount" class="font-bold text-slate-700">0</span> รายการ
+        </div>
+        <button onclick="resetFilters()" class="text-teal-700 hover:text-teal-900 underline font-medium flex items-center gap-1">
+          <span>🔄</span> ล้างตัวกรองทั้งหมด
         </button>
-
-        <!-- ปุ่ม Import Excel -->
-        <label class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-2xl text-xs font-semibold transition shadow-md flex items-center gap-1.5 cursor-pointer">
-          <span>📥</span> นำเข้า Excel
-          <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="importExcelData(event)">
-        </label>
       </div>
     </div>
 
@@ -171,10 +217,10 @@
       </div>
     </div>
 
-    <!-- ตารางรายการล่าสุด -->
+    <!-- ตารางรายการตามเงื่อนไขค้นหา -->
     <div class="pastel-card p-6 rounded-3xl border-amber-100">
       <h2 class="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
-        <span>📍</span> รายการเข้าสำรวจล่าสุด
+        <span>📍</span> รายการเข้าสำรวจสนาม
       </h2>
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
@@ -342,10 +388,10 @@
         .replace(/'/g, "&#039;");
     }
 
-    // ฟังก์ชันทำความสะอาดชื่อเจ้าหน้าที่ (ตัดเว้นวรรคหน้า-หลัง และเว้นวรรคซ้ำ)
+    // ล้างช่องว่างทั้งหมดในชื่อ ป้องกันปัญหาพิมพ์ติดๆ เว้นๆ
     function cleanOfficerName(nameStr) {
       if (!nameStr) return 'ไม่ระบุเจ้าหน้าที่';
-      return String(nameStr).trim().replace(/\s+/g, ' ');
+      return String(nameStr).replace(/[\s\u00A0]+/g, '').trim();
     }
 
     function extractImageUrls(item) {
@@ -481,6 +527,8 @@
           document.getElementById('dailyCount').innerText = 0;
           document.getElementById('monthlyCount').innerText = 0;
           document.getElementById('quarterlyCount').innerText = 0;
+          document.getElementById('filteredMatchCount').innerText = 0;
+          document.getElementById('totalMatchCount').innerText = 0;
           return;
         }
 
@@ -504,8 +552,22 @@
       });
     }
 
+    // ฟังก์ชันคืนค่าตัวกรองทั้งหมด
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('exportPeriodFilter').value = 'all';
+      document.getElementById('exportOfficerFilter').value = 'all';
+      document.getElementById('taxTypeFilter').value = 'all';
+      document.getElementById('resultFilter').value = 'all';
+      renderDashboard();
+    }
+
     function renderDashboard() {
       const filteredData = getFilteredData();
+
+      // อัปเดตตัวเลขจำนวนที่ค้นพบ
+      document.getElementById('filteredMatchCount').innerText = filteredData.length.toLocaleString();
+      document.getElementById('totalMatchCount').innerText = allCasesData.length.toLocaleString();
 
       const now = new Date();
       const nowParsed = parseDateParts(now.toISOString());
@@ -638,28 +700,59 @@
         `;
       });
 
-      document.getElementById('recentTableBody').innerHTML = recentHtml || '<tr><td colspan="8" class="text-center py-6 text-slate-400">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
+      document.getElementById('recentTableBody').innerHTML = recentHtml || '<tr><td colspan="8" class="text-center py-6 text-slate-400">ไม่พบข้อมูลตรงกับคำค้นหาหรือตัวกรองที่เลือก</td></tr>';
     }
 
+    // ฟังก์ชันกรองข้อมูลขั้นสูง
     function getFilteredData() {
+      const keyword = (document.getElementById('searchInput').value || '').toLowerCase().trim();
       const periodFilter = document.getElementById('exportPeriodFilter').value;
       const officerFilter = document.getElementById('exportOfficerFilter').value;
+      const taxTypeFilter = document.getElementById('taxTypeFilter').value;
+      const resultFilter = document.getElementById('resultFilter').value;
 
       const now = new Date();
       const nowParsed = parseDateParts(now.toISOString());
 
       return allCasesData.filter(item => {
+        // 1. กรองตามเจ้าหน้าที่
         const officer = cleanOfficerName(item.officerName || item.officer);
         if (officerFilter !== 'all' && officer !== officerFilter) return false;
 
+        // 2. กรองตามประเภทภาษี
+        const taxType = item.taxType || '';
+        if (taxTypeFilter !== 'all' && taxType !== taxTypeFilter) return false;
+
+        // 3. กรองตามผลการติดตาม
+        const result = item.result || item.followStatus || '';
+        if (resultFilter !== 'all' && !result.includes(resultFilter)) return false;
+
+        // 4. กรองตามช่วงเวลา
         const rawDate = item.docDate || item.date || item.timestamp || '';
         const parsed = parseDateParts(rawDate);
 
-        if (!parsed) return periodFilter === 'all';
+        if (periodFilter !== 'all') {
+          if (!parsed) return false;
+          if (periodFilter === 'daily' && parsed.dateStr !== (nowParsed ? nowParsed.dateStr : '')) return false;
+          if (periodFilter === 'monthly' && !(nowParsed && parsed.year === nowParsed.year && parsed.month === nowParsed.month)) return false;
+          if (periodFilter === 'quarterly' && !(nowParsed && parsed.year === nowParsed.year && parsed.quarter === nowParsed.quarter)) return false;
+        }
 
-        if (periodFilter === 'daily' && parsed.dateStr !== (nowParsed ? nowParsed.dateStr : '')) return false;
-        if (periodFilter === 'monthly' && !(nowParsed && parsed.year === nowParsed.year && parsed.month === nowParsed.month)) return false;
-        if (periodFilter === 'quarterly' && !(nowParsed && parsed.year === nowParsed.year && parsed.quarter === nowParsed.quarter)) return false;
+        // 5. กรองด้วยคีย์เวิร์ดค้นหา (ชื่อร้าน, รหัสภาษี, ที่อยู่, หมายเหตุ)
+        if (keyword !== '') {
+          const taxName = (item.taxName || item.tax_name || '').toLowerCase();
+          const taxId = (item.taxId || '').toLowerCase();
+          const address = (item.address || '').toLowerCase();
+          const note = (item.note || '').toLowerCase();
+
+          const matchSearch = taxName.includes(keyword) || 
+                              taxId.includes(keyword) || 
+                              address.includes(keyword) || 
+                              note.includes(keyword) ||
+                              officer.toLowerCase().includes(keyword);
+
+          if (!matchSearch) return false;
+        }
 
         return true;
       });
