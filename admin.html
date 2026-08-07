@@ -3,188 +3,223 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - ระบบบันทึกข้อมูลการลงพื้นที่</title>
+  <title>Admin - บันทึกข้อมูลสนาม งานเร่งรัดรายได้</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <style>
-    body { 
-      font-family: 'Mitr', sans-serif; 
-      background-color: #FFFDF9;
-      background-image: radial-gradient(#FFE8D6 0.8px, transparent 0.8px);
-      background-size: 16px 16px;
-    }
-    .pastel-card {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(8px);
-      border: 2px solid #FFF0E5;
-      box-shadow: 0 8px 25px -5px rgba(255, 183, 178, 0.15);
-    }
-    .pastel-input, .pastel-select {
-      background-color: #FFFDFB;
-      border: 2px solid #FFE5D9;
-      transition: all 0.2s ease;
-    }
-    .pastel-input:focus, .pastel-select:focus {
-      background-color: #FFFFFF;
-      border-color: #FFB5A7;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(255, 181, 167, 0.2);
-    }
+    body { font-family: 'Kanit', sans-serif; background-color: #FDFBF7; color: #2D3732; }
   </style>
 </head>
-<body class="p-4 md:p-8 text-slate-700">
+<body class="p-4 md:p-6">
 
-  <div class="max-w-4xl mx-auto space-y-6">
-    
-    <!-- Header -->
-    <div class="pastel-card p-5 rounded-3xl flex justify-between items-center border-amber-100">
-      <div class="flex items-center gap-3">
-        <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
-          🦉
+  <!-- ================= 1. หน้า LOGIN SECTION ================= -->
+  <div id="loginSection" class="min-h-[80vh] flex items-center justify-center">
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-amber-100 max-w-md w-full space-y-5 text-center">
+      <div class="text-5xl">🦉</div>
+      <div>
+        <h2 class="text-2xl font-bold text-amber-900">เข้าสู่ระบบแอดมิน</h2>
+        <p class="text-xs text-slate-500 mt-1">ระบบบันทึกสำรวจข้อมูลสนาม งานเร่งรัดรายได้</p>
+      </div>
+
+      <div id="loginError" class="hidden p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-medium"></div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">อีเมลผู้ใช้งาน</label>
+          <input type="email" id="loginEmail" required placeholder="admin@example.com" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500">
         </div>
         <div>
-          <h1 class="text-xl font-bold text-amber-950">บันทึกข้อมูลการลงพื้นที่</h1>
-          <p class="text-xs text-amber-700/80">ระบบสำหรับเจ้าหน้าที่จัดการข้อมูลสนาม</p>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสผ่าน</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-semibold text-sm shadow-sm transition">
+          🔓 เข้าสู่ระบบ
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 2. หน้า ADMIN PANEL SECTION ================= -->
+  <div id="adminSection" class="hidden max-w-5xl mx-auto space-y-6">
+    
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center bg-amber-100/70 p-4 rounded-2xl border border-amber-200">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🦉</span>
+        <div>
+          <h1 class="text-lg font-bold text-amber-900">ระบบจัดการข้อมูลสนาม (Admin)</h1>
+          <p class="text-xs text-amber-700" id="userDisplay"></p>
         </div>
       </div>
-      
-      <a href="index.html" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2.5 rounded-2xl text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
-        <span>🐻</span> แดชบอร์ดผู้บริหาร
-      </a>
+      <div class="flex gap-2">
+        <a href="index.html" class="bg-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-amber-50 transition border border-amber-200">🏠 หน้า Dashboard</a>
+        <button onclick="handleLogout()" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition">🚪 ออกจากระบบ</button>
+      </div>
     </div>
 
-    <!-- ฟอร์มบันทึก / แก้ไขข้อมูล -->
-    <div class="pastel-card p-6 rounded-3xl border-orange-100">
-      <div class="flex items-center justify-between mb-4">
-        <h2 id="formTitle" class="text-lg font-bold text-orange-950 flex items-center gap-2">
-          <span>📝</span> กรอกข้อมูลการลงพื้นที่สำรวจ
-        </h2>
-        <span id="editBadge" class="hidden text-xs bg-amber-200 text-amber-900 px-3 py-1 rounded-full font-medium">กำลังอยู่ในโหมดแก้ไข</span>
-      </div>
-
-      <form id="surveyForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
-        <input type="hidden" id="editKeyId" value="">
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่สำรวจ *</label>
-            <input type="date" id="docDate" required class="pastel-input w-full p-2.5 rounded-xl text-sm">
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">เจ้าหน้าที่ผู้สำรวจ *</label>
-            <input type="text" id="officerName" placeholder="ระบุชื่อเจ้าหน้าที่" required class="pastel-input w-full p-2.5 rounded-xl text-sm">
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสผู้เสียภาษี</label>
-            <input type="text" id="taxId" placeholder="เช่น TX-1002" class="pastel-input w-full p-2.5 rounded-xl text-sm">
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้เสียภาษี / ร้านค้า *</label>
-            <input type="text" id="taxName" placeholder="ระบุชื่อผู้เสียภาษี หรือ ร้านค้า" required class="pastel-input w-full p-2.5 rounded-xl text-sm">
-          </div>
-
-          <div class="md:col-span-2">
-            <label class="block text-xs font-semibold text-slate-600 mb-1">สถานที่ / ที่อยู่สำรวจ</label>
-            <input type="text" id="address" placeholder="ระบุที่อยู่หรือสถานที่ใกล้เคียง" class="pastel-input w-full p-2.5 rounded-xl text-sm">
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">ประเภทภาษี</label>
-            <select id="taxType" class="pastel-select w-full p-2.5 rounded-xl text-sm">
-              <option value="ภาษีป้าย">ภาษีป้าย</option>
-              <option value="ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีที่ดินและสิ่งปลูกสร้าง</option>
-              <option value="ค่าขยะ / ค่าธรรมเนียม">ค่าขยะ / ค่าธรรมเนียม</option>
-              <option value="อื่นๆ">อื่นๆ</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">ขั้นตอนเอกสาร</label>
-            <select id="docType" class="pastel-select w-full p-2.5 rounded-xl text-sm">
-              <option value="หนังสือแจ้งเตือน ครั้งที่ 1">หนังสือแจ้งเตือน ครั้งที่ 1</option>
-              <option value="หนังสือแจ้งเตือน ครั้งที่ 2">หนังสือแจ้งเตือน ครั้งที่ 2</option>
-              <option value="หนังสือแจ้งประเมิน (ภ.ด.ส.6/7)">หนังสือแจ้งประเมิน (ภ.ด.ส.6/7)</option>
-              <option value="ลงพื้นที่สำรวจทั่วไป">ลงพื้นที่สำรวจทั่วไป</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">ปีที่ค้างชำระ</label>
-            <input type="text" id="overdueYears" placeholder="เช่น 2566, 2567" class="pastel-input w-full p-2.5 rounded-xl text-sm">
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">ผลการติดตาม *</label>
-            <select id="followStatus" required class="pastel-select w-full p-2.5 rounded-xl text-sm">
-              <option value="พบผู้ค้างภาษี">🟢 พบผู้ค้างภาษี</option>
-              <option value="ไม่พบผู้ค้างภาษี">🔴 ไม่พบผู้ค้างภาษี</option>
-              <option value="พบบุคคลอื่น">🟡 พบบุคคลอื่น</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">การรับเอกสาร</label>
-            <select id="receiptStatus" class="pastel-select w-full p-2.5 rounded-xl text-sm">
-              <option value="ผู้ค้างภาษีรับเอง">ผู้ค้างภาษีรับเอง</option>
-              <option value="ญาติ/บริวารรับแทน">ญาติ/บริวารรับแทน</option>
-              <option value="ปฏิเสธการรับ">ปฏิเสธการรับ</option>
-              <option value="ปิดหนังสือไว้ ณ ภูมิลำเนา">ปิดหนังสือไว้ ณ ภูมิลำเนา</option>
-            </select>
-          </div>
-
-          <div class="md:col-span-2">
-            <label class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุเพิ่มเติม</label>
-            <textarea id="note" rows="2" placeholder="รายละเอียดเพิ่มเติม..." class="pastel-input w-full p-2.5 rounded-xl text-sm"></textarea>
-          </div>
+    <!-- ฟอร์มบันทึกข้อมูลสนาม -->
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 space-y-4">
+      <h2 class="text-base font-bold text-orange-800 flex items-center gap-2 border-b border-orange-50 pb-3">
+        <span>🐻</span> บันทึกการลงพื้นที่สำรวจสนาม
+      </h2>
+      
+      <form id="surveyForm" onsubmit="saveSurveyData(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่ดำเนินการ</label>
+          <input type="date" id="docDate" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">เจ้าหน้าที่ผู้สำรวจ</label>
+          <select id="officerName" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
+            <option value="นายสมชาย เข็มแข็ง">🐶 นายสมชาย เข็มแข็ง</option>
+            <option value="นางสาววิไล ใจดี">🐰 นางสาววิไล ใจดี</option>
+            <option value="นายประเสริฐ ดีเลิศ">🐼 นายประเสริฐ ดีเลิศ</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสผู้เสียภาษี</label>
+          <input type="text" id="taxId" required placeholder="เช่น TAX-690012" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อ - สกุล / สถานประกอบการ</label>
+          <input type="text" id="taxName" required placeholder="ระบุชื่อผู้เสียภาษี" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">ที่อยู่ / แปลงที่ดิน / สถานที่สำรวจ</label>
+          <input type="text" id="address" placeholder="ระบุที่อยู่" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">ประเภทภาษี/ค่าธรรมเนียม</label>
+          <select id="taxType" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
+            <option value="ภาษีที่ดินและสิ่งปลูกสร้าง">ภาษีที่ดินและสิ่งปลูกสร้าง (ภ.ด.ส.)</option>
+            <option value="ภาษีป้าย">ภาษีป้าย</option>
+            <option value="ค่าขยะ/สิ่งปฏิกูล">ค่าธรรมเนียมขยะ/สิ่งปฏิกูล</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">ขั้นตอน / เอกสารที่ดำเนินการ</label>
+          <select id="docType" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
+            <option value="ส่งหนังสือแจ้งประเมิน">ส่งหนังสือแจ้งประเมิน</option>
+            <option value="หนังสือแจ้งเตือน ครั้งที่ 1">หนังสือแจ้งเตือน ครั้งที่ 1</option>
+            <option value="หนังสือแจ้งเตือน ครั้งที่ 2">หนังสือแจ้งเตือน ครั้งที่ 2</option>
+            <option value="หนังสือแจ้งเตือน ครั้งสุดท้าย">หนังสือแจ้งเตือน ครั้งสุดท้าย</option>
+            <option value="ส่ง แบบ ป.ภ. 3">ส่ง แบบ ป.ภ. 3</option>
+            <option value="ส่ง แบบ ภ.ด.ส. 10">ส่ง แบบ ภ.ด.ส. 10</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">ปีที่ค้างภาษี</label>
+          <input type="text" id="overdueYears" placeholder="เช่น 2567, 2568" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">จำนวนเงินที่ค้าง (บาท)</label>
+          <input type="number" step="0.01" id="amount" required placeholder="0.00" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-right">
         </div>
 
-        <div class="flex items-center gap-3 pt-2">
-          <button type="submit" id="submitBtn" class="bg-orange-400 hover:bg-orange-500 text-white px-6 py-3 rounded-2xl text-sm font-semibold transition shadow-md flex-1">
-            ➕ บันทึกข้อมูล
-          </button>
-          <button type="button" id="cancelEditBtn" onclick="resetForm()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-2xl text-sm font-semibold transition">
-            ❌ ยกเลิกแก้ไข
+        <div class="md:col-span-2 flex items-end">
+          <button type="submit" id="saveBtn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 px-4 rounded-xl font-semibold text-sm transition shadow-sm">
+            💾 บันทึกข้อมูลสนาม
           </button>
         </div>
       </form>
     </div>
 
-    <!-- ประวัติการบันทึก -->
-    <div class="pastel-card p-6 rounded-3xl border-amber-100">
-      <h2 class="text-lg font-bold text-amber-950 mb-4 flex items-center gap-2">
-        <span>📋</span> รายการที่เคยบันทึกไว้ในระบบ
-      </h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b-2 border-amber-100 text-xs font-semibold text-slate-500">
-              <th class="p-3">วันที่</th>
-              <th class="p-3">เจ้าหน้าที่</th>
-              <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
-              <th class="p-3">ผลการติดตาม</th>
-              <th class="p-3 text-center">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="historyTableBody" class="divide-y divide-amber-50 text-sm">
-            <tr><td colspan="5" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 
-  <script src="app.js"></script>
+  <!-- Firebase Configuration & Auth Script -->
   <script>
-    initAdmin();
+    const firebaseConfig = {
+      apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
+      authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
+      databaseURL: "https://tax-tracking-app-25fb7-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "tax-tracking-app-25fb7",
+      storageBucket: "tax-tracking-app-25fb7.firebasestorage.app",
+      messagingSenderId: "122118718226",
+      appId: "1:122118718226:web:df2d284fe543ec799da9cb"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // ตั้งค่า default วันที่ดำเนินการให้เป็นวันนี้
+    document.getElementById('docDate').valueStr = new Date().toISOString().split('T')[0];
+    document.getElementById('docDate').value = new Date().toISOString().split('T')[0];
+
+    // เช็กสถานะการเข้าสู่ระบบ
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('adminSection').classList.remove('hidden');
+        document.getElementById('userDisplay').innerText = `ผู้ใช้งาน: ${user.email}`;
+      } else {
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('adminSection').classList.add('hidden');
+      }
+    });
+
+    // ฟังก์ชันเข้าสู่ระบบ
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPassword').value;
+      const errBox = document.getElementById('loginError');
+
+      errBox.classList.add('hidden');
+
+      auth.signInWithEmailAndPassword(email, pass)
+        .catch((err) => {
+          errBox.classList.remove('hidden');
+          errBox.innerText = "เข้าสู่ระบบไม่สำเร็จ: " + err.message;
+        });
+    }
+
+    // ฟังก์ชันออกจากระบบ
+    function handleLogout() {
+      auth.signOut();
+    }
+
+    // ฟังก์ชันบันทึกข้อมูล
+    function saveSurveyData(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = "⏳ กำลังบันทึกข้อมูล...";
+
+      const surveyData = {
+        docDate: document.getElementById('docDate').value,
+        officerName: document.getElementById('officerName').value,
+        taxId: document.getElementById('taxId').value.trim(),
+        taxName: document.getElementById('taxName').value.trim(),
+        address: document.getElementById('address').value.trim(),
+        taxType: document.getElementById('taxType').value,
+        docType: document.getElementById('docType').value,
+        overdueYears: document.getElementById('overdueYears').value.trim(),
+        amount: parseFloat(document.getElementById('amount').value || 0),
+        timestamp: new Date().toISOString()
+      };
+
+      // บันทึกลง Realtime Database Node: 'revenue_cases'
+      db.ref('revenue_cases').push(surveyData)
+        .then(() => {
+          alert("✅ บันทึกข้อมูลสนามเรียบร้อยแล้ว!");
+          document.getElementById('surveyForm').reset();
+          document.getElementById('docDate').value = new Date().toISOString().split('T')[0];
+        })
+        .catch((error) => {
+          alert("❌ เกิดข้อผิดพลาดในการบันทึก: " + error.message);
+        })
+        .finally(() => {
+          saveBtn.disabled = false;
+          saveBtn.innerText = "💾 บันทึกข้อมูลสนาม";
+        });
+    }
   </script>
 </body>
 </html>
