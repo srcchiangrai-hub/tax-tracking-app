@@ -69,6 +69,7 @@
 
       <form id="surveyForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
         <input type="hidden" id="editKeyId" value="">
+        <input type="hidden" id="existingImageUrl" value="">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -130,7 +131,7 @@
             </select>
           </div>
 
-          <div>
+          <div class="md:col-span-2">
             <label class="block text-xs font-semibold text-slate-600 mb-1">การรับเอกสาร</label>
             <select id="receiptStatus" class="pastel-select w-full p-2.5 rounded-xl text-sm">
               <option value="ผู้ค้างภาษีรับเอง">ผู้ค้างภาษีรับเอง</option>
@@ -138,6 +139,28 @@
               <option value="ปฏิเสธการรับ">ปฏิเสธการรับ</option>
               <option value="ปิดหนังสือไว้ ณ ภูมิลำเนา">ปิดหนังสือไว้ ณ ภูมิลำเนา</option>
             </select>
+          </div>
+
+          <!-- ส่วนถ่ายรูป / อัปโหลดรูปภาพ -->
+          <div class="md:col-span-2 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
+            <label class="block text-xs font-bold text-amber-900 mb-2">📷 รูปภาพประกอบการลงพื้นที่ (จะถูกบันทึกลง Google Drive)</label>
+            
+            <input type="file" id="imageInput" accept="image/*" capture="environment" onchange="previewImage(event)"
+                   class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-200 file:text-amber-900 hover:file:bg-amber-300 cursor-pointer">
+            
+            <!-- ตัวอย่างรูปภาพที่เลือก -->
+            <div id="imagePreviewContainer" class="hidden mt-3 flex items-center gap-3 bg-white p-2.5 rounded-xl border border-amber-100">
+              <img id="imagePreview" src="" class="w-16 h-16 object-cover rounded-lg border border-slate-200">
+              <div>
+                <p class="text-xs font-semibold text-slate-700">รูปภาพที่เลือก</p>
+                <p class="text-[10px] text-slate-400">ระบบจะทำการย่อขนาดภาพอัตโนมัติก่อนส่งขึ้น Google Drive</p>
+              </div>
+            </div>
+
+            <!-- ข้อความสถานะการอัปโหลด -->
+            <div id="uploadStatus" class="hidden text-xs font-bold text-amber-700 mt-2 animate-pulse flex items-center gap-1.5">
+              <span>⏳</span> กำลังส่งรูปภาพขึ้น Google Drive กรุณารอสักครู่...
+            </div>
           </div>
 
           <div class="md:col-span-2">
@@ -167,6 +190,7 @@
           <thead>
             <tr class="border-b-2 border-amber-100 text-xs font-semibold text-slate-500">
               <th class="p-3">วันที่</th>
+              <th class="p-3">รูปภาพ</th>
               <th class="p-3">เจ้าหน้าที่</th>
               <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
               <th class="p-3">ผลการติดตาม</th>
@@ -174,7 +198,7 @@
             </tr>
           </thead>
           <tbody id="historyTableBody" class="divide-y divide-amber-50 text-sm">
-            <tr><td colspan="5" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+            <tr><td colspan="6" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
@@ -183,6 +207,9 @@
   </div>
 
   <script>
+    // ตั้งค่า URL ของ Google Apps Script Web App
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw5re9sB07OtORYK4_ZOH3hkXy0u_51GBZ1g6SKBw2PfvVByTbSgUkXrZYrWR6iwjm-Vg/exec";
+
     // ตั้งค่า Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
@@ -207,6 +234,74 @@
       loadHistory();
     });
 
+    // ฟังก์ชันย่อขนาดรูปภาพก่อนส่งขึ้น Google Drive (เพื่อความเร็วและประหยัดพื้นที่)
+    function compressImage(file, maxWidth = 1200, quality = 0.7) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const base64Data = dataUrl.split(',')[1];
+            resolve(base64Data);
+          };
+        };
+      });
+    }
+
+    // ฟังก์ชันสำหรับส่งไฟล์รูปภาพไปยัง Google Apps Script
+    async function uploadImageToDrive(file) {
+      const base64Data = await compressImage(file);
+      const payload = {
+        fileName: `tax_field_${Date.now()}.jpg`,
+        mimeType: "image/jpeg",
+        base64: base64Data
+      };
+
+      const response = await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (result.result === 'success') {
+        return result.url;
+      } else {
+        throw new Error(result.message);
+      }
+    }
+
+    // ฟังก์ชัน Preview รูปภาพเมื่อผู้ใช้ถ่ายหรือเลือกรูป
+    function previewImage(event) {
+      const file = event.target.files[0];
+      const previewContainer = document.getElementById('imagePreviewContainer');
+      const previewImg = document.getElementById('imagePreview');
+
+      if (file) {
+        previewImg.src = URL.createObjectURL(file);
+        previewContainer.classList.remove('hidden');
+      } else {
+        previewContainer.classList.add('hidden');
+      }
+    }
+
     // ดึงประวัติรายการบันทึกแบบ Realtime
     function loadHistory() {
       db.ref('revenue_cases').on('value', (snapshot) => {
@@ -214,12 +309,11 @@
         const tbody = document.getElementById('historyTableBody');
         
         if (!rawCasesData || Object.keys(rawCasesData).length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-slate-400">ยังไม่มีประวัติการบันทึกข้อมูล</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">ยังไม่มีประวัติการบันทึกข้อมูล</td></tr>';
           return;
         }
 
         let html = '';
-        // แสดงรายการจากใหม่ไปเก่า
         const keys = Object.keys(rawCasesData).reverse();
 
         keys.forEach(key => {
@@ -228,6 +322,7 @@
           const officer = item.officerName || item.officer || '-';
           const taxName = item.taxName || item.tax_name || '-';
           const result = item.result || item.followStatus || '-';
+          const imageUrl = item.imageUrl || item.photoUrl || '';
 
           // สีของ Badge ผลการติดตาม
           let badgeColor = 'bg-slate-100 text-slate-700';
@@ -235,9 +330,20 @@
           else if (result.includes('ไม่พบผู้ค้างภาษี')) badgeColor = 'bg-rose-100 text-rose-800';
           else if (result.includes('พบบุคคลอื่น')) badgeColor = 'bg-amber-100 text-amber-800';
 
+          // โค้ดแสดงรูปภาพในตาราง
+          let imageTd = '<span class="text-xs text-slate-300">- ไม่มีรูป -</span>';
+          if (imageUrl) {
+            imageTd = `
+              <a href="${imageUrl}" target="_blank" title="คลิกเพื่อดูรูปขนาดย่อม">
+                <img src="${imageUrl}" class="w-10 h-10 object-cover rounded-lg border border-amber-200 hover:scale-110 transition cursor-pointer">
+              </a>
+            `;
+          }
+
           html += `
             <tr class="hover:bg-amber-50/50 transition">
               <td class="p-3 text-xs text-slate-500">${dateStr}</td>
+              <td class="p-3">${imageTd}</td>
               <td class="p-3 font-medium text-slate-700">${officer}</td>
               <td class="p-3 font-medium text-slate-800">${taxName}</td>
               <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
@@ -254,42 +360,62 @@
     }
 
     // บันทึก / แก้ไข ข้อมูล
-    function handleFormSubmit(event) {
+    async function handleFormSubmit(event) {
       event.preventDefault();
 
+      const submitBtn = document.getElementById('submitBtn');
+      const statusDiv = document.getElementById('uploadStatus');
+      const imageInput = document.getElementById('imageInput');
       const editKeyId = document.getElementById('editKeyId').value;
-      const formData = {
-        docDate: document.getElementById('docDate').value,
-        officerName: document.getElementById('officerName').value,
-        taxId: document.getElementById('taxId').value,
-        taxName: document.getElementById('taxName').value,
-        address: document.getElementById('address').value,
-        taxType: document.getElementById('taxType').value,
-        docType: document.getElementById('docType').value,
-        overdueYears: document.getElementById('overdueYears').value,
-        result: document.getElementById('followStatus').value,
-        followStatus: document.getElementById('followStatus').value,
-        receiptStatus: document.getElementById('receiptStatus').value,
-        note: document.getElementById('note').value,
-        timestamp: new Date().toISOString()
-      };
+      let finalImageUrl = document.getElementById('existingImageUrl').value || '';
 
-      if (editKeyId) {
-        // โหมดแก้ไข
-        db.ref('revenue_cases/' + editKeyId).update(formData)
-          .then(() => {
-            alert('อัปเดตข้อมูลเรียบร้อยแล้ว');
-            resetForm();
-          })
-          .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
-      } else {
-        // โหมดบันทึกใหม่
-        db.ref('revenue_cases').push(formData)
-          .then(() => {
-            alert('บันทึกข้อมูลสำเร็จแล้ว');
-            resetForm();
-          })
-          .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
+      // ล็อกปุ่มป้องกันการกดซ้ำ
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      try {
+        // กรณีมีการเลือกรูปภาพใหม่
+        if (imageInput.files && imageInput.files[0]) {
+          statusDiv.classList.remove('hidden');
+          finalImageUrl = await uploadImageToDrive(imageInput.files[0]);
+          statusDiv.classList.add('hidden');
+        }
+
+        const formData = {
+          docDate: document.getElementById('docDate').value,
+          officerName: document.getElementById('officerName').value,
+          taxId: document.getElementById('taxId').value,
+          taxName: document.getElementById('taxName').value,
+          address: document.getElementById('address').value,
+          taxType: document.getElementById('taxType').value,
+          docType: document.getElementById('docType').value,
+          overdueYears: document.getElementById('overdueYears').value,
+          result: document.getElementById('followStatus').value,
+          followStatus: document.getElementById('followStatus').value,
+          receiptStatus: document.getElementById('receiptStatus').value,
+          note: document.getElementById('note').value,
+          imageUrl: finalImageUrl,
+          timestamp: new Date().toISOString()
+        };
+
+        if (editKeyId) {
+          // โหมดแก้ไข
+          await db.ref('revenue_cases/' + editKeyId).update(formData);
+          alert('อัปเดตข้อมูลเรียบร้อยแล้ว');
+        } else {
+          // โหมดบันทึกใหม่
+          await db.ref('revenue_cases').push(formData);
+          alert('บันทึกข้อมูลและรูปภาพสำเร็จแล้ว');
+        }
+
+        resetForm();
+
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด: ' + err.message);
+      } finally {
+        statusDiv.classList.add('hidden');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
       }
     }
 
@@ -299,6 +425,7 @@
       if (!item) return;
 
       document.getElementById('editKeyId').value = key;
+      document.getElementById('existingImageUrl').value = item.imageUrl || item.photoUrl || '';
       document.getElementById('docDate').value = item.docDate || item.date || '';
       document.getElementById('officerName').value = item.officerName || item.officer || '';
       document.getElementById('taxId').value = item.taxId || '';
@@ -310,6 +437,17 @@
       document.getElementById('followStatus').value = item.result || item.followStatus || 'พบผู้ค้างภาษี';
       document.getElementById('receiptStatus').value = item.receiptStatus || 'ผู้ค้างภาษีรับเอง';
       document.getElementById('note').value = item.note || '';
+
+      // แสดงภาพตัวอย่างเดิม หากมีอยู่แล้ว
+      const existingUrl = item.imageUrl || item.photoUrl || '';
+      const previewContainer = document.getElementById('imagePreviewContainer');
+      const previewImg = document.getElementById('imagePreview');
+      if (existingUrl) {
+        previewImg.src = existingUrl;
+        previewContainer.classList.remove('hidden');
+      } else {
+        previewContainer.classList.add('hidden');
+      }
 
       // ปรับ UI เข้าสู่โหมดแก้ไข
       document.getElementById('formTitle').innerHTML = '<span>✏️</span> แก้ไขข้อมูลการลงพื้นที่';
@@ -334,6 +472,8 @@
     function resetForm() {
       document.getElementById('surveyForm').reset();
       document.getElementById('editKeyId').value = '';
+      document.getElementById('existingImageUrl').value = '';
+      document.getElementById('imagePreviewContainer').classList.add('hidden');
       
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('docDate').value = today;
