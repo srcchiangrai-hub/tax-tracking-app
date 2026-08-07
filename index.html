@@ -5,116 +5,182 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - ระบบสำรวจข้อมูลสนาม งานเร่งรัดรายได้</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=TH+Sarabun+New&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=TH+Sarabun+New:wght@400;700&display=swap" rel="stylesheet">
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
+  <!-- SheetJS สำหรับ Export Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <style>
-    body { font-family: 'Kanit', sans-serif; background-color: #FDFBF7; color: #2D3732; }
-    
+    body { 
+      font-family: 'Mitr', sans-serif; 
+      background-color: #FFFDF9;
+      background-image: radial-gradient(#FFE8D6 0.8px, transparent 0.8px);
+      background-size: 16px 16px;
+    }
+    .pastel-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      border: 2px solid #FFF0E5;
+      box-shadow: 0 8px 25px -5px rgba(255, 183, 178, 0.15);
+    }
+    .pastel-select {
+      background-color: #FFFDFB;
+      border: 2px solid #FFE5D9;
+      transition: all 0.2s ease;
+    }
+    .pastel-select:focus {
+      background-color: #FFFFFF;
+      border-color: #FFB5A7;
+      outline: none;
+    }
     @media print {
-      body { font-family: 'TH Sarabun New', sans-serif; font-size: 16pt; background: white; color: black; }
+      body { 
+        font-family: 'TH Sarabun New', sans-serif; 
+        font-size: 16pt; 
+        background: white !important;
+        background-image: none !important;
+      }
       .no-print { display: none !important; }
       .print-only { display: block !important; }
       @page { size: A4 portrait; margin: 15mm; }
-      table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid black !important; padding: 4px 8px; }
     }
     .print-only { display: none; }
   </style>
 </head>
-<body class="p-4 md:p-6">
+<body class="p-4 md:p-8 text-slate-700">
 
-  <!-- DASHBOARD WEB VIEW -->
-  <div class="no-print max-w-7xl mx-auto space-y-6">
+  <!-- ส่วนแดชบอร์ด Web View -->
+  <div class="no-print max-w-6xl mx-auto space-y-6">
     
     <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-emerald-50/80 p-5 rounded-3xl border border-emerald-100 shadow-sm">
+    <div class="pastel-card p-5 rounded-3xl flex flex-wrap justify-between items-center gap-4 border-amber-100">
       <div class="flex items-center gap-3">
-        <span class="text-4xl">🐻</span>
+        <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+          🐻
+        </div>
         <div>
-          <h1 class="text-xl md:text-2xl font-bold text-emerald-900">ระบบสำรวจข้อมูลสนาม - งานเร่งรัดรายได้</h1>
-          <p class="text-xs text-emerald-700">รายงานสถิติการลงพื้นที่และความก้าวหน้าการจัดเก็บภาษี</p>
+          <h1 class="text-xl font-bold text-amber-950">แดชบอร์ดติดตามงานสนาม</h1>
+          <p class="text-xs text-amber-700/80">ระบบสรุปผลการเร่งรัดจัดเก็บรายได้ (สำหรับผู้บริหาร)</p>
         </div>
       </div>
-      <div class="mt-3 md:mt-0 flex items-center gap-3">
-        <a href="admin.html" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-2xl text-sm font-medium shadow-sm transition">⚙️ หน้าแอดมิน</a>
-        <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-sm font-medium shadow-sm transition">🖨️ พิมพ์รายงาน A4</button>
+      
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="window.print()" class="bg-sky-400 hover:bg-sky-500 text-white px-4 py-2.5 rounded-2xl text-sm font-medium transition shadow-sm flex items-center gap-1.5">
+          <span>🖨️</span> พิมพ์ A4
+        </button>
+        <a href="admin.html" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2.5 rounded-2xl text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
+          <span>🦉</span> บันทึกข้อมูล (Admin)
+        </a>
       </div>
     </div>
 
-    <!-- สรุปสถิติ 3 Cards -->
+    <!-- แถบ Export Excel เลือกเงื่อนไข -->
+    <div class="pastel-card p-5 rounded-3xl border-teal-100 bg-teal-50/20 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-teal-100 rounded-2xl flex items-center justify-center text-xl">
+          📊
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-teal-950">ส่งออกรายงาน Excel (Export)</h3>
+          <p class="text-xs text-teal-700/70">ดึงข้อมูลออกมาเปิดดู หรือพิมพ์ (Print) ผ่านโปรแกรม Excel</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
+        <select id="exportPeriodFilter" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
+          <option value="all">🗓️ ทั้งหมด (All)</option>
+          <option value="daily">📅 Specific: วันนี้ (Daily)</option>
+          <option value="monthly">📊 Specific: เดือนนี้ (Monthly)</option>
+          <option value="quarterly">📈 Specific: ไตรมาสนี้ (Quarterly)</option>
+        </select>
+
+        <select id="exportOfficerFilter" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
+          <option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>
+        </select>
+
+        <button onclick="exportFilteredExcel()" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-2xl text-xs font-semibold transition shadow-md flex items-center gap-1.5">
+          <span>📤</span> ส่งออกไฟล์ Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      <div class="bg-sky-50 border border-sky-100 p-5 rounded-3xl shadow-sm flex items-center justify-between">
+      <div class="pastel-card p-6 rounded-3xl border-emerald-100 bg-emerald-50/30 flex items-center justify-between">
         <div>
-          <p class="text-xs font-semibold text-sky-700">🐱 สำรวจวันนี้ (Daily)</p>
-          <h2 id="countDaily" class="text-3xl font-bold text-sky-900 mt-1">0 <span class="text-sm font-normal">ราย</span></h2>
+          <p class="text-xs font-semibold text-emerald-800 mb-1 flex items-center gap-1">🐱 วันนี้ (Daily)</p>
+          <div class="text-3xl font-bold text-emerald-950"><span id="dailyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
         </div>
-        <div class="text-4xl bg-white p-3 rounded-2xl shadow-sm">📋</div>
+        <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl">📅</div>
       </div>
 
-      <div class="bg-amber-50 border border-amber-100 p-5 rounded-3xl shadow-sm flex items-center justify-between">
+      <div class="pastel-card p-6 rounded-3xl border-orange-100 bg-orange-50/30 flex items-center justify-between">
         <div>
-          <p class="text-xs font-semibold text-amber-700">🦊 สำรวจเดือนนี้ (Monthly)</p>
-          <h2 id="countMonthly" class="text-3xl font-bold text-amber-900 mt-1">0 <span class="text-sm font-normal">ราย</span></h2>
+          <p class="text-xs font-semibold text-orange-800 mb-1 flex items-center gap-1">🦊 เดือนนี้ (Monthly)</p>
+          <div class="text-3xl font-bold text-orange-950"><span id="monthlyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
         </div>
-        <div class="text-4xl bg-white p-3 rounded-2xl shadow-sm">🗺️</div>
+        <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl">📊</div>
       </div>
 
-      <div class="bg-rose-50 border border-rose-100 p-5 rounded-3xl shadow-sm flex items-center justify-between">
+      <div class="pastel-card p-6 rounded-3xl border-indigo-100 bg-indigo-50/30 flex items-center justify-between">
         <div>
-          <p class="text-xs font-semibold text-rose-700">🐻 ไตรมาสนี้ (Quarterly)</p>
-          <h2 id="countQuarterly" class="text-3xl font-bold text-rose-900 mt-1">0 <span class="text-sm font-normal">ราย</span></h2>
+          <p class="text-xs font-semibold text-indigo-800 mb-1 flex items-center gap-1">🐰 ไตรมาสนี้ (Quarterly)</p>
+          <div class="text-3xl font-bold text-indigo-950"><span id="quarterlyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
         </div>
-        <div class="text-4xl bg-white p-3 rounded-2xl shadow-sm">📊</div>
+        <div class="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl">📈</div>
       </div>
     </div>
 
-    <!-- ตารางสรุปผลงานเจ้าหน้าที่ -->
-    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-      <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-        <span>🦊</span> สรุปจำนวนการลงพื้นที่แยกรายเจ้าหน้าที่
-      </h3>
+    <!-- ตารางเจ้าหน้าที่ -->
+    <div class="pastel-card p-6 rounded-3xl border-purple-100">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-purple-900 flex items-center gap-2">
+          <span class="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-lg">🐼</span>
+          สรุปการลงปฏิบัติงานสนามจำแนกรายเจ้าหน้าที่
+        </h2>
+        <span class="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-medium border border-purple-100">สถิติจำนวนเคสเข้าสำรวจ</span>
+      </div>
+
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-sm">
+        <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50 text-slate-600 border-b border-slate-100">
-              <th class="p-3 rounded-l-xl">ชื่อ-นามสกุล เจ้าหน้าที่</th>
+            <tr class="border-b-2 border-purple-100 text-xs font-semibold text-slate-500">
+              <th class="p-3">เจ้าหน้าที่ผู้สำรวจ</th>
               <th class="p-3 text-center">วันนี้ (ราย)</th>
               <th class="p-3 text-center">เดือนนี้ (ราย)</th>
-              <th class="p-3 text-center rounded-r-xl">ไตรมาสนี้ (ราย)</th>
+              <th class="p-3 text-center">ไตรมาสนี้ (ราย)</th>
             </tr>
           </thead>
-          <tbody id="officerSummaryTable" class="divide-y divide-slate-100">
-            <tr><td colspan="4" class="p-4 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+          <tbody id="officerTableBody" class="divide-y divide-purple-50 text-sm">
+            <tr><td colspan="4" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- ตารางรายการลงพื้นที่ล่าสุด -->
-    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-      <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-        <span>🐼</span> รายการลงพื้นที่สำรวจสนามล่าสุด
-      </h3>
+    <!-- ตารางรายการล่าสุด -->
+    <div class="pastel-card p-6 rounded-3xl border-amber-100">
+      <h2 class="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
+        <span>📍</span> รายการเข้าสำรวจล่าสุด
+      </h2>
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-sm">
+        <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50 text-slate-600 border-b border-slate-100">
+            <tr class="border-b-2 border-amber-100 text-xs font-semibold text-slate-500">
               <th class="p-3">วันที่</th>
               <th class="p-3">เจ้าหน้าที่</th>
-              <th class="p-3">รหัส / ผู้เสียภาษี</th>
-              <th class="p-3">ประเภทภาษี</th>
-              <th class="p-3">ขั้นตอน/เอกสาร</th>
+              <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
               <th class="p-3">ผลการติดตาม</th>
-              <th class="p-3 text-center">ปีที่ค้าง</th>
-              <th class="p-3 text-right">ยอดค้าง (บาท)</th>
+              <th class="p-3">การรับเอกสาร</th>
+              <th class="p-3">หมายเหตุ</th>
             </tr>
           </thead>
-          <tbody id="recentCasesTable" class="divide-y divide-slate-100">
-            <tr><td colspan="8" class="p-4 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+          <tbody id="recentTableBody" class="divide-y divide-amber-50 text-sm">
+            <tr><td colspan="6" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
@@ -122,43 +188,38 @@
 
   </div>
 
-  <!-- PRINT A4 LAYOUT -->
+  <!-- พิมพ์ A4 -->
   <div class="print-only">
     <div class="text-center font-bold mb-4">
       <h3 class="text-xl">รายงานสรุปผลการลงพื้นที่สำรวจสนาม งานเร่งรัดรายได้</h3>
-      <p class="text-sm">ข้อมูล ณ วันที่ <span id="printDate"></span></p>
+      <p class="text-sm">ประจำวันที่ <span id="printCurrentDate">........................................................</span></p>
     </div>
 
-    <div class="mb-4 text-sm">
-      <p><b>สรุปภาพรวมการลงพื้นที่:</b> วันนี้ <span id="printDaily">0</span> ราย | เดือนนี้ <span id="printMonthly">0</span> ราย | ไตรมาสนี้ <span id="printQuarterly">0</span> ราย</p>
-    </div>
-
-    <table class="w-full text-left">
+    <table class="w-full border-collapse border border-black text-left text-sm mb-6">
       <thead>
-        <tr class="bg-gray-100">
-          <th class="text-center" style="width: 5%;">ลำดับ</th>
-          <th style="width: 10%;">วันที่</th>
-          <th style="width: 15%;">เจ้าหน้าที่</th>
-          <th style="width: 20%;">ชื่อ-นามสกุล / ร้านค้า</th>
-          <th style="width: 15%;">ประเภทภาษี</th>
-          <th style="width: 15%;">ขั้นตอน/เอกสาร</th>
-          <th style="width: 10%;">ผลติดตาม</th>
-          <th class="text-right" style="width: 10%;">ยอดค้าง</th>
+        <tr class="bg-gray-100 border-b border-black text-center">
+          <th class="border border-black p-1.5">ลำดับ</th>
+          <th class="border border-black p-1.5">ชื่อ-นามสกุล เจ้าหน้าที่</th>
+          <th class="border border-black p-1.5">ผลงานวันนี้ (ราย)</th>
+          <th class="border border-black p-1.5">ผลงานเดือนนี้ (ราย)</th>
+          <th class="border border-black p-1.5">ผลงานไตรมาสนี้ (ราย)</th>
         </tr>
       </thead>
-      <tbody id="printTableBody"></tbody>
+      <tbody id="printOfficerTable">
+      </tbody>
     </table>
 
     <div class="mt-12 flex justify-end">
       <div class="text-center w-64">
-        <p>ลงชื่อ..........................................................ผู้รายงาน</p>
-        <p class="mt-1">(..........................................................)</p>
-        <p class="mt-1">ตำแหน่ง..........................................................</p>
+        <p>ลงชื่อ..........................................................</p>
+        <p>(..........................................................)</p>
+        <p>ตำแหน่ง..........................................................</p>
       </div>
     </div>
   </div>
 
   <script>
+    // ตั้งค่า Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
       authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
@@ -172,139 +233,217 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const currentYearStr = now.getFullYear().toString();
-    const currentMonthStr = (now.getMonth() + 1).toString().padStart(2, '0');
-    const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
+    let allCasesData = [];
 
-    document.getElementById('printDate').innerText = now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      document.getElementById('printCurrentDate').innerText = today.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+      initDashboard();
+    });
 
-    // ดึงข้อมูล Realtime
-    db.ref('revenue_cases').on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (!data) {
-        document.getElementById('recentCasesTable').innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูลการสำรวจในระบบ</td></tr>';
-        document.getElementById('officerSummaryTable').innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูล</td></tr>';
-        return;
-      }
+    function initDashboard() {
+      db.ref('revenue_cases').on('value', (snapshot) => {
+        const rawData = snapshot.val();
+        if (!rawData) {
+          document.getElementById('officerTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
+          document.getElementById('recentTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
+          document.getElementById('printOfficerTable').innerHTML = '<tr><td colspan="5" class="text-center py-2">ไม่มีข้อมูล</td></tr>';
+          return;
+        }
 
-      let dailyCount = 0;
-      let monthlyCount = 0;
-      let quarterlyCount = 0;
+        allCasesData = Object.keys(rawData).map(key => ({ id: key, ...rawData[key] }));
 
-      const officerStats = {};
-      const caseList = [];
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const currentQuarter = Math.ceil(currentMonth / 3);
 
-      Object.keys(data).forEach(key => {
-        const item = data[key];
-        caseList.push(item);
+        let dCount = 0;
+        let mCount = 0;
+        let qCount = 0;
 
-        // รองรับชื่อฟิลด์วันที่หลายรูปแบบ
+        const officerMap = {};
+        const officerSet = new Set();
+
+        allCasesData.forEach(item => {
+          const officer = item.officerName || item.officer || 'ไม่ระบุเจ้าหน้าที่';
+          officerSet.add(officer);
+
+          if (!officerMap[officer]) {
+            officerMap[officer] = { daily: 0, monthly: 0, quarterly: 0 };
+          }
+
+          const rawDate = item.docDate || item.date || item.timestamp || '';
+          const datePart = rawDate.split('T')[0];
+
+          let itemYear = currentYear;
+          let itemMonth = currentMonth;
+          let itemQuarter = currentQuarter;
+
+          if (datePart && datePart.includes('-')) {
+            const p = datePart.split('-');
+            itemYear = parseInt(p[0]);
+            itemMonth = parseInt(p[1]);
+            itemQuarter = Math.ceil(itemMonth / 3);
+          }
+
+          const isToday = (datePart === todayStr);
+          const isThisMonth = (itemYear === currentYear && itemMonth === currentMonth);
+          const isThisQuarter = (itemYear === currentYear && itemQuarter === currentQuarter);
+
+          if (isToday) {
+            dCount++;
+            officerMap[officer].daily++;
+          }
+          if (isThisMonth) {
+            mCount++;
+            officerMap[officer].monthly++;
+          }
+          if (isThisQuarter) {
+            qCount++;
+            officerMap[officer].quarterly++;
+          }
+        });
+
+        // อัปเดต KPI
+        document.getElementById('dailyCount').innerText = dCount;
+        document.getElementById('monthlyCount').innerText = mCount;
+        document.getElementById('quarterlyCount').innerText = qCount;
+
+        // ดรอปดาวน์เลือกเจ้าหน้าที่ในส่วน Export
+        const officerSelect = document.getElementById('exportOfficerFilter');
+        officerSelect.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
+        officerSet.forEach(off => {
+          officerSelect.innerHTML += `<option value="${off}">${off}</option>`;
+        });
+
+        // ตารางสรุปรายเจ้าหน้าที่
+        let officerHtml = '';
+        let printOfficerHtml = '';
+        let index = 1;
+
+        Object.keys(officerMap).forEach(off => {
+          const stat = officerMap[off];
+          officerHtml += `
+            <tr class="hover:bg-purple-50/50 transition">
+              <td class="p-3 font-medium text-slate-800">${off}</td>
+              <td class="p-3 text-center font-semibold text-emerald-600">${stat.daily}</td>
+              <td class="p-3 text-center font-semibold text-orange-600">${stat.monthly}</td>
+              <td class="p-3 text-center font-semibold text-indigo-600">${stat.quarterly}</td>
+            </tr>
+          `;
+
+          printOfficerHtml += `
+            <tr class="text-center">
+              <td class="border border-black p-1.5">${index++}</td>
+              <td class="border border-black p-1.5 text-left">${off}</td>
+              <td class="border border-black p-1.5">${stat.daily}</td>
+              <td class="border border-black p-1.5">${stat.monthly}</td>
+              <td class="border border-black p-1.5">${stat.quarterly}</td>
+            </tr>
+          `;
+        });
+
+        document.getElementById('officerTableBody').innerHTML = officerHtml || '<tr><td colspan="4" class="text-center py-4 text-slate-400">ไม่มีข้อมูล</td></tr>';
+        document.getElementById('printOfficerTable').innerHTML = printOfficerHtml || '<tr><td colspan="5" class="text-center py-2">ไม่มีข้อมูล</td></tr>';
+
+        // ตารางรายการล่าสุด (เรียงจากใหม่ไปเก่า)
+        const recentList = [...allCasesData].reverse();
+        let recentHtml = '';
+
+        recentList.forEach(item => {
+          const dateStr = item.docDate || item.date || '-';
+          const officer = item.officerName || item.officer || '-';
+          const taxName = item.taxName || item.tax_name || '-';
+          const taxId = item.taxId ? `<span class="text-xs text-slate-400">(${item.taxId})</span>` : '';
+          const result = item.result || item.followStatus || '-';
+          const receipt = item.receiptStatus || '-';
+          const note = item.note || '-';
+
+          let badgeColor = 'bg-slate-100 text-slate-700';
+          if (result.includes('พบผู้ค้างภาษี')) badgeColor = 'bg-emerald-100 text-emerald-800';
+          else if (result.includes('ไม่พบผู้ค้างภาษี')) badgeColor = 'bg-rose-100 text-rose-800';
+          else if (result.includes('พบบุคคลอื่น')) badgeColor = 'bg-amber-100 text-amber-800';
+
+          recentHtml += `
+            <tr class="hover:bg-amber-50/50 transition">
+              <td class="p-3 text-xs text-slate-500">${dateStr}</td>
+              <td class="p-3 font-medium text-slate-700">${officer}</td>
+              <td class="p-3 font-medium text-slate-800">${taxName} ${taxId}</td>
+              <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
+              <td class="p-3 text-slate-600 text-xs">${receipt}</td>
+              <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${note}</td>
+            </tr>
+          `;
+        });
+
+        document.getElementById('recentTableBody').innerHTML = recentHtml;
+      });
+    }
+
+    // ฟังก์ชัน Export Excel กรองตามเงื่อนไข
+    function exportFilteredExcel() {
+      const periodFilter = document.getElementById('exportPeriodFilter').value;
+      const officerFilter = document.getElementById('exportOfficerFilter').value;
+
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      const currentQuarter = Math.ceil(currentMonth / 3);
+
+      const filtered = allCasesData.filter(item => {
+        const officer = item.officerName || item.officer || '';
+        if (officerFilter !== 'all' && officer !== officerFilter) return false;
+
         const rawDate = item.docDate || item.date || item.timestamp || '';
         const datePart = rawDate.split('T')[0];
 
-        let itemYear = currentYearStr;
-        let itemMonth = currentMonthStr;
+        let itemYear = currentYear;
+        let itemMonth = currentMonth;
         let itemQuarter = currentQuarter;
 
         if (datePart && datePart.includes('-')) {
-          const parts = datePart.split('-');
-          itemYear = parts[0];
-          itemMonth = parts[1];
-          itemQuarter = Math.ceil(parseInt(parts[1]) / 3);
+          const p = datePart.split('-');
+          itemYear = parseInt(p[0]);
+          itemMonth = parseInt(p[1]);
+          itemQuarter = Math.ceil(itemMonth / 3);
         }
 
-        const isToday = (datePart === todayStr);
-        const isThisMonth = (itemYear === currentYearStr && itemMonth === currentMonthStr);
-        const isThisQuarter = (itemYear === currentYearStr && itemQuarter === currentQuarter);
+        if (periodFilter === 'daily' && datePart !== todayStr) return false;
+        if (periodFilter === 'monthly' && !(itemYear === currentYear && itemMonth === currentMonth)) return false;
+        if (periodFilter === 'quarterly' && !(itemYear === currentYear && itemQuarter === currentQuarter)) return false;
 
-        if (isToday) dailyCount++;
-        if (isThisMonth) monthlyCount++;
-        if (isThisQuarter) quarterlyCount++;
-
-        // ดึงชื่อเจ้าหน้าที่ (รองรับชื่อตัวแปรที่ต่างกัน)
-        const officer = item.officerName || item.officer || item.officer_name || 'ไม่ระบุชื่อ';
-        if (!officerStats[officer]) {
-          officerStats[officer] = { daily: 0, monthly: 0, quarterly: 0 };
-        }
-        if (isToday) officerStats[officer].daily++;
-        if (isThisMonth) officerStats[officer].monthly++;
-        if (isThisQuarter) officerStats[officer].quarterly++;
+        return true;
       });
 
-      // อัปเดตตัวเลข Cards
-      document.getElementById('countDaily').innerText = dailyCount;
-      document.getElementById('countMonthly').innerText = monthlyCount;
-      document.getElementById('countQuarterly').innerText = quarterlyCount;
+      if (filtered.length === 0) {
+        alert('ไม่พบข้อมูลตามเงื่อนไขที่เลือก');
+        return;
+      }
 
-      document.getElementById('printDaily').innerText = dailyCount;
-      document.getElementById('printMonthly').innerText = monthlyCount;
-      document.getElementById('printQuarterly').innerText = quarterlyCount;
+      const excelData = filtered.map((item, idx) => ({
+        'ลำดับ': idx + 1,
+        'วันที่สำรวจ': item.docDate || item.date || '',
+        'เจ้าหน้าที่ผู้สำรวจ': item.officerName || item.officer || '',
+        'รหัสผู้เสียภาษี': item.taxId || '',
+        'ชื่อผู้เสียภาษี/ร้านค้า': item.taxName || item.tax_name || '',
+        'สถานที่/ที่อยู่': item.address || '',
+        'ประเภทภาษี': item.taxType || '',
+        'ขั้นตอนเอกสาร': item.docType || '',
+        'ปีที่ค้างชำระ': item.overdueYears || '',
+        'ผลการติดตาม': item.result || item.followStatus || '',
+        'การรับเอกสาร': item.receiptStatus || '',
+        'หมายเหตุ': item.note || ''
+      }));
 
-      // แสดงตารางสรุปเจ้าหน้าที่
-      let officerHtml = '';
-      Object.keys(officerStats).forEach(officer => {
-        officerHtml += `
-          <tr class="hover:bg-slate-50">
-            <td class="p-3 font-medium text-slate-700">${officer}</td>
-            <td class="p-3 text-center text-sky-600 font-semibold">${officerStats[officer].daily}</td>
-            <td class="p-3 text-center text-amber-600 font-semibold">${officerStats[officer].monthly}</td>
-            <td class="p-3 text-center text-rose-600 font-semibold">${officerStats[officer].quarterly}</td>
-          </tr>
-        `;
-      });
-      document.getElementById('officerSummaryTable').innerHTML = officerHtml || '<tr><td colspan="4" class="p-4 text-center text-slate-400">ไม่มีข้อมูลเจ้าหน้าที่</td></tr>';
-
-      // เรียงข้อมูลล่าสุดขึ้นก่อน
-      caseList.reverse();
-
-      let recentHtml = '';
-      let printHtml = '';
-
-      caseList.forEach((item, index) => {
-        const rawAmount = parseFloat(item.amount || item.money || 0);
-        const amountNum = isNaN(rawAmount) ? '0.00' : rawAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-        const officer = item.officerName || item.officer || item.officer_name || '-';
-        const taxName = item.taxName || item.tax_name || item.taxpayer || '-';
-        const taxId = item.taxId || item.tax_id || '';
-        const taxType = item.taxType || item.tax_type || '-';
-        const docType = item.docType || item.doc_type || '-';
-        const result = item.result || item.follow_result || item.status || '-';
-        const overdueYears = item.overdueYears || item.overdue || '-';
-        const dateVal = item.docDate || item.date || '-';
-
-        recentHtml += `
-          <tr class="hover:bg-slate-50">
-            <td class="p-3 text-slate-500 text-xs">${dateVal}</td>
-            <td class="p-3 font-medium text-slate-700">${officer}</td>
-            <td class="p-3 font-semibold text-emerald-800">${taxName} ${taxId ? `<span class="text-xs text-slate-400">(${taxId})</span>` : ''}</td>
-            <td class="p-3 text-slate-600">${taxType}</td>
-            <td class="p-3 text-slate-600">${docType}</td>
-            <td class="p-3 text-slate-600"><span class="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-lg">${result}</span></td>
-            <td class="p-3 text-center text-slate-500">${overdueYears}</td>
-            <td class="p-3 text-right font-semibold text-slate-800">${amountNum}</td>
-          </tr>
-        `;
-
-        printHtml += `
-          <tr>
-            <td class="text-center">${index + 1}</td>
-            <td>${dateVal}</td>
-            <td>${officer}</td>
-            <td>${taxName} ${taxId ? `(${taxId})` : ''}</td>
-            <td>${taxType}</td>
-            <td>${docType}</td>
-            <td>${result}</td>
-            <td class="text-right">${amountNum}</td>
-          </tr>
-        `;
-      });
-
-      document.getElementById('recentCasesTable').innerHTML = recentHtml;
-      document.getElementById('printTableBody').innerHTML = printHtml;
-    });
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "รายงานการลงพื้นที่");
+      
+      XLSX.writeFile(workbook, `รายงานสำรวจสนาม_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
   </script>
 </body>
 </html>
