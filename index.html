@@ -183,11 +183,12 @@
               <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
               <th class="p-3">ผลการติดตาม</th>
               <th class="p-3">การรับเอกสาร</th>
+              <th class="p-3">รูปถ่ายสนาม</th>
               <th class="p-3">หมายเหตุ</th>
             </tr>
           </thead>
           <tbody id="recentTableBody" class="divide-y divide-amber-50 text-sm">
-            <tr><td colspan="6" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+            <tr><td colspan="7" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
@@ -225,6 +226,14 @@
     </div>
   </div>
 
+  <!-- Modal สำหรับดูรูปภาพขนาดใหญ่ -->
+  <div id="imageModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print" onclick="closeImageModal()">
+    <div class="relative max-w-3xl max-h-[90vh] bg-white p-2 rounded-2xl shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+      <button onclick="closeImageModal()" class="absolute top-3 right-3 bg-black/60 hover:bg-black text-white w-8 h-8 rounded-full flex items-center justify-center text-lg z-10 transition">✕</button>
+      <img id="modalImg" src="" alt="รูปภาพสนาม" class="max-h-[80vh] w-auto max-w-full rounded-xl object-contain mx-auto">
+    </div>
+  </div>
+
   <script>
     // ตั้งค่า Firebase Config
     const firebaseConfig = {
@@ -251,6 +260,42 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    }
+
+    // ฟังก์ชันช่วยสกัด Array ของ URL รูปภาพจาก Data Record
+    function extractImageUrls(item) {
+      if (!item) return [];
+      let urls = [];
+
+      if (Array.isArray(item.images)) {
+        urls = item.images;
+      } else if (Array.isArray(item.imageUrls)) {
+        urls = item.imageUrls;
+      } else if (typeof item.images === 'object' && item.images !== null) {
+        urls = Object.values(item.images);
+      } else if (typeof item.imageUrl === 'string' && item.imageUrl.trim() !== '') {
+        urls = [item.imageUrl];
+      } else if (typeof item.photo === 'string' && item.photo.trim() !== '') {
+        urls = [item.photo];
+      }
+
+      return urls.filter(url => typeof url === 'string' && url.length > 0);
+    }
+
+    // ฟังก์ชันสำหรับเปิด/ปิด Modal รูปภาพ
+    function openImageModal(imgSrc) {
+      const modal = document.getElementById('imageModal');
+      const modalImg = document.getElementById('modalImg');
+      modalImg.src = imgSrc;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeImageModal() {
+      const modal = document.getElementById('imageModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.getElementById('modalImg').src = '';
     }
 
     // ฟังก์ชันช่วยในการสกัดวันที่ Year, Month, Quarter อย่างแม่นยำ
@@ -302,7 +347,7 @@
         if (!rawData) {
           allCasesData = [];
           document.getElementById('officerTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
-          document.getElementById('recentTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
+          document.getElementById('recentTableBody').innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
           document.getElementById('printOfficerTable').innerHTML = '<tr><td colspan="5" class="text-center py-2">ไม่มีข้อมูล</td></tr>';
           document.getElementById('dailyCount').innerText = 0;
           document.getElementById('monthlyCount').innerText = 0;
@@ -314,10 +359,10 @@
 
         const now = new Date();
         const nowParsed = parseDateParts(now.toISOString());
-        const todayStr = nowParsed.dateStr;
-        const currentYear = nowParsed.year;
-        const currentMonth = nowParsed.month;
-        const currentQuarter = nowParsed.quarter;
+        const todayStr = nowParsed ? nowParsed.dateStr : '';
+        const currentYear = nowParsed ? nowParsed.year : now.getFullYear();
+        const currentMonth = nowParsed ? nowParsed.month : now.getMonth() + 1;
+        const currentQuarter = nowParsed ? nowParsed.quarter : Math.ceil((now.getMonth() + 1) / 3);
 
         let dCount = 0;
         let mCount = 0;
@@ -416,6 +461,25 @@
           const receipt = escapeHtml(item.receiptStatus || '-');
           const note = escapeHtml(item.note || '-');
 
+          // จัดการแสดงผลรูปภาพ
+          const imgList = extractImageUrls(item);
+          let imgCellHtml = '<span class="text-xs text-slate-400">ไม่มีรูปภาพ</span>';
+
+          if (imgList.length > 0) {
+            imgCellHtml = `<div class="flex items-center gap-1.5 flex-wrap">`;
+            imgList.forEach((url, i) => {
+              const safeUrl = escapeHtml(url);
+              imgCellHtml += `
+                <img src="${safeUrl}" 
+                     alt="รูปสนาม" 
+                     class="w-10 h-10 object-cover rounded-lg border border-amber-200 cursor-pointer hover:scale-105 transition shadow-sm" 
+                     onclick="openImageModal('${safeUrl}')" 
+                     title="คลิกเพื่อดูรูปขยาย">
+              `;
+            });
+            imgCellHtml += `</div>`;
+          }
+
           let badgeColor = 'bg-slate-100 text-slate-700';
           if (result.includes('พบผู้ค้างภาษี')) badgeColor = 'bg-emerald-100 text-emerald-800';
           else if (result.includes('ไม่พบผู้ค้างภาษี')) badgeColor = 'bg-rose-100 text-rose-800';
@@ -428,12 +492,13 @@
               <td class="p-3 font-medium text-slate-800">${taxName} ${taxId}</td>
               <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
               <td class="p-3 text-slate-600 text-xs">${receipt}</td>
+              <td class="p-3">${imgCellHtml}</td>
               <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${note}</td>
             </tr>
           `;
         });
 
-        document.getElementById('recentTableBody').innerHTML = recentHtml;
+        document.getElementById('recentTableBody').innerHTML = recentHtml || '<tr><td colspan="7" class="text-center py-6 text-slate-400">ไม่มีข้อมูล</td></tr>';
       });
     }
 
@@ -454,9 +519,9 @@
 
         if (!parsed) return periodFilter === 'all';
 
-        if (periodFilter === 'daily' && parsed.dateStr !== nowParsed.dateStr) return false;
-        if (periodFilter === 'monthly' && !(parsed.year === nowParsed.year && parsed.month === nowParsed.month)) return false;
-        if (periodFilter === 'quarterly' && !(parsed.year === nowParsed.year && parsed.quarter === nowParsed.quarter)) return false;
+        if (periodFilter === 'daily' && parsed.dateStr !== (nowParsed ? nowParsed.dateStr : '')) return false;
+        if (periodFilter === 'monthly' && !(nowParsed && parsed.year === nowParsed.year && parsed.month === nowParsed.month)) return false;
+        if (periodFilter === 'quarterly' && !(nowParsed && parsed.year === nowParsed.year && parsed.quarter === nowParsed.quarter)) return false;
 
         return true;
       });
@@ -471,20 +536,24 @@
         return;
       }
 
-      const excelData = filtered.map((item, idx) => ({
-        'ลำดับ': idx + 1,
-        'วันที่สำรวจ': item.docDate || item.date || '',
-        'เจ้าหน้าที่ผู้สำรวจ': item.officerName || item.officer || '',
-        'รหัสผู้เสียภาษี': item.taxId || '',
-        'ชื่อผู้เสียภาษี/ร้านค้า': item.taxName || item.tax_name || '',
-        'สถานที่/ที่อยู่': item.address || '',
-        'ประเภทภาษี': item.taxType || '',
-        'ขั้นตอนเอกสาร': item.docType || '',
-        'ปีที่ค้างชำระ': item.overdueYears || '',
-        'ผลการติดตาม': item.result || item.followStatus || '',
-        'การรับเอกสาร': item.receiptStatus || '',
-        'หมายเหตุ': item.note || ''
-      }));
+      const excelData = filtered.map((item, idx) => {
+        const images = extractImageUrls(item);
+        return {
+          'ลำดับ': idx + 1,
+          'วันที่สำรวจ': item.docDate || item.date || '',
+          'เจ้าหน้าที่ผู้สำรวจ': item.officerName || item.officer || '',
+          'รหัสผู้เสียภาษี': item.taxId || '',
+          'ชื่อผู้เสียภาษี/ร้านค้า': item.taxName || item.tax_name || '',
+          'สถานที่/ที่อยู่': item.address || '',
+          'ประเภทภาษี': item.taxType || '',
+          'ขั้นตอนเอกสาร': item.docType || '',
+          'ปีที่ค้างชำระ': item.overdueYears || '',
+          'ผลการติดตาม': item.result || item.followStatus || '',
+          'การรับเอกสาร': item.receiptStatus || '',
+          'ลิงก์รูปภาพ': images.join(' , '),
+          'หมายเหตุ': item.note || ''
+        };
+      });
 
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
@@ -523,6 +592,10 @@
             const officerName = row['เจ้าหน้าที่ผู้สำรวจ'] || row['officerName'] || row['officer'] || 'ไม่ระบุเจ้าหน้าที่';
             const taxName = row['ชื่อผู้เสียภาษี/ร้านค้า'] || row['taxName'] || row['tax_name'] || 'ไม่ระบุชื่อ';
             
+            // อ่านลิงก์รูปภาพถ้ามี
+            const imgRaw = row['ลิงก์รูปภาพ'] || row['images'] || row['imageUrl'] || '';
+            const imagesArr = typeof imgRaw === 'string' && imgRaw.trim() !== '' ? imgRaw.split(',').map(s => s.trim()) : [];
+
             const newKey = db.ref('revenue_cases').push().key;
             updates['revenue_cases/' + newKey] = {
               docDate: String(docDate),
@@ -536,6 +609,7 @@
               result: String(row['ผลการติดตาม'] || row['result'] || row['followStatus'] || 'พบผู้ค้างภาษี'),
               followStatus: String(row['ผลการติดตาม'] || row['result'] || row['followStatus'] || 'พบผู้ค้างภาษี'),
               receiptStatus: String(row['การรับเอกสาร'] || row['receiptStatus'] || 'ผู้ค้างภาษีรับเอง'),
+              images: imagesArr,
               note: String(row['หมายเหตุ'] || row['note'] || ''),
               timestamp: new Date().toISOString()
             };
