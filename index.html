@@ -115,7 +115,7 @@
       </div>
     </div>
 
-    <!-- KPI -->
+    <!-- KPI Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
       <div class="pastel-card p-6 rounded-3xl border-emerald-100 bg-emerald-50/30 flex items-center justify-between">
         <div>
@@ -142,7 +142,7 @@
       </div>
     </div>
 
-    <!-- ตารางเจ้าหน้าที่ -->
+    <!-- ตารางสรุปรายเจ้าหน้าที่ -->
     <div class="pastel-card p-6 rounded-3xl border-purple-100">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-bold text-purple-900 flex items-center gap-2">
@@ -219,8 +219,8 @@
     <div class="mt-12 flex justify-end">
       <div class="text-center w-64">
         <p>ลงชื่อ..........................................................</p>
-        <p>(..........................................................)</p>
-        <p>ตำแหน่ง..........................................................</p>
+        <p class="mt-1">(..........................................................)</p>
+        <p class="mt-1">ตำแหน่ง..........................................................</p>
       </div>
     </div>
   </div>
@@ -242,9 +242,57 @@
 
     let allCasesData = [];
 
+    // ฟังก์ชันความปลอดภัย ป้องกัน Cross-Site Scripting (XSS)
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // ฟังก์ชันช่วยในการสกัดวันที่ Year, Month, Quarter อย่างแม่นยำ
+    function parseDateParts(rawDate) {
+      if (!rawDate) return null;
+      let dateObj;
+      if (typeof rawDate === 'string' && rawDate.includes('T')) {
+        dateObj = new Date(rawDate);
+      } else {
+        const parts = String(rawDate).split('T')[0].split('-');
+        if (parts.length === 3) {
+          let year = parseInt(parts[0], 10);
+          if (year > 2500) year -= 543; // ปรับรองรับปี พ.ศ.
+          const month = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+          dateObj = new Date(year, month, day);
+        } else {
+          dateObj = new Date(rawDate);
+        }
+      }
+
+      if (isNaN(dateObj.getTime())) return null;
+
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+
+      return {
+        dateStr: `${yyyy}-${mm}-${dd}`,
+        year: yyyy,
+        month: dateObj.getMonth() + 1,
+        quarter: Math.ceil((dateObj.getMonth() + 1) / 3)
+      };
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const today = new Date();
-      document.getElementById('printCurrentDate').innerText = today.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('printCurrentDate').innerText = today.toLocaleDateString('th-TH', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
       initDashboard();
     });
 
@@ -265,10 +313,11 @@
         allCasesData = Object.keys(rawData).map(key => ({ id: key, ...rawData[key] }));
 
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-        const currentQuarter = Math.ceil(currentMonth / 3);
+        const nowParsed = parseDateParts(now.toISOString());
+        const todayStr = nowParsed.dateStr;
+        const currentYear = nowParsed.year;
+        const currentMonth = nowParsed.month;
+        const currentQuarter = nowParsed.quarter;
 
         let dCount = 0;
         let mCount = 0;
@@ -286,48 +335,39 @@
           }
 
           const rawDate = item.docDate || item.date || item.timestamp || '';
-          const datePart = rawDate.split('T')[0];
+          const parsed = parseDateParts(rawDate);
 
-          let itemYear = currentYear;
-          let itemMonth = currentMonth;
-          let itemQuarter = currentQuarter;
+          if (parsed) {
+            const isToday = (parsed.dateStr === todayStr);
+            const isThisMonth = (parsed.year === currentYear && parsed.month === currentMonth);
+            const isThisQuarter = (parsed.year === currentYear && parsed.quarter === currentQuarter);
 
-          if (datePart && datePart.includes('-')) {
-            const p = datePart.split('-');
-            itemYear = parseInt(p[0]);
-            itemMonth = parseInt(p[1]);
-            itemQuarter = Math.ceil(itemMonth / 3);
-          }
-
-          const isToday = (datePart === todayStr);
-          const isThisMonth = (itemYear === currentYear && itemMonth === currentMonth);
-          const isThisQuarter = (itemYear === currentYear && itemQuarter === currentQuarter);
-
-          if (isToday) {
-            dCount++;
-            officerMap[officer].daily++;
-          }
-          if (isThisMonth) {
-            mCount++;
-            officerMap[officer].monthly++;
-          }
-          if (isThisQuarter) {
-            qCount++;
-            officerMap[officer].quarterly++;
+            if (isToday) {
+              dCount++;
+              officerMap[officer].daily++;
+            }
+            if (isThisMonth) {
+              mCount++;
+              officerMap[officer].monthly++;
+            }
+            if (isThisQuarter) {
+              qCount++;
+              officerMap[officer].quarterly++;
+            }
           }
         });
 
         // อัปเดต KPI
-        document.getElementById('dailyCount').innerText = dCount;
-        document.getElementById('monthlyCount').innerText = mCount;
-        document.getElementById('quarterlyCount').innerText = qCount;
+        document.getElementById('dailyCount').innerText = dCount.toLocaleString();
+        document.getElementById('monthlyCount').innerText = mCount.toLocaleString();
+        document.getElementById('quarterlyCount').innerText = qCount.toLocaleString();
 
         // ดรอปดาวน์เลือกเจ้าหน้าที่ในส่วน Export / Import
         const officerSelect = document.getElementById('exportOfficerFilter');
         const selectedVal = officerSelect.value;
         officerSelect.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
         officerSet.forEach(off => {
-          officerSelect.innerHTML += `<option value="${off}">${off}</option>`;
+          officerSelect.innerHTML += `<option value="${escapeHtml(off)}">${escapeHtml(off)}</option>`;
         });
         officerSelect.value = selectedVal || 'all';
 
@@ -338,9 +378,11 @@
 
         Object.keys(officerMap).forEach(off => {
           const stat = officerMap[off];
+          const safeOff = escapeHtml(off);
+
           officerHtml += `
             <tr class="hover:bg-purple-50/50 transition">
-              <td class="p-3 font-medium text-slate-800">${off}</td>
+              <td class="p-3 font-medium text-slate-800">${safeOff}</td>
               <td class="p-3 text-center font-semibold text-emerald-600">${stat.daily}</td>
               <td class="p-3 text-center font-semibold text-orange-600">${stat.monthly}</td>
               <td class="p-3 text-center font-semibold text-indigo-600">${stat.quarterly}</td>
@@ -350,7 +392,7 @@
           printOfficerHtml += `
             <tr class="text-center">
               <td class="border border-black p-1.5">${index++}</td>
-              <td class="border border-black p-1.5 text-left">${off}</td>
+              <td class="border border-black p-1.5 text-left">${safeOff}</td>
               <td class="border border-black p-1.5">${stat.daily}</td>
               <td class="border border-black p-1.5">${stat.monthly}</td>
               <td class="border border-black p-1.5">${stat.quarterly}</td>
@@ -366,13 +408,13 @@
         let recentHtml = '';
 
         recentList.forEach(item => {
-          const dateStr = item.docDate || item.date || '-';
-          const officer = item.officerName || item.officer || '-';
-          const taxName = item.taxName || item.tax_name || '-';
-          const taxId = item.taxId ? `<span class="text-xs text-slate-400">(${item.taxId})</span>` : '';
-          const result = item.result || item.followStatus || '-';
-          const receipt = item.receiptStatus || '-';
-          const note = item.note || '-';
+          const dateStr = escapeHtml(item.docDate || item.date || '-');
+          const officer = escapeHtml(item.officerName || item.officer || '-');
+          const taxName = escapeHtml(item.taxName || item.tax_name || '-');
+          const taxId = item.taxId ? `<span class="text-xs text-slate-400">(${escapeHtml(item.taxId)})</span>` : '';
+          const result = escapeHtml(item.result || item.followStatus || '-');
+          const receipt = escapeHtml(item.receiptStatus || '-');
+          const note = escapeHtml(item.note || '-');
 
           let badgeColor = 'bg-slate-100 text-slate-700';
           if (result.includes('พบผู้ค้างภาษี')) badgeColor = 'bg-emerald-100 text-emerald-800';
@@ -395,38 +437,26 @@
       });
     }
 
-    // ฟังก์ชันกรองข้อมูลตามเงื่อนไข (เพื่อใช้ Export/Import)
+    // ฟังก์ชันกรองข้อมูลตามเงื่อนไข (เพื่อใช้ Export Excel)
     function getFilteredData() {
       const periodFilter = document.getElementById('exportPeriodFilter').value;
       const officerFilter = document.getElementById('exportOfficerFilter').value;
 
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      const currentQuarter = Math.ceil(currentMonth / 3);
+      const nowParsed = parseDateParts(now.toISOString());
 
       return allCasesData.filter(item => {
         const officer = item.officerName || item.officer || '';
         if (officerFilter !== 'all' && officer !== officerFilter) return false;
 
         const rawDate = item.docDate || item.date || item.timestamp || '';
-        const datePart = rawDate.split('T')[0];
+        const parsed = parseDateParts(rawDate);
 
-        let itemYear = currentYear;
-        let itemMonth = currentMonth;
-        let itemQuarter = currentQuarter;
+        if (!parsed) return periodFilter === 'all';
 
-        if (datePart && datePart.includes('-')) {
-          const p = datePart.split('-');
-          itemYear = parseInt(p[0]);
-          itemMonth = parseInt(p[1]);
-          itemQuarter = Math.ceil(itemMonth / 3);
-        }
-
-        if (periodFilter === 'daily' && datePart !== todayStr) return false;
-        if (periodFilter === 'monthly' && !(itemYear === currentYear && itemMonth === currentMonth)) return false;
-        if (periodFilter === 'quarterly' && !(itemYear === currentYear && itemQuarter === currentQuarter)) return false;
+        if (periodFilter === 'daily' && parsed.dateStr !== nowParsed.dateStr) return false;
+        if (periodFilter === 'monthly' && !(parsed.year === nowParsed.year && parsed.month === nowParsed.month)) return false;
+        if (periodFilter === 'quarterly' && !(parsed.year === nowParsed.year && parsed.quarter === nowParsed.quarter)) return false;
 
         return true;
       });
@@ -460,12 +490,14 @@
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "รายงานการลงพื้นที่");
       
-      XLSX.writeFile(workbook, `รายงานสำรวจสนาม_${new Date().toISOString().split('T')[0]}.xlsx`);
+      const fileNameDate = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `รายงานสำรวจสนาม_${fileNameDate}.xlsx`);
     }
 
     // ฟังก์ชัน Import Excel บันทึกลง Firebase Database
     function importExcelData(event) {
-      const file = event.target.files[0];
+      const fileInput = event.target;
+      const file = fileInput.files[0];
       if (!file) return;
 
       const reader = new FileReader();
@@ -479,6 +511,7 @@
 
           if (jsonData.length === 0) {
             alert('ไม่พบข้อมูลในไฟล์ Excel');
+            fileInput.value = '';
             return;
           }
 
@@ -513,16 +546,19 @@
             db.ref().update(updates)
               .then(() => {
                 alert(`นำเข้าข้อมูลเรียบร้อยแล้วจำนวน ${successCount} รายการ`);
-                document.getElementById('excelFileInput').value = '';
               })
-              .catch(err => alert('เกิดข้อผิดพลาดในการนำเข้า: ' + err.message));
+              .catch(err => alert('เกิดข้อผิดพลาดในการนำเข้า: ' + err.message))
+              .finally(() => {
+                fileInput.value = '';
+              });
           } else {
-            document.getElementById('excelFileInput').value = '';
+            fileInput.value = '';
           }
 
         } catch (err) {
           alert('รูปแบบไฟล์ Excel ไม่ถูกต้อง หรืออ่านไฟล์ล้มเหลว');
           console.error(err);
+          fileInput.value = '';
         }
       };
 
