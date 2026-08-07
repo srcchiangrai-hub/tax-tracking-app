@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
-  <!-- SheetJS สำหรับ Export Excel -->
+  <!-- SheetJS สำหรับ Export / Import Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -78,33 +78,40 @@
       </div>
     </div>
 
-    <!-- แถบ Export Excel เลือกเงื่อนไข -->
+    <!-- แถบ Export & Import Excel เลือกเงื่อนไข -->
     <div class="pastel-card p-5 rounded-3xl border-teal-100 bg-teal-50/20 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-teal-100 rounded-2xl flex items-center justify-center text-xl">
           📊
         </div>
         <div>
-          <h3 class="text-sm font-bold text-teal-950">ส่งออกรายงาน Excel (Export)</h3>
-          <p class="text-xs text-teal-700/70">ดึงข้อมูลออกมาเปิดดู หรือพิมพ์ (Print) ผ่านโปรแกรม Excel</p>
+          <h3 class="text-sm font-bold text-teal-950">จัดการข้อมูล Excel (Export & Import)</h3>
+          <p class="text-xs text-teal-700/70">นำเข้าไฟล์ หรือส่งออกรายงานตามเงื่อนไขเพื่อดู/พิมพ์ผ่าน Excel</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
         <select id="exportPeriodFilter" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
-          <option value="all">🗓️ ทั้งหมด (All)</option>
-          <option value="daily">📅 Specific: วันนี้ (Daily)</option>
-          <option value="monthly">📊 Specific: เดือนนี้ (Monthly)</option>
-          <option value="quarterly">📈 Specific: ไตรมาสนี้ (Quarterly)</option>
+          <option value="all">🗓️ ช่วงเวลา: ทั้งหมด (All)</option>
+          <option value="daily">📅 ช่วงเวลา: วันนี้ (Daily)</option>
+          <option value="monthly">📊 ช่วงเวลา: เดือนนี้ (Monthly)</option>
+          <option value="quarterly">📈 ช่วงเวลา: ไตรมาสนี้ (Quarterly)</option>
         </select>
 
         <select id="exportOfficerFilter" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
           <option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>
         </select>
 
-        <button onclick="exportFilteredExcel()" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-2xl text-xs font-semibold transition shadow-md flex items-center gap-1.5">
-          <span>📤</span> ส่งออกไฟล์ Excel
+        <!-- ปุ่ม Export Excel -->
+        <button onclick="exportFilteredExcel()" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2.5 rounded-2xl text-xs font-semibold transition shadow-md flex items-center gap-1.5">
+          <span>📤</span> ส่งออก Excel
         </button>
+
+        <!-- ปุ่ม Import Excel -->
+        <label class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-2xl text-xs font-semibold transition shadow-md flex items-center gap-1.5 cursor-pointer">
+          <span>📥</span> นำเข้า Excel
+          <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="importExcelData(event)">
+        </label>
       </div>
     </div>
 
@@ -245,9 +252,13 @@
       db.ref('revenue_cases').on('value', (snapshot) => {
         const rawData = snapshot.val();
         if (!rawData) {
+          allCasesData = [];
           document.getElementById('officerTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
           document.getElementById('recentTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
           document.getElementById('printOfficerTable').innerHTML = '<tr><td colspan="5" class="text-center py-2">ไม่มีข้อมูล</td></tr>';
+          document.getElementById('dailyCount').innerText = 0;
+          document.getElementById('monthlyCount').innerText = 0;
+          document.getElementById('quarterlyCount').innerText = 0;
           return;
         }
 
@@ -311,12 +322,14 @@
         document.getElementById('monthlyCount').innerText = mCount;
         document.getElementById('quarterlyCount').innerText = qCount;
 
-        // ดรอปดาวน์เลือกเจ้าหน้าที่ในส่วน Export
+        // ดรอปดาวน์เลือกเจ้าหน้าที่ในส่วน Export / Import
         const officerSelect = document.getElementById('exportOfficerFilter');
+        const selectedVal = officerSelect.value;
         officerSelect.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
         officerSet.forEach(off => {
           officerSelect.innerHTML += `<option value="${off}">${off}</option>`;
         });
+        officerSelect.value = selectedVal || 'all';
 
         // ตารางสรุปรายเจ้าหน้าที่
         let officerHtml = '';
@@ -382,8 +395,8 @@
       });
     }
 
-    // ฟังก์ชัน Export Excel กรองตามเงื่อนไข
-    function exportFilteredExcel() {
+    // ฟังก์ชันกรองข้อมูลตามเงื่อนไข (เพื่อใช้ Export/Import)
+    function getFilteredData() {
       const periodFilter = document.getElementById('exportPeriodFilter').value;
       const officerFilter = document.getElementById('exportOfficerFilter').value;
 
@@ -393,7 +406,7 @@
       const currentMonth = now.getMonth() + 1;
       const currentQuarter = Math.ceil(currentMonth / 3);
 
-      const filtered = allCasesData.filter(item => {
+      return allCasesData.filter(item => {
         const officer = item.officerName || item.officer || '';
         if (officerFilter !== 'all' && officer !== officerFilter) return false;
 
@@ -417,6 +430,11 @@
 
         return true;
       });
+    }
+
+    // ฟังก์ชัน Export Excel กรองตามเงื่อนไข
+    function exportFilteredExcel() {
+      const filtered = getFilteredData();
 
       if (filtered.length === 0) {
         alert('ไม่พบข้อมูลตามเงื่อนไขที่เลือก');
@@ -443,6 +461,72 @@
       XLSX.utils.book_append_sheet(workbook, worksheet, "รายงานการลงพื้นที่");
       
       XLSX.writeFile(workbook, `รายงานสำรวจสนาม_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+    // ฟังก์ชัน Import Excel บันทึกลง Firebase Database
+    function importExcelData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          if (jsonData.length === 0) {
+            alert('ไม่พบข้อมูลในไฟล์ Excel');
+            return;
+          }
+
+          let successCount = 0;
+          const updates = {};
+
+          jsonData.forEach(row => {
+            const docDate = row['วันที่สำรวจ'] || row['docDate'] || row['date'] || new Date().toISOString().split('T')[0];
+            const officerName = row['เจ้าหน้าที่ผู้สำรวจ'] || row['officerName'] || row['officer'] || 'ไม่ระบุเจ้าหน้าที่';
+            const taxName = row['ชื่อผู้เสียภาษี/ร้านค้า'] || row['taxName'] || row['tax_name'] || 'ไม่ระบุชื่อ';
+            
+            const newKey = db.ref('revenue_cases').push().key;
+            updates['revenue_cases/' + newKey] = {
+              docDate: String(docDate),
+              officerName: String(officerName),
+              taxId: String(row['รหัสผู้เสียภาษี'] || row['taxId'] || ''),
+              taxName: String(taxName),
+              address: String(row['สถานที่/ที่อยู่'] || row['address'] || ''),
+              taxType: String(row['ประเภทภาษี'] || row['taxType'] || 'ภาษีป้าย'),
+              docType: String(row['ขั้นตอนเอกสาร'] || row['docType'] || 'หนังสือแจ้งเตือน ครั้งที่ 1'),
+              overdueYears: String(row['ปีที่ค้างชำระ'] || row['overdueYears'] || ''),
+              result: String(row['ผลการติดตาม'] || row['result'] || row['followStatus'] || 'พบผู้ค้างภาษี'),
+              followStatus: String(row['ผลการติดตาม'] || row['result'] || row['followStatus'] || 'พบผู้ค้างภาษี'),
+              receiptStatus: String(row['การรับเอกสาร'] || row['receiptStatus'] || 'ผู้ค้างภาษีรับเอง'),
+              note: String(row['หมายเหตุ'] || row['note'] || ''),
+              timestamp: new Date().toISOString()
+            };
+            successCount++;
+          });
+
+          if (confirm(`พบข้อมูล ${successCount} รายการในไฟล์ ต้องการนำเข้าข้อมูลทั้งหมดเข้าสู่ฐานข้อมูล Firebase หรือไม่?`)) {
+            db.ref().update(updates)
+              .then(() => {
+                alert(`นำเข้าข้อมูลเรียบร้อยแล้วจำนวน ${successCount} รายการ`);
+                document.getElementById('excelFileInput').value = '';
+              })
+              .catch(err => alert('เกิดข้อผิดพลาดในการนำเข้า: ' + err.message));
+          } else {
+            document.getElementById('excelFileInput').value = '';
+          }
+
+        } catch (err) {
+          alert('รูปแบบไฟล์ Excel ไม่ถูกต้อง หรืออ่านไฟล์ล้มเหลว');
+          console.error(err);
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
     }
   </script>
 </body>
