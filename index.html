@@ -237,7 +237,7 @@
     </div>
   </div>
 
-  <!-- Modal สำหรับดูรายละเอียดทีละรายการ (เพิ่มใหม่) -->
+  <!-- Modal สำหรับดูรายละเอียดทีละรายการ -->
   <div id="itemDetailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print" onclick="closeDetailModal()">
     <div class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-amber-100 my-auto max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
       <!-- Header Modal -->
@@ -342,6 +342,12 @@
         .replace(/'/g, "&#039;");
     }
 
+    // ฟังก์ชันทำความสะอาดชื่อเจ้าหน้าที่ (ตัดเว้นวรรคหน้า-หลัง และเว้นวรรคซ้ำ)
+    function cleanOfficerName(nameStr) {
+      if (!nameStr) return 'ไม่ระบุเจ้าหน้าที่';
+      return String(nameStr).trim().replace(/\s+/g, ' ');
+    }
+
     function extractImageUrls(item) {
       if (!item) return [];
       let urls = [];
@@ -382,7 +388,7 @@
       if (!item) return;
 
       document.getElementById('detailDate').innerText = item.docDate || item.date || '-';
-      document.getElementById('detailOfficer').innerText = item.officerName || item.officer || '-';
+      document.getElementById('detailOfficer').innerText = cleanOfficerName(item.officerName || item.officer);
       document.getElementById('detailTaxName').innerText = item.taxName || item.tax_name || '-';
       document.getElementById('detailTaxId').innerText = item.taxId || '-';
       document.getElementById('detailTaxType').innerText = item.taxType || '-';
@@ -482,7 +488,7 @@
 
         const officerSet = new Set();
         allCasesData.forEach(item => {
-          const officer = item.officerName || item.officer || 'ไม่ระบุเจ้าหน้าที่';
+          const officer = cleanOfficerName(item.officerName || item.officer);
           officerSet.add(officer);
         });
 
@@ -515,7 +521,7 @@
       const officerMap = {};
 
       filteredData.forEach(item => {
-        const officer = item.officerName || item.officer || 'ไม่ระบุเจ้าหน้าที่';
+        const officer = cleanOfficerName(item.officerName || item.officer);
 
         if (!officerMap[officer]) {
           officerMap[officer] = { daily: 0, monthly: 0, quarterly: 0 };
@@ -584,7 +590,7 @@
 
       recentList.forEach(item => {
         const dateStr = escapeHtml(item.docDate || item.date || '-');
-        const officer = escapeHtml(item.officerName || item.officer || '-');
+        const officer = escapeHtml(cleanOfficerName(item.officerName || item.officer));
         const taxName = escapeHtml(item.taxName || item.tax_name || '-');
         const taxId = item.taxId ? `<span class="text-xs text-slate-400">(${escapeHtml(item.taxId)})</span>` : '';
         const result = escapeHtml(item.result || item.followStatus || '-');
@@ -643,7 +649,7 @@
       const nowParsed = parseDateParts(now.toISOString());
 
       return allCasesData.filter(item => {
-        const officer = item.officerName || item.officer || '';
+        const officer = cleanOfficerName(item.officerName || item.officer);
         if (officerFilter !== 'all' && officer !== officerFilter) return false;
 
         const rawDate = item.docDate || item.date || item.timestamp || '';
@@ -672,7 +678,7 @@
         return {
           'ลำดับ': idx + 1,
           'วันที่สำรวจ': item.docDate || item.date || '',
-          'เจ้าหน้าที่ผู้สำรวจ': item.officerName || item.officer || '',
+          'เจ้าหน้าที่ผู้สำรวจ': cleanOfficerName(item.officerName || item.officer),
           'รหัสผู้เสียภาษี': item.taxId || '',
           'ชื่อผู้เสียภาษี/ร้านค้า': item.taxName || item.tax_name || '',
           'สถานที่/ที่อยู่': item.address || '',
@@ -719,7 +725,7 @@
 
           jsonData.forEach(row => {
             const docDate = row['วันที่สำรวจ'] || row['docDate'] || row['date'] || new Date().toISOString().split('T')[0];
-            const officerName = row['เจ้าหน้าที่ผู้สำรวจ'] || row['officerName'] || row['officer'] || 'ไม่ระบุเจ้าหน้าที่';
+            const officerName = cleanOfficerName(row['เจ้าหน้าที่ผู้สำรวจ'] || row['officerName'] || row['officer']);
             const taxName = row['ชื่อผู้เสียภาษี/ร้านค้า'] || row['taxName'] || row['tax_name'] || 'ไม่ระบุชื่อ';
             
             const imgRaw = row['ลิงก์รูปภาพ'] || row['images'] || row['imageUrl'] || '';
