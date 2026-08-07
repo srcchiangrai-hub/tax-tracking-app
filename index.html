@@ -689,83 +689,14 @@
       }
     }
 
-    function parseDateParts(rawDate) {
-      if (!rawDate) return null;
-      let dateObj;
-      if (typeof rawDate === 'string' && rawDate.includes('T')) {
-        dateObj = new Date(rawDate);
-      } else {
-        const parts = String(rawDate).split('T')[0].split('-');
-        if (parts.length === 3) {
-          let year = parseInt(parts[0], 10);
-          if (year > 2500) year -= 543;
-          const month = parseInt(parts[1], 10) - 1;
-          const day = parseInt(parts[2], 10);
-          dateObj = new Date(year, month, day);
-        } else {
-          dateObj = new Date(rawDate);
-        }
+    function deleteCase(id) {
+      if (confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) {
+        db.ref(`revenue_cases/${id}`).remove().then(() => {
+          alert("ลบข้อมูลเรียบร้อยแล้ว");
+        }).catch(err => {
+          alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
+        });
       }
-
-      if (isNaN(dateObj.getTime())) return null;
-
-      const yyyy = dateObj.getFullYear();
-      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const dd = String(dateObj.getDate()).padStart(2, '0');
-
-      return {
-        dateStr: `${yyyy}-${mm}-${dd}`,
-        year: yyyy,
-        month: dateObj.getMonth() + 1,
-        quarter: Math.ceil((dateObj.getMonth() + 1) / 3)
-      };
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const today = new Date();
-      document.getElementById('printCurrentDate').innerText = today.toLocaleDateString('th-TH', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-      initDashboard();
-    });
-
-    function initDashboard() {
-      db.ref('revenue_cases').on('value', (snapshot) => {
-        const rawData = snapshot.val();
-        if (!rawData) {
-          allCasesData = [];
-          document.getElementById('officerTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
-          document.getElementById('recentTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
-          document.getElementById('printOfficerTable').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 10px;">ไม่มีข้อมูล</td></tr>';
-          document.getElementById('dailyCount').innerText = 0;
-          document.getElementById('monthlyCount').innerText = 0;
-          document.getElementById('quarterlyCount').innerText = 0;
-          document.getElementById('filteredMatchCount').innerText = 0;
-          document.getElementById('totalMatchCount').innerText = 0;
-          renderCharts([], {});
-          return;
-        }
-
-        allCasesData = Object.keys(rawData).map(key => ({ id: key, ...rawData[key] }));
-
-        const officerSet = new Set();
-        allCasesData.forEach(item => {
-          const officer = cleanOfficerName(item.officerName || item.officer);
-          officerSet.add(officer);
-        });
-
-        const officerSelect = document.getElementById('exportOfficerFilter');
-        const selectedVal = officerSelect.value;
-        officerSelect.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
-        officerSet.forEach(off => {
-          officerSelect.innerHTML += `<option value="${escapeHtml(off)}">${escapeHtml(off)}</option>`;
-        });
-        officerSelect.value = selectedVal || 'all';
-
-        renderDashboard();
-      });
     }
 
     function resetFilters() {
@@ -778,219 +709,122 @@
       renderDashboard();
     }
 
-    function renderDashboard() {
-      const filteredData = getFilteredData();
-
-      document.getElementById('filteredMatchCount').innerText = filteredData.length.toLocaleString();
-      document.getElementById('totalMatchCount').innerText = allCasesData.length.toLocaleString();
-
-      const now = new Date();
-      const nowParsed = parseDateParts(now.toISOString());
-      const todayStr = nowParsed ? nowParsed.dateStr : '';
-      const currentYear = nowParsed ? nowParsed.year : now.getFullYear();
-      const currentMonth = nowParsed ? nowParsed.month : now.getMonth() + 1;
-      const currentQuarter = nowParsed ? nowParsed.quarter : Math.ceil((now.getMonth() + 1) / 3);
-
-      let dCount = 0;
-      let mCount = 0;
-      let qCount = 0;
-
-      const officerMap = {};
-
-      filteredData.forEach(item => {
-        const officer = cleanOfficerName(item.officerName || item.officer);
-
-        if (!officerMap[officer]) {
-          officerMap[officer] = { daily: 0, monthly: 0, quarterly: 0, total: 0 };
-        }
-        officerMap[officer].total++;
-
-        const rawDate = item.docDate || item.date || item.timestamp || '';
-        const parsed = parseDateParts(rawDate);
-
-        if (parsed) {
-          const isToday = (parsed.dateStr === todayStr);
-          const isThisMonth = (parsed.year === currentYear && parsed.month === currentMonth);
-          const isThisQuarter = (parsed.year === currentYear && parsed.quarter === currentQuarter);
-
-          if (isToday) {
-            dCount++;
-            officerMap[officer].daily++;
-          }
-          if (isThisMonth) {
-            mCount++;
-            officerMap[officer].monthly++;
-          }
-          if (isThisQuarter) {
-            qCount++;
-            officerMap[officer].quarterly++;
-          }
-        }
-      });
-
-      document.getElementById('dailyCount').innerText = dCount.toLocaleString();
-      document.getElementById('monthlyCount').innerText = mCount.toLocaleString();
-      document.getElementById('quarterlyCount').innerText = qCount.toLocaleString();
-
-      renderCharts(filteredData, officerMap);
-
-      let officerHtml = '';
-      let printOfficerHtml = '';
-      let index = 1;
-
-      Object.keys(officerMap).forEach(off => {
-        const stat = officerMap[off];
-        const safeOff = escapeHtml(off);
-
-        officerHtml += `
-          <tr onclick="selectOfficerAndScroll('${safeOff}')" class="hover:bg-purple-100/60 cursor-pointer transition rounded-xl group" title="คลิกเพื่อดูกรองเฉพาะรายการของ ${safeOff}">
-            <td class="p-3 font-medium text-slate-800 group-hover:text-purple-900 flex items-center gap-1.5">
-              <span>👤</span> ${safeOff} 
-              <span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-normal opacity-0 group-hover:opacity-100 transition">คลิกดูรายการ</span>
-            </td>
-            <td class="p-3 text-center font-semibold text-emerald-600">${stat.daily}</td>
-            <td class="p-3 text-center font-semibold text-orange-600">${stat.monthly}</td>
-            <td class="p-3 text-center font-semibold text-indigo-600">${stat.quarterly}</td>
-          </tr>
-        `;
-
-        printOfficerHtml += `
-          <tr>
-            <td style="text-align: center;">${index++}</td>
-            <td style="text-align: left;">${safeOff}</td>
-            <td style="text-align: center;">${stat.daily}</td>
-            <td style="text-align: center;">${stat.monthly}</td>
-            <td style="text-align: center;">${stat.quarterly}</td>
-          </tr>
-        `;
-      });
-
-      document.getElementById('officerTableBody').innerHTML = officerHtml || '<tr><td colspan="4" class="text-center py-4 text-slate-400">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
-      document.getElementById('printOfficerTable').innerHTML = printOfficerHtml || '<tr><td colspan="5" style="text-align: center; padding: 10px;">ไม่มีข้อมูล</td></tr>';
-
-      const recentList = [...filteredData].reverse();
-      let recentHtml = '';
-
-      recentList.forEach(item => {
-        const dateStr = escapeHtml(item.docDate || item.date || '-');
-        const officer = escapeHtml(cleanOfficerName(item.officerName || item.officer));
-        const taxName = escapeHtml(item.taxName || item.tax_name || '-');
-        const taxId = item.taxId ? `<span class="text-xs text-slate-400">(${escapeHtml(item.taxId)})</span>` : '';
-        const result = escapeHtml(item.result || item.followStatus || '-');
-        const payment = escapeHtml(item.paymentStatus || 'ยังไม่ชำระ');
-        const note = escapeHtml(item.note || '-');
-
-        const imgList = extractImageUrls(item);
-        let imgCellHtml = '<span class="text-xs text-slate-400">ไม่มีรูปภาพ</span>';
-
-        if (imgList.length > 0) {
-          imgCellHtml = `<div class="flex items-center gap-1.5 flex-wrap">`;
-          imgList.forEach((url) => {
-            const safeUrl = escapeHtml(url);
-            imgCellHtml += `
-              <img src="${safeUrl}" 
-                   alt="รูปสนาม" 
-                   class="w-10 h-10 object-cover rounded-lg border border-amber-200 cursor-pointer hover:scale-105 transition shadow-sm" 
-                   onclick="event.stopPropagation(); openImageModal('${safeUrl}')" 
-                   title="คลิกเพื่อดูรูปขยาย">
-            `;
-          });
-          imgCellHtml += `</div>`;
-        }
-
-        let badgeColor = 'bg-slate-100 text-slate-700';
-        if (result.includes('พบผู้ค้างภาษี')) badgeColor = 'bg-emerald-100 text-emerald-800';
-        else if (result.includes('ไม่พบผู้ค้างภาษี')) badgeColor = 'bg-rose-100 text-rose-800';
-        else if (result.includes('พบบุคคลอื่น')) badgeColor = 'bg-amber-100 text-amber-800';
-
-        let payBadgeColor = 'bg-rose-100 text-rose-800';
-        if (payment === 'ชำระแล้ว') payBadgeColor = 'bg-emerald-100 text-emerald-800';
-        else if (payment === 'นัดชำระ') payBadgeColor = 'bg-amber-100 text-amber-800';
-
-        recentHtml += `
-          <tr onclick="openDetailModal('${item.id}')" class="hover:bg-amber-100/50 cursor-pointer transition">
-            <td class="p-3 text-xs text-slate-500">${dateStr}</td>
-            <td class="p-3 font-medium text-slate-700">${officer}</td>
-            <td class="p-3 font-medium text-slate-800">${taxName} ${taxId}</td>
-            <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
-            <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${payBadgeColor}">${payment}</span></td>
-            <td class="p-3" onclick="event.stopPropagation()">${imgCellHtml}</td>
-            <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${note}</td>
-            <td class="p-3 text-center" onclick="event.stopPropagation()">
-              <button onclick="openDetailModal('${item.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs px-3 py-1.5 rounded-xl font-medium transition shadow-sm flex items-center justify-center gap-1 mx-auto whitespace-nowrap">
-                👁️ ดูรายละเอียด
-              </button>
-            </td>
-          </tr>
-        `;
-      });
-
-      document.getElementById('recentTableBody').innerHTML = recentHtml || '<tr><td colspan="8" class="text-center py-6 text-slate-400">ไม่พบข้อมูลตรงกับคำค้นหาหรือตัวกรองที่เลือก</td></tr>';
+    function isSameDay(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth() &&
+             d1.getDate() === d2.getDate();
     }
 
-    function renderCharts(filteredData, officerMap) {
-      let foundCount = 0, notFoundCount = 0, otherCount = 0;
-      filteredData.forEach(item => {
-        const res = item.result || item.followStatus || '';
-        if (res.includes('พบผู้ค้างภาษี')) foundCount++;
-        else if (res.includes('ไม่พบผู้ค้างภาษี')) notFoundCount++;
-        else if (res.includes('พบบุคคลอื่น')) otherCount++;
+    function isSameMonth(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth();
+    }
+
+    function isSameQuarter(d1, d2) {
+      if (d1.getFullYear() !== d2.getFullYear()) return false;
+      const q1 = Math.floor(d1.getMonth() / 3);
+      const q2 = Math.floor(d2.getMonth() / 3);
+      return q1 === q2;
+    }
+
+    function populateOfficerDropdown(cases) {
+      const officerSelect = document.getElementById('exportOfficerFilter');
+      const currentSelected = officerSelect.value;
+      
+      const officersSet = new Set();
+      cases.forEach(c => {
+        const name = cleanOfficerName(c.officerName || c.officer);
+        if (name) officersSet.add(name);
       });
 
-      const donutCtx = document.getElementById('resultDonutChart').getContext('2d');
+      officerSelect.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
+      Array.from(officersSet).sort().forEach(officer => {
+        const opt = document.createElement('option');
+        opt.value = officer;
+        opt.textContent = officer;
+        officerSelect.appendChild(opt);
+      });
+
+      officerSelect.value = currentSelected;
+    }
+
+    function renderCharts(filteredCases) {
+      const resultCounts = {
+        'พบผู้ค้างภาษี': 0,
+        'ไม่พบผู้ค้างภาษี': 0,
+        'พบบุคคลอื่น': 0,
+        'อื่นๆ': 0
+      };
+
+      const officerCounts = {};
+
+      filteredCases.forEach(item => {
+        const res = item.result || item.followStatus || 'อื่นๆ';
+        if (resultCounts[res] !== undefined) {
+          resultCounts[res]++;
+        } else {
+          resultCounts['อื่นๆ']++;
+        }
+
+        const officer = cleanOfficerName(item.officerName || item.officer);
+        officerCounts[officer] = (officerCounts[officer] || 0) + 1;
+      });
+
+      // Render Donut Chart
+      const ctxDonut = document.getElementById('resultDonutChart').getContext('2d');
       if (donutChartInstance) donutChartInstance.destroy();
 
-      donutChartInstance = new Chart(donutCtx, {
+      donutChartInstance = new Chart(ctxDonut, {
         type: 'doughnut',
         data: {
-          labels: ['พบผู้ค้างภาษี', 'ไม่พบผู้ค้างภาษี', 'พบบุคคลอื่น'],
+          labels: Object.keys(resultCounts),
           datasets: [{
-            data: [foundCount, notFoundCount, otherCount],
-            backgroundColor: ['#A7F3D0', '#FECDD3', '#FDE68A'],
-            borderColor: ['#059669', '#E11D48', '#D97706'],
-            borderWidth: 1.5
+            data: Object.values(resultCounts),
+            backgroundColor: ['#f87171', '#34d399', '#fbbf24', '#94a3b8'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { font: { family: 'Mitr', size: 11 } } } }
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { family: 'Mitr', size: 11 } } }
+          }
         }
       });
 
-      const officerNames = Object.keys(officerMap);
-      const officerTotals = officerNames.map(name => officerMap[name].total);
-
-      const barCtx = document.getElementById('officerBarChart').getContext('2d');
+      // Render Bar Chart
+      const ctxBar = document.getElementById('officerBarChart').getContext('2d');
       if (barChartInstance) barChartInstance.destroy();
 
-      barChartInstance = new Chart(barCtx, {
+      barChartInstance = new Chart(ctxBar, {
         type: 'bar',
         data: {
-          labels: officerNames,
+          labels: Object.keys(officerCounts),
           datasets: [{
-            label: 'จำนวนเคสลงพื้นที่ (รายการ)',
-            data: officerTotals,
-            backgroundColor: '#BAE6FD',
-            borderColor: '#0284C7',
-            borderWidth: 1.5,
+            label: 'จำนวนที่สำรวจ (ราย)',
+            data: Object.values(officerCounts),
+            backgroundColor: '#38bdf8',
             borderRadius: 8
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
           scales: {
             y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Mitr' } } },
             x: { ticks: { font: { family: 'Mitr', size: 10 } } }
+          },
+          plugins: {
+            legend: { display: false }
           }
         }
       });
     }
 
-    function getFilteredData() {
-      const keyword = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+    function renderDashboard() {
+      const searchKeyword = document.getElementById('searchInput').value.trim().toLowerCase();
       const periodFilter = document.getElementById('exportPeriodFilter').value;
       const officerFilter = document.getElementById('exportOfficerFilter').value;
       const taxTypeFilter = document.getElementById('taxTypeFilter').value;
@@ -998,93 +832,209 @@
       const paymentFilter = document.getElementById('paymentFilter').value;
 
       const now = new Date();
-      const nowParsed = parseDateParts(now.toISOString());
 
-      return allCasesData.filter(item => {
+      // คำนวณ KPI ภาพรวมทั้งหมด (ไม่ถูกกระทบจาก Filter)
+      let dailyTotal = 0, monthlyTotal = 0, quarterlyTotal = 0;
+      const officerStats = {};
+
+      allCasesData.forEach(item => {
+        const dateStr = item.docDate || item.date;
+        const itemDate = dateStr ? new Date(dateStr) : null;
         const officer = cleanOfficerName(item.officerName || item.officer);
-        if (officerFilter !== 'all' && officer !== officerFilter) return false;
 
-        const taxType = item.taxType || '';
-        if (taxTypeFilter !== 'all' && taxType !== taxTypeFilter) return false;
-
-        const result = item.result || item.followStatus || '';
-        if (resultFilter !== 'all' && !result.includes(resultFilter)) return false;
-
-        const payment = item.paymentStatus || 'ยังไม่ชำระ';
-        if (paymentFilter !== 'all' && payment !== paymentFilter) return false;
-
-        const rawDate = item.docDate || item.date || item.timestamp || '';
-        const parsed = parseDateParts(rawDate);
-
-        if (periodFilter !== 'all') {
-          if (!parsed) return false;
-          if (periodFilter === 'daily' && parsed.dateStr !== (nowParsed ? nowParsed.dateStr : '')) return false;
-          if (periodFilter === 'monthly' && !(nowParsed && parsed.year === nowParsed.year && parsed.month === nowParsed.month)) return false;
-          if (periodFilter === 'quarterly' && !(nowParsed && parsed.year === nowParsed.year && parsed.quarter === nowParsed.quarter)) return false;
+        if (!officerStats[officer]) {
+          officerStats[officer] = { daily: 0, monthly: 0, quarterly: 0 };
         }
 
-        if (keyword !== '') {
-          const taxName = (item.taxName || item.tax_name || '').toLowerCase();
-          const taxId = (item.taxId || '').toLowerCase();
-          const address = (item.address || '').toLowerCase();
-          const note = (item.note || '').toLowerCase();
+        if (itemDate && !isNaN(itemDate.getTime())) {
+          if (isSameDay(itemDate, now)) {
+            dailyTotal++;
+            officerStats[officer].daily++;
+          }
+          if (isSameMonth(itemDate, now)) {
+            monthlyTotal++;
+            officerStats[officer].monthly++;
+          }
+          if (isSameQuarter(itemDate, now)) {
+            quarterlyTotal++;
+            officerStats[officer].quarterly++;
+          }
+        }
+      });
 
-          const matchSearch = taxName.includes(keyword) || 
-                              taxId.includes(keyword) || 
-                              address.includes(keyword) || 
-                              note.includes(keyword) ||
-                              officer.toLowerCase().includes(keyword);
+      document.getElementById('dailyCount').innerText = dailyTotal;
+      document.getElementById('monthlyCount').innerText = monthlyTotal;
+      document.getElementById('quarterlyCount').innerText = quarterlyTotal;
 
-          if (!matchSearch) return false;
+      // ตารางสรุปรายเจ้าหน้าที่
+      const officerTableBody = document.getElementById('officerTableBody');
+      const printOfficerTable = document.getElementById('printOfficerTable');
+      
+      officerTableBody.innerHTML = '';
+      printOfficerTable.innerHTML = '';
+
+      const officerList = Object.keys(officerStats).sort();
+      if (officerList.length === 0) {
+        officerTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">ไม่พบข้อมูลเจ้าหน้าที่</td></tr>';
+      } else {
+        officerList.forEach((officer, index) => {
+          const stats = officerStats[officer];
+          officerTableBody.innerHTML += `
+            <tr class="hover:bg-purple-50/50 transition">
+              <td class="p-3 font-semibold text-purple-950 cursor-pointer hover:underline" onclick="selectOfficerAndScroll('${escapeHtml(officer)}')">
+                👷‍♂️ ${escapeHtml(officer)}
+              </td>
+              <td class="p-3 text-center font-bold text-emerald-600">${stats.daily}</td>
+              <td class="p-3 text-center font-bold text-orange-600">${stats.monthly}</td>
+              <td class="p-3 text-center font-bold text-indigo-600">${stats.quarterly}</td>
+            </tr>
+          `;
+
+          printOfficerTable.innerHTML += `
+            <tr>
+              <td style="text-align: center;">${index + 1}</td>
+              <td>${escapeHtml(officer)}</td>
+              <td style="text-align: center;">${stats.daily}</td>
+              <td style="text-align: center;">${stats.monthly}</td>
+              <td style="text-align: center;">${stats.quarterly}</td>
+            </tr>
+          `;
+        });
+      }
+
+      // กรองข้อมูลรายการสำหรับการแสดงผลตารางและกราฟ
+      const filteredCases = allCasesData.filter(item => {
+        const dateStr = item.docDate || item.date;
+        const itemDate = dateStr ? new Date(dateStr) : null;
+        const officer = cleanOfficerName(item.officerName || item.officer);
+        const taxName = item.taxName || item.tax_name || '';
+        const taxId = item.taxId || '';
+        const address = item.address || '';
+        const taxType = item.taxType || '';
+        const result = item.result || item.followStatus || '';
+        const payment = item.paymentStatus || 'ยังไม่ชำระ';
+
+        // Filter ช่วงเวลา
+        if (periodFilter === 'daily' && (!itemDate || !isSameDay(itemDate, now))) return false;
+        if (periodFilter === 'monthly' && (!itemDate || !isSameMonth(itemDate, now))) return false;
+        if (periodFilter === 'quarterly' && (!itemDate || !isSameQuarter(itemDate, now))) return false;
+
+        // Filter เจ้าหน้าที่
+        if (officerFilter !== 'all' && officer !== officerFilter) return false;
+
+        // Filter ประเภทภาษี
+        if (taxTypeFilter !== 'all' && taxType !== taxTypeFilter) return false;
+
+        // Filter ผลการติดตาม
+        if (resultFilter !== 'all' && result !== resultFilter) return false;
+
+        // Filter สถานะชำระ
+        if (paymentFilter !== 'all' && payment !== paymentFilter) return false;
+
+        // Search Keyword
+        if (searchKeyword) {
+          const matchString = `${taxName} ${taxId} ${address} ${officer} ${result}`.toLowerCase();
+          if (!matchString.includes(searchKeyword)) return false;
         }
 
         return true;
       });
-    }
 
-    function exportFilteredExcel() {
-      const filtered = getFilteredData();
+      document.getElementById('filteredMatchCount').innerText = filteredCases.length;
+      document.getElementById('totalMatchCount').innerText = allCasesData.length;
 
-      if (filtered.length === 0) {
-        alert('ไม่พบข้อมูลตามเงื่อนไขที่เลือก');
+      // Render Charts
+      renderCharts(filteredCases);
+
+      // Render ตารางรายการเข้าสำรวจสนาม
+      const recentTableBody = document.getElementById('recentTableBody');
+      recentTableBody.innerHTML = '';
+
+      if (filteredCases.length === 0) {
+        recentTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400">ไม่พบข้อมูลตรงตามเงื่อนไขการค้นหา</td></tr>';
         return;
       }
 
-      const excelData = filtered.map((item, idx) => {
-        const images = extractImageUrls(item);
-        return {
-          'ลำดับ': idx + 1,
-          'วันที่สำรวจ': item.docDate || item.date || '',
-          'เจ้าหน้าที่ผู้สำรวจ': cleanOfficerName(item.officerName || item.officer),
-          'รหัสผู้เสียภาษี': item.taxId || '',
-          'ชื่อผู้เสียภาษี/ร้านค้า': item.taxName || item.tax_name || '',
-          'สถานที่/ที่อยู่': item.address || '',
-          'ประเภทภาษี': item.taxType || '',
-          'ขั้นตอนเอกสาร': item.docType || '',
-          'ปีที่ค้างชำระ': item.overdueYears || '',
-          'ผลการติดตาม': item.result || item.followStatus || '',
-          'สถานะการชำระเงิน': item.paymentStatus || 'ยังไม่ชำระ',
-          'การรับเอกสาร': item.receiptStatus || '',
-          'ลิงก์รูปภาพ': images.join(' , '),
-          'หมายเหตุ': item.note || ''
-        };
-      });
+      filteredCases.forEach(item => {
+        const imgList = extractImageUrls(item);
+        let imgHtml = '<span class="text-xs text-slate-400">-</span>';
+        if (imgList.length > 0) {
+          const firstImg = escapeHtml(imgList[0]);
+          imgHtml = `
+            <img src="${firstImg}" 
+                 alt="รูปสนาม" 
+                 class="w-10 h-10 object-cover rounded-lg border border-slate-200 cursor-pointer hover:scale-105 transition shadow-sm"
+                 onclick="openImageModal('${firstImg}')">
+          `;
+        }
 
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
+        let paymentBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">🔴 ยังไม่ชำระ</span>';
+        if (item.paymentStatus === 'ชำระแล้ว') {
+          paymentBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">🟢 ชำระแล้ว</span>';
+        } else if (item.paymentStatus === 'นัดชำระ') {
+          paymentBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">🟡 นัดชำระ</span>';
+        }
+
+        recentTableBody.innerHTML += `
+          <tr class="hover:bg-amber-50/40 transition">
+            <td class="p-3 text-xs text-slate-600 whitespace-nowrap">${escapeHtml(item.docDate || item.date || '-')}</td>
+            <td class="p-3 font-medium text-slate-800 whitespace-nowrap">${escapeHtml(cleanOfficerName(item.officerName || item.officer))}</td>
+            <td class="p-3">
+              <div class="font-bold text-amber-950">${escapeHtml(item.taxName || item.tax_name || '-')}</div>
+              <div class="text-xs text-slate-400">ID: ${escapeHtml(item.taxId || '-')} | ${escapeHtml(item.taxType || '-')}</div>
+            </td>
+            <td class="p-3 font-medium text-slate-700">${escapeHtml(item.result || item.followStatus || '-')}</td>
+            <td class="p-3 whitespace-nowrap">${paymentBadge}</td>
+            <td class="p-3">${imgHtml}</td>
+            <td class="p-3 text-xs text-slate-500 max-w-xs truncate">${escapeHtml(item.note || '-')}</td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <button onclick="openDetailModal('${item.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-1 rounded-xl text-xs font-medium mr-1 transition">
+                👁️ ดู
+              </button>
+              <button onclick="deleteCase('${item.id}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-xl text-xs font-medium transition">
+                🗑️ ลบ
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function exportFilteredExcel() {
+      if (allCasesData.length === 0) {
+        alert("ไม่มีข้อมูลสำหรับส่งออก");
+        return;
+      }
+
+      const exportData = allCasesData.map((item, idx) => ({
+        "ลำดับ": idx + 1,
+        "วันที่สำรวจ": item.docDate || item.date || '',
+        "เจ้าหน้าที่ผู้สำรวจ": cleanOfficerName(item.officerName || item.officer),
+        "ชื่อผู้เสียภาษี / ร้านค้า": item.taxName || item.tax_name || '',
+        "รหัสผู้เสียภาษี": item.taxId || '',
+        "ประเภทภาษี": item.taxType || '',
+        "สถานที่ / ที่อยู่": item.address || '',
+        "ผลการติดตาม": item.result || item.followStatus || '',
+        "การรับเอกสาร": item.receiptStatus || '',
+        "ประเภทเอกสาร": item.docType || '',
+        "สถานะการชำระเงิน": item.paymentStatus || 'ยังไม่ชำระ',
+        "ปีที่ค้างชำระ": item.overdueYears || '',
+        "หมายเหตุ": item.note || ''
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "รายงานการลงพื้นที่");
-      
-      const fileNameDate = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(workbook, `รายงานสำรวจสนาม_${fileNameDate}.xlsx`);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "ข้อมูลการสำรวจสนาม");
+
+      XLSX.writeFile(workbook, `รายงานผลการลงสำรวจสนาม_${new Date().toISOString().slice(0, 10)}.xlsx`);
     }
 
     function importExcelData(event) {
-      const fileInput = event.target;
-      const file = fileInput.files[0];
+      const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = function(e) {
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
@@ -1093,8 +1043,7 @@
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
           if (jsonData.length === 0) {
-            alert('ไม่พบข้อมูลในไฟล์ Excel');
-            fileInput.value = '';
+            alert("ไม่พบข้อมูลในไฟล์ Excel");
             return;
           }
 
@@ -1102,56 +1051,69 @@
           const updates = {};
 
           jsonData.forEach(row => {
-            const docDate = row['วันที่สำรวจ'] || row['docDate'] || row['date'] || new Date().toISOString().split('T')[0];
-            const officerName = cleanOfficerName(row['เจ้าหน้าที่ผู้สำรวจ'] || row['officerName'] || row['officer']);
-            const taxName = row['ชื่อผู้เสียภาษี/ร้านค้า'] || row['taxName'] || row['tax_name'] || 'ไม่ระบุชื่อ';
-            
-            const imgRaw = row['ลิงก์รูปภาพ'] || row['images'] || row['imageUrl'] || '';
-            const imagesArr = typeof imgRaw === 'string' && imgRaw.trim() !== '' ? imgRaw.split(',').map(s => s.trim()) : [];
-
             const newKey = db.ref('revenue_cases').push().key;
-            updates['revenue_cases/' + newKey] = {
-              docDate: String(docDate),
-              officerName: String(officerName),
-              taxId: String(row['รหัสผู้เสียภาษี'] || row['taxId'] || ''),
-              taxName: String(taxName),
-              address: String(row['สถานที่/ที่อยู่'] || row['address'] || ''),
-              taxType: String(row['ประเภทภาษี'] || row['taxType'] || 'ภาษีป้าย'),
-              docType: String(row['ขั้นตอนเอกสาร'] || row['docType'] || 'หนังสือแจ้งเตือน ครั้งที่ 1'),
-              overdueYears: String(row['ปีที่ค้างชำระ'] || row['overdueYears'] || ''),
-              result: String(row['ผลการติดตาม'] || row['result'] || row['followStatus'] || 'พบผู้ค้างภาษี'),
-              followStatus: String(row['ผลการติดตาม'] || row['result'] || row['followStatus'] || 'พบผู้ค้างภาษี'),
-              paymentStatus: String(row['สถานะการชำระเงิน'] || row['paymentStatus'] || 'ยังไม่ชำระ'),
-              receiptStatus: String(row['การรับเอกสาร'] || row['receiptStatus'] || 'ผู้ค้างภาษีรับเอง'),
-              images: imagesArr,
-              note: String(row['หมายเหตุ'] || row['note'] || ''),
-              timestamp: new Date().toISOString()
+            updates[`revenue_cases/${newKey}`] = {
+              docDate: row["วันที่สำรวจ"] || new Date().toISOString().slice(0, 10),
+              officerName: row["เจ้าหน้าที่ผู้สำรวจ"] || 'ไม่ระบุเจ้าหน้าที่',
+              taxName: row["ชื่อผู้เสียภาษี / ร้านค้า"] || '',
+              taxId: row["รหัสผู้เสียภาษี"] || '',
+              taxType: row["ประเภทภาษี"] || '',
+              address: row["สถานที่ / ที่อยู่"] || '',
+              result: row["ผลการติดตาม"] || '',
+              receiptStatus: row["การรับเอกสาร"] || '',
+              docType: row["ประเภทเอกสาร"] || '',
+              paymentStatus: row["สถานะการชำระเงิน"] || 'ยังไม่ชำระ',
+              overdueYears: row["ปีที่ค้างชำระ"] || '',
+              note: row["หมายเหตุ"] || '',
+              createdAt: firebase.database.ServerValue.TIMESTAMP
             };
             successCount++;
           });
 
-          if (confirm(`พบข้อมูล ${successCount} รายการในไฟล์ ต้องการนำเข้าข้อมูลทั้งหมดเข้าสู่ฐานข้อมูล Firebase หรือไม่?`)) {
-            db.ref().update(updates)
-              .then(() => {
-                alert(`นำเข้าข้อมูลเรียบร้อยแล้วจำนวน ${successCount} รายการ`);
-              })
-              .catch(err => alert('เกิดข้อผิดพลาดในการนำเข้า: ' + err.message))
-              .finally(() => {
-                fileInput.value = '';
-              });
-          } else {
-            fileInput.value = '';
-          }
+          db.ref().update(updates).then(() => {
+            alert(`นำเข้าข้อมูลสำเร็จจำนวน ${successCount} รายการ`);
+            document.getElementById('excelFileInput').value = '';
+          }).catch(err => {
+            alert("เกิดข้อผิดพลาดในการนำเข้าข้อมูล: " + err.message);
+          });
 
         } catch (err) {
-          alert('รูปแบบไฟล์ Excel ไม่ถูกต้อง หรืออ่านไฟล์ล้มเหลว');
-          console.error(err);
-          fileInput.value = '';
+          alert("รูปแบบไฟล์ Excel ไม่ถูกต้อง: " + err.message);
         }
       };
 
       reader.readAsArrayBuffer(file);
     }
+
+    // โหลดข้อมูล Real-time จาก Firebase
+    db.ref('revenue_cases').on('value', snapshot => {
+      allCasesData = [];
+      const data = snapshot.val();
+
+      if (data) {
+        Object.keys(data).forEach(key => {
+          allCasesData.push({
+            id: key,
+            ...data[key]
+          });
+        });
+
+        // เรียงลำดับตามวันที่จากใหม่ไปเก่า
+        allCasesData.sort((a, b) => {
+          const dateA = new Date(a.docDate || a.date || 0);
+          const dateB = new Date(b.docDate || b.date || 0);
+          return dateB - dateA;
+        });
+      }
+
+      populateOfficerDropdown(allCasesData);
+      renderDashboard();
+
+      // ตั้งค่าวันที่ปัจจุบันสำหรับการพิมพ์
+      const options = { year: 'numeric', month: 'long', day: 'numeric', calendar: 'thailard' };
+      const todayThai = new Date().toLocaleDateString('th-TH', options);
+      document.getElementById('printCurrentDate').innerText = todayThai;
+    });
   </script>
 </body>
 </html>
