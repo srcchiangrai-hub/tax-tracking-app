@@ -78,27 +78,29 @@
       </div>
     </div>
 
-    <!-- แถบ Export & Import Excel เลือกเงื่อนไข -->
+    <!-- แถบกรองข้อมูลแดชบอร์ด & Export / Import Excel -->
     <div class="pastel-card p-5 rounded-3xl border-teal-100 bg-teal-50/20 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-teal-100 rounded-2xl flex items-center justify-center text-xl">
-          📊
+          🔍
         </div>
         <div>
-          <h3 class="text-sm font-bold text-teal-950">จัดการข้อมูล Excel (Export & Import)</h3>
-          <p class="text-xs text-teal-700/70">นำเข้าไฟล์ หรือส่งออกรายงานตามเงื่อนไขเพื่อดู/พิมพ์ผ่าน Excel</p>
+          <h3 class="text-sm font-bold text-teal-950">ตัวกรองข้อมูลแดชบอร์ด & Excel</h3>
+          <p class="text-xs text-teal-700/70">เลือกช่วงเวลาหรือเจ้าหน้าที่เพื่อกรองการแสดงผลและนำเข้า/ส่งออก Excel</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
-        <select id="exportPeriodFilter" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
+        <!-- ตัวกรองช่วงเวลา (ใช้งานทั้งในตาราง แดชบอร์ด และ Excel) -->
+        <select id="exportPeriodFilter" onchange="renderDashboard()" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
           <option value="all">🗓️ ช่วงเวลา: ทั้งหมด (All)</option>
           <option value="daily">📅 ช่วงเวลา: วันนี้ (Daily)</option>
           <option value="monthly">📊 ช่วงเวลา: เดือนนี้ (Monthly)</option>
           <option value="quarterly">📈 ช่วงเวลา: ไตรมาสนี้ (Quarterly)</option>
         </select>
 
-        <select id="exportOfficerFilter" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
+        <!-- ตัวกรองเจ้าหน้าที่ (ใช้งานทั้งในตาราง แดชบอร์ด และ Excel) -->
+        <select id="exportOfficerFilter" onchange="renderDashboard()" class="pastel-select text-xs p-2.5 rounded-xl font-medium">
           <option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>
         </select>
 
@@ -357,57 +359,13 @@
 
         allCasesData = Object.keys(rawData).map(key => ({ id: key, ...rawData[key] }));
 
-        const now = new Date();
-        const nowParsed = parseDateParts(now.toISOString());
-        const todayStr = nowParsed ? nowParsed.dateStr : '';
-        const currentYear = nowParsed ? nowParsed.year : now.getFullYear();
-        const currentMonth = nowParsed ? nowParsed.month : now.getMonth() + 1;
-        const currentQuarter = nowParsed ? nowParsed.quarter : Math.ceil((now.getMonth() + 1) / 3);
-
-        let dCount = 0;
-        let mCount = 0;
-        let qCount = 0;
-
-        const officerMap = {};
+        // อัปเดตตัวเลือกรายชื่อเจ้าหน้าที่ใน Dropdown ตัวกรอง
         const officerSet = new Set();
-
         allCasesData.forEach(item => {
           const officer = item.officerName || item.officer || 'ไม่ระบุเจ้าหน้าที่';
           officerSet.add(officer);
-
-          if (!officerMap[officer]) {
-            officerMap[officer] = { daily: 0, monthly: 0, quarterly: 0 };
-          }
-
-          const rawDate = item.docDate || item.date || item.timestamp || '';
-          const parsed = parseDateParts(rawDate);
-
-          if (parsed) {
-            const isToday = (parsed.dateStr === todayStr);
-            const isThisMonth = (parsed.year === currentYear && parsed.month === currentMonth);
-            const isThisQuarter = (parsed.year === currentYear && parsed.quarter === currentQuarter);
-
-            if (isToday) {
-              dCount++;
-              officerMap[officer].daily++;
-            }
-            if (isThisMonth) {
-              mCount++;
-              officerMap[officer].monthly++;
-            }
-            if (isThisQuarter) {
-              qCount++;
-              officerMap[officer].quarterly++;
-            }
-          }
         });
 
-        // อัปเดต KPI
-        document.getElementById('dailyCount').innerText = dCount.toLocaleString();
-        document.getElementById('monthlyCount').innerText = mCount.toLocaleString();
-        document.getElementById('quarterlyCount').innerText = qCount.toLocaleString();
-
-        // ดรอปดาวน์เลือกเจ้าหน้าที่ในส่วน Export / Import
         const officerSelect = document.getElementById('exportOfficerFilter');
         const selectedVal = officerSelect.value;
         officerSelect.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
@@ -416,93 +374,149 @@
         });
         officerSelect.value = selectedVal || 'all';
 
-        // ตารางสรุปรายเจ้าหน้าที่
-        let officerHtml = '';
-        let printOfficerHtml = '';
-        let index = 1;
-
-        Object.keys(officerMap).forEach(off => {
-          const stat = officerMap[off];
-          const safeOff = escapeHtml(off);
-
-          officerHtml += `
-            <tr class="hover:bg-purple-50/50 transition">
-              <td class="p-3 font-medium text-slate-800">${safeOff}</td>
-              <td class="p-3 text-center font-semibold text-emerald-600">${stat.daily}</td>
-              <td class="p-3 text-center font-semibold text-orange-600">${stat.monthly}</td>
-              <td class="p-3 text-center font-semibold text-indigo-600">${stat.quarterly}</td>
-            </tr>
-          `;
-
-          printOfficerHtml += `
-            <tr class="text-center">
-              <td class="border border-black p-1.5">${index++}</td>
-              <td class="border border-black p-1.5 text-left">${safeOff}</td>
-              <td class="border border-black p-1.5">${stat.daily}</td>
-              <td class="border border-black p-1.5">${stat.monthly}</td>
-              <td class="border border-black p-1.5">${stat.quarterly}</td>
-            </tr>
-          `;
-        });
-
-        document.getElementById('officerTableBody').innerHTML = officerHtml || '<tr><td colspan="4" class="text-center py-4 text-slate-400">ไม่มีข้อมูล</td></tr>';
-        document.getElementById('printOfficerTable').innerHTML = printOfficerHtml || '<tr><td colspan="5" class="text-center py-2">ไม่มีข้อมูล</td></tr>';
-
-        // ตารางรายการล่าสุด (เรียงจากใหม่ไปเก่า)
-        const recentList = [...allCasesData].reverse();
-        let recentHtml = '';
-
-        recentList.forEach(item => {
-          const dateStr = escapeHtml(item.docDate || item.date || '-');
-          const officer = escapeHtml(item.officerName || item.officer || '-');
-          const taxName = escapeHtml(item.taxName || item.tax_name || '-');
-          const taxId = item.taxId ? `<span class="text-xs text-slate-400">(${escapeHtml(item.taxId)})</span>` : '';
-          const result = escapeHtml(item.result || item.followStatus || '-');
-          const receipt = escapeHtml(item.receiptStatus || '-');
-          const note = escapeHtml(item.note || '-');
-
-          // จัดการแสดงผลรูปภาพ
-          const imgList = extractImageUrls(item);
-          let imgCellHtml = '<span class="text-xs text-slate-400">ไม่มีรูปภาพ</span>';
-
-          if (imgList.length > 0) {
-            imgCellHtml = `<div class="flex items-center gap-1.5 flex-wrap">`;
-            imgList.forEach((url, i) => {
-              const safeUrl = escapeHtml(url);
-              imgCellHtml += `
-                <img src="${safeUrl}" 
-                     alt="รูปสนาม" 
-                     class="w-10 h-10 object-cover rounded-lg border border-amber-200 cursor-pointer hover:scale-105 transition shadow-sm" 
-                     onclick="openImageModal('${safeUrl}')" 
-                     title="คลิกเพื่อดูรูปขยาย">
-              `;
-            });
-            imgCellHtml += `</div>`;
-          }
-
-          let badgeColor = 'bg-slate-100 text-slate-700';
-          if (result.includes('พบผู้ค้างภาษี')) badgeColor = 'bg-emerald-100 text-emerald-800';
-          else if (result.includes('ไม่พบผู้ค้างภาษี')) badgeColor = 'bg-rose-100 text-rose-800';
-          else if (result.includes('พบบุคคลอื่น')) badgeColor = 'bg-amber-100 text-amber-800';
-
-          recentHtml += `
-            <tr class="hover:bg-amber-50/50 transition">
-              <td class="p-3 text-xs text-slate-500">${dateStr}</td>
-              <td class="p-3 font-medium text-slate-700">${officer}</td>
-              <td class="p-3 font-medium text-slate-800">${taxName} ${taxId}</td>
-              <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
-              <td class="p-3 text-slate-600 text-xs">${receipt}</td>
-              <td class="p-3">${imgCellHtml}</td>
-              <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${note}</td>
-            </tr>
-          `;
-        });
-
-        document.getElementById('recentTableBody').innerHTML = recentHtml || '<tr><td colspan="7" class="text-center py-6 text-slate-400">ไม่มีข้อมูล</td></tr>';
+        // วาดผลลัพธ์บนหน้าจอตาม Filter ที่เลือกไว้
+        renderDashboard();
       });
     }
 
-    // ฟังก์ชันกรองข้อมูลตามเงื่อนไข (เพื่อใช้ Export Excel)
+    // ฟังก์ชันวาดการแสดงผล Dashboard ทั้งหมดตามตัวกรอง
+    function renderDashboard() {
+      const filteredData = getFilteredData();
+
+      const now = new Date();
+      const nowParsed = parseDateParts(now.toISOString());
+      const todayStr = nowParsed ? nowParsed.dateStr : '';
+      const currentYear = nowParsed ? nowParsed.year : now.getFullYear();
+      const currentMonth = nowParsed ? nowParsed.month : now.getMonth() + 1;
+      const currentQuarter = nowParsed ? nowParsed.quarter : Math.ceil((now.getMonth() + 1) / 3);
+
+      let dCount = 0;
+      let mCount = 0;
+      let qCount = 0;
+
+      const officerMap = {};
+
+      filteredData.forEach(item => {
+        const officer = item.officerName || item.officer || 'ไม่ระบุเจ้าหน้าที่';
+
+        if (!officerMap[officer]) {
+          officerMap[officer] = { daily: 0, monthly: 0, quarterly: 0 };
+        }
+
+        const rawDate = item.docDate || item.date || item.timestamp || '';
+        const parsed = parseDateParts(rawDate);
+
+        if (parsed) {
+          const isToday = (parsed.dateStr === todayStr);
+          const isThisMonth = (parsed.year === currentYear && parsed.month === currentMonth);
+          const isThisQuarter = (parsed.year === currentYear && parsed.quarter === currentQuarter);
+
+          if (isToday) {
+            dCount++;
+            officerMap[officer].daily++;
+          }
+          if (isThisMonth) {
+            mCount++;
+            officerMap[officer].monthly++;
+          }
+          if (isThisQuarter) {
+            qCount++;
+            officerMap[officer].quarterly++;
+          }
+        }
+      });
+
+      // อัปเดต KPI ตามตัวกรอง
+      document.getElementById('dailyCount').innerText = dCount.toLocaleString();
+      document.getElementById('monthlyCount').innerText = mCount.toLocaleString();
+      document.getElementById('quarterlyCount').innerText = qCount.toLocaleString();
+
+      // ตารางสรุปรายเจ้าหน้าที่
+      let officerHtml = '';
+      let printOfficerHtml = '';
+      let index = 1;
+
+      Object.keys(officerMap).forEach(off => {
+        const stat = officerMap[off];
+        const safeOff = escapeHtml(off);
+
+        officerHtml += `
+          <tr class="hover:bg-purple-50/50 transition">
+            <td class="p-3 font-medium text-slate-800">${safeOff}</td>
+            <td class="p-3 text-center font-semibold text-emerald-600">${stat.daily}</td>
+            <td class="p-3 text-center font-semibold text-orange-600">${stat.monthly}</td>
+            <td class="p-3 text-center font-semibold text-indigo-600">${stat.quarterly}</td>
+          </tr>
+        `;
+
+        printOfficerHtml += `
+          <tr class="text-center">
+            <td class="border border-black p-1.5">${index++}</td>
+            <td class="border border-black p-1.5 text-left">${safeOff}</td>
+            <td class="border border-black p-1.5">${stat.daily}</td>
+            <td class="border border-black p-1.5">${stat.monthly}</td>
+            <td class="border border-black p-1.5">${stat.quarterly}</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('officerTableBody').innerHTML = officerHtml || '<tr><td colspan="4" class="text-center py-4 text-slate-400">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
+      document.getElementById('printOfficerTable').innerHTML = printOfficerHtml || '<tr><td colspan="5" class="text-center py-2">ไม่มีข้อมูล</td></tr>';
+
+      // ตารางรายการล่าสุด (เรียงจากใหม่ไปเก่า ตามตัวกรอง)
+      const recentList = [...filteredData].reverse();
+      let recentHtml = '';
+
+      recentList.forEach(item => {
+        const dateStr = escapeHtml(item.docDate || item.date || '-');
+        const officer = escapeHtml(item.officerName || item.officer || '-');
+        const taxName = escapeHtml(item.taxName || item.tax_name || '-');
+        const taxId = item.taxId ? `<span class="text-xs text-slate-400">(${escapeHtml(item.taxId)})</span>` : '';
+        const result = escapeHtml(item.result || item.followStatus || '-');
+        const receipt = escapeHtml(item.receiptStatus || '-');
+        const note = escapeHtml(item.note || '-');
+
+        // จัดการแสดงผลรูปภาพ
+        const imgList = extractImageUrls(item);
+        let imgCellHtml = '<span class="text-xs text-slate-400">ไม่มีรูปภาพ</span>';
+
+        if (imgList.length > 0) {
+          imgCellHtml = `<div class="flex items-center gap-1.5 flex-wrap">`;
+          imgList.forEach((url) => {
+            const safeUrl = escapeHtml(url);
+            imgCellHtml += `
+              <img src="${safeUrl}" 
+                   alt="รูปสนาม" 
+                   class="w-10 h-10 object-cover rounded-lg border border-amber-200 cursor-pointer hover:scale-105 transition shadow-sm" 
+                   onclick="openImageModal('${safeUrl}')" 
+                   title="คลิกเพื่อดูรูปขยาย">
+            `;
+          });
+          imgCellHtml += `</div>`;
+        }
+
+        let badgeColor = 'bg-slate-100 text-slate-700';
+        if (result.includes('พบผู้ค้างภาษี')) badgeColor = 'bg-emerald-100 text-emerald-800';
+        else if (result.includes('ไม่พบผู้ค้างภาษี')) badgeColor = 'bg-rose-100 text-rose-800';
+        else if (result.includes('พบบุคคลอื่น')) badgeColor = 'bg-amber-100 text-amber-800';
+
+        recentHtml += `
+          <tr class="hover:bg-amber-50/50 transition">
+            <td class="p-3 text-xs text-slate-500">${dateStr}</td>
+            <td class="p-3 font-medium text-slate-700">${officer}</td>
+            <td class="p-3 font-medium text-slate-800">${taxName} ${taxId}</td>
+            <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
+            <td class="p-3 text-slate-600 text-xs">${receipt}</td>
+            <td class="p-3">${imgCellHtml}</td>
+            <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${note}</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('recentTableBody').innerHTML = recentHtml || '<tr><td colspan="7" class="text-center py-6 text-slate-400">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
+    }
+
+    // ฟังก์ชันกรองข้อมูลตามเงื่อนไข (เพื่อใช้แสดงผลบนหน้าจอและ Export Excel)
     function getFilteredData() {
       const periodFilter = document.getElementById('exportPeriodFilter').value;
       const officerFilter = document.getElementById('exportOfficerFilter').value;
