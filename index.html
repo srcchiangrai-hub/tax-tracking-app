@@ -197,14 +197,14 @@
           <span class="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-lg">🐼</span>
           สรุปการลงปฏิบัติงานสนามจำแนกรายเจ้าหน้าที่
         </h2>
-        <span class="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-medium border border-purple-100">สถิติจำนวนเคสเข้าสำรวจ</span>
+        <span class="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-medium border border-purple-100">💡 คลิกที่ชื่อเจ้าหน้าที่เพื่อดูรายการสำรวจ</span>
       </div>
 
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b-2 border-purple-100 text-xs font-semibold text-slate-500">
-              <th class="p-3">เจ้าหน้าที่ผู้สำรวจ</th>
+              <th class="p-3">เจ้าหน้าที่ผู้สำรวจ (คลิกเพื่อกรอง)</th>
               <th class="p-3 text-center">วันนี้ (ราย)</th>
               <th class="p-3 text-center">เดือนนี้ (ราย)</th>
               <th class="p-3 text-center">ไตรมาสนี้ (ราย)</th>
@@ -218,7 +218,7 @@
     </div>
 
     <!-- ตารางรายการตามเงื่อนไขค้นหา -->
-    <div class="pastel-card p-6 rounded-3xl border-amber-100">
+    <div id="recentSection" class="pastel-card p-6 rounded-3xl border-amber-100">
       <h2 class="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
         <span>📍</span> รายการเข้าสำรวจสนาม
       </h2>
@@ -474,6 +474,19 @@
       modal.classList.remove('flex');
     }
 
+    // ฟังก์ชันเมื่อคลิกชื่อเจ้าหน้าที่ในตารางสรุป
+    function selectOfficerAndScroll(officerName) {
+      const officerSelect = document.getElementById('exportOfficerFilter');
+      officerSelect.value = officerName;
+      renderDashboard();
+
+      // Smooth scroll ลงไปที่ส่วนตารางรายการสำรวจสนาม
+      const recentSection = document.getElementById('recentSection');
+      if (recentSection) {
+        recentSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
     function parseDateParts(rawDate) {
       if (!rawDate) return null;
       let dateObj;
@@ -624,9 +637,13 @@
         const stat = officerMap[off];
         const safeOff = escapeHtml(off);
 
+        // เพิ่ม onclick และ cursor-pointer ให้ผู้บริหารคลิกชื่อเจ้าหน้าที่ได้ทันที
         officerHtml += `
-          <tr class="hover:bg-purple-50/50 transition">
-            <td class="p-3 font-medium text-slate-800">${safeOff}</td>
+          <tr onclick="selectOfficerAndScroll('${safeOff}')" class="hover:bg-purple-100/60 cursor-pointer transition rounded-xl group" title="คลิกเพื่อดูกรองเฉพาะรายการของ ${safeOff}">
+            <td class="p-3 font-medium text-slate-800 group-hover:text-purple-900 flex items-center gap-1.5">
+              <span>👤</span> ${safeOff} 
+              <span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-normal opacity-0 group-hover:opacity-100 transition">คลิกดูรายการ</span>
+            </td>
             <td class="p-3 text-center font-semibold text-emerald-600">${stat.daily}</td>
             <td class="p-3 text-center font-semibold text-orange-600">${stat.monthly}</td>
             <td class="p-3 text-center font-semibold text-indigo-600">${stat.quarterly}</td>
@@ -670,7 +687,7 @@
               <img src="${safeUrl}" 
                    alt="รูปสนาม" 
                    class="w-10 h-10 object-cover rounded-lg border border-amber-200 cursor-pointer hover:scale-105 transition shadow-sm" 
-                   onclick="openImageModal('${safeUrl}')" 
+                   onclick="event.stopPropagation(); openImageModal('${safeUrl}')" 
                    title="คลิกเพื่อดูรูปขยาย">
             `;
           });
@@ -683,15 +700,15 @@
         else if (result.includes('พบบุคคลอื่น')) badgeColor = 'bg-amber-100 text-amber-800';
 
         recentHtml += `
-          <tr class="hover:bg-amber-50/50 transition">
+          <tr onclick="openDetailModal('${item.id}')" class="hover:bg-amber-100/50 cursor-pointer transition">
             <td class="p-3 text-xs text-slate-500">${dateStr}</td>
             <td class="p-3 font-medium text-slate-700">${officer}</td>
             <td class="p-3 font-medium text-slate-800">${taxName} ${taxId}</td>
             <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
             <td class="p-3 text-slate-600 text-xs">${receipt}</td>
-            <td class="p-3">${imgCellHtml}</td>
+            <td class="p-3" onclick="event.stopPropagation()">${imgCellHtml}</td>
             <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${note}</td>
-            <td class="p-3 text-center">
+            <td class="p-3 text-center" onclick="event.stopPropagation()">
               <button onclick="openDetailModal('${item.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs px-3 py-1.5 rounded-xl font-medium transition shadow-sm flex items-center justify-center gap-1 mx-auto whitespace-nowrap">
                 👁️ ดูรายละเอียด
               </button>
