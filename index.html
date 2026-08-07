@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - ระบบสำรวจข้อมูลสนาม งานเร่งรัดรายได้</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=TH+Sarabun+New:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- ฟอนต์ Mitr สำหรับ Web View และ TH Sarabun New สำหรับ พิมพ์/PDF -->
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=TH+Sarabun+New:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -13,6 +15,9 @@
 
   <!-- SheetJS สำหรับ Export / Import Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Chart.js สำหรับแสดงกราฟวิเคราะห์ -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body { 
@@ -22,8 +27,8 @@
       background-size: 16px 16px;
     }
     .pastel-card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(10px);
       border: 2px solid #FFF0E5;
       box-shadow: 0 8px 25px -5px rgba(255, 183, 178, 0.15);
     }
@@ -37,16 +42,53 @@
       border-color: #FFB5A7;
       outline: none;
     }
+
+    /* CSS สำหรับการสั่งพิมพ์ / บันทึก PDF (TH Sarabun New 16pt แบบหนังสือราชการไทย) */
     @media print {
-      body { 
-        font-family: 'TH Sarabun New', sans-serif; 
-        font-size: 16pt; 
+      body, html { 
+        font-family: 'TH Sarabun New', sans-serif !important; 
+        font-size: 16pt !important; 
+        line-height: 1.25 !important;
+        color: #000000 !important;
         background: white !important;
         background-image: none !important;
       }
       .no-print { display: none !important; }
       .print-only { display: block !important; }
-      @page { size: A4 portrait; margin: 15mm; }
+      
+      @page { 
+        size: A4 portrait; 
+        margin: 15mm; 
+      }
+
+      /* การตั้งค่าตารางและหัวข้อเฉพาะพิมพ์ */
+      .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 16pt !important;
+      }
+      .print-table th, .print-table td {
+        border: 1px solid #000000;
+        padding: 4px 8px;
+        vertical-align: top;
+      }
+      .print-table th {
+        background-color: #f2f2f2 !important;
+        font-weight: bold;
+        -webkit-print-color-adjust: exact;
+      }
+      .print-header {
+        font-size: 20pt !important;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 5px;
+      }
+      .print-subheader {
+        font-size: 16pt !important;
+        text-align: center;
+        margin-bottom: 15px;
+      }
     }
     .print-only { display: none; }
   </style>
@@ -59,18 +101,20 @@
     <!-- Header -->
     <div class="pastel-card p-5 rounded-3xl flex flex-wrap justify-between items-center gap-4 border-amber-100">
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+        <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner animate-bounce">
           🐻
         </div>
         <div>
-          <h1 class="text-xl font-bold text-amber-950">แดชบอร์ดติดตามงานสนาม</h1>
+          <h1 class="text-xl font-bold text-amber-950 flex items-center gap-2">
+            แดชบอร์ดติดตามงานสนาม 🐾
+          </h1>
           <p class="text-xs text-amber-700/80">ระบบสรุปผลการเร่งรัดจัดเก็บรายได้ (สำหรับผู้บริหาร)</p>
         </div>
       </div>
       
       <div class="flex items-center gap-2 flex-wrap">
         <button onclick="window.print()" class="bg-sky-400 hover:bg-sky-500 text-white px-4 py-2.5 rounded-2xl text-sm font-medium transition shadow-sm flex items-center gap-1.5">
-          <span>🖨️</span> พิมพ์ A4
+          <span>🖨️</span> พิมพ์รวม A4 (Sarabun 16)
         </button>
         <a href="admin.html" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2.5 rounded-2xl text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
           <span>🦉</span> บันทึกข้อมูล (Admin)
@@ -86,7 +130,7 @@
             🔍
           </div>
           <div>
-            <h3 class="text-sm font-bold text-teal-950">ระบบค้นหาและตัวกรองข้อมูลขั้นสูง</h3>
+            <h3 class="text-sm font-bold text-teal-950">ระบบค้นหาและตัวกรองข้อมูลขั้นสูง 🐶</h3>
             <p class="text-xs text-teal-700/70">กรองข้อมูลแบบ Real-time ตามช่วงเวลา เจ้าหน้าที่ คำค้นหา หรือสถานะ</p>
           </div>
         </div>
@@ -106,7 +150,7 @@
       </div>
 
       <!-- แถบตัวกรองและช่องค้นหา -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2.5">
         
         <!-- ช่องค้นหาด้วยคีย์เวิร์ด -->
         <div class="lg:col-span-2">
@@ -150,12 +194,22 @@
           </select>
         </div>
 
+        <!-- ตัวกรองสถานะการชำระเงิน -->
+        <div>
+          <select id="paymentFilter" onchange="renderDashboard()" class="pastel-select w-full text-xs p-2.5 rounded-xl font-medium">
+            <option value="all">💰 การเงิน: ทั้งหมด</option>
+            <option value="ชำระแล้ว">🟢 ชำระแล้ว</option>
+            <option value="นัดชำระ">🟡 นัดชำระ</option>
+            <option value="ยังไม่ชำระ">🔴 ยังไม่ชำระ</option>
+          </select>
+        </div>
+
       </div>
 
       <!-- ปุ่ม Reset ตัวกรอง -->
       <div class="flex justify-between items-center pt-1 text-xs text-slate-500">
         <div>
-          แสดงผล <span id="filteredMatchCount" class="font-bold text-teal-800">0</span> จากทั้งหมด <span id="totalMatchCount" class="font-bold text-slate-700">0</span> รายการ
+          พบข้อมูลรวม <span id="filteredMatchCount" class="font-bold text-teal-800">0</span> จากทั้งหมด <span id="totalMatchCount" class="font-bold text-slate-700">0</span> รายการ
         </div>
         <button onclick="resetFilters()" class="text-teal-700 hover:text-teal-900 underline font-medium flex items-center gap-1">
           <span>🔄</span> ล้างตัวกรองทั้งหมด
@@ -170,7 +224,7 @@
           <p class="text-xs font-semibold text-emerald-800 mb-1 flex items-center gap-1">🐱 วันนี้ (Daily)</p>
           <div class="text-3xl font-bold text-emerald-950"><span id="dailyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
         </div>
-        <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl">📅</div>
+        <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">📅</div>
       </div>
 
       <div class="pastel-card p-6 rounded-3xl border-orange-100 bg-orange-50/30 flex items-center justify-between">
@@ -178,7 +232,7 @@
           <p class="text-xs font-semibold text-orange-800 mb-1 flex items-center gap-1">🦊 เดือนนี้ (Monthly)</p>
           <div class="text-3xl font-bold text-orange-950"><span id="monthlyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
         </div>
-        <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl">📊</div>
+        <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">📊</div>
       </div>
 
       <div class="pastel-card p-6 rounded-3xl border-indigo-100 bg-indigo-50/30 flex items-center justify-between">
@@ -186,7 +240,30 @@
           <p class="text-xs font-semibold text-indigo-800 mb-1 flex items-center gap-1">🐰 ไตรมาสนี้ (Quarterly)</p>
           <div class="text-3xl font-bold text-indigo-950"><span id="quarterlyCount">0</span> <span class="text-sm font-normal text-slate-500">ราย</span></div>
         </div>
-        <div class="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl">📈</div>
+        <div class="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">📈</div>
+      </div>
+    </div>
+
+    <!-- กราฟวิเคราะห์ Visual Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <!-- Donut Chart -->
+      <div class="pastel-card p-5 rounded-3xl border-pink-100 bg-pink-50/20">
+        <h3 class="text-sm font-bold text-pink-950 mb-3 flex items-center gap-2">
+          <span>🐣</span> สัดส่วนผลการติดตามสนาม
+        </h3>
+        <div class="relative h-52 flex items-center justify-center">
+          <canvas id="resultDonutChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Bar Chart -->
+      <div class="pastel-card p-5 rounded-3xl border-sky-100 bg-sky-50/20">
+        <h3 class="text-sm font-bold text-sky-950 mb-3 flex items-center gap-2">
+          <span>🐥</span> สรุปผลงานลงสำรวจรายเจ้าหน้าที่
+        </h3>
+        <div class="relative h-52 flex items-center justify-center">
+          <canvas id="officerBarChart"></canvas>
+        </div>
       </div>
     </div>
 
@@ -194,10 +271,10 @@
     <div class="pastel-card p-6 rounded-3xl border-purple-100">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-bold text-purple-900 flex items-center gap-2">
-          <span class="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-lg">🐼</span>
+          <span class="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-lg shadow-inner">🐼</span>
           สรุปการลงปฏิบัติงานสนามจำแนกรายเจ้าหน้าที่
         </h2>
-        <span class="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-medium border border-purple-100">💡 คลิกที่ชื่อเจ้าหน้าที่เพื่อดูรายการสำรวจ</span>
+        <span class="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-medium border border-purple-100">💡 คลิกที่ชื่อเจ้าหน้าที่เพื่อดูกรองรายการ</span>
       </div>
 
       <div class="overflow-x-auto">
@@ -220,7 +297,7 @@
     <!-- ตารางรายการตามเงื่อนไขค้นหา -->
     <div id="recentSection" class="pastel-card p-6 rounded-3xl border-amber-100">
       <h2 class="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
-        <span>📍</span> รายการเข้าสำรวจสนาม
+        <span>🐶</span> รายการเข้าสำรวจสนาม
       </h2>
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
@@ -230,7 +307,7 @@
               <th class="p-3">เจ้าหน้าที่</th>
               <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
               <th class="p-3">ผลการติดตาม</th>
-              <th class="p-3">การรับเอกสาร</th>
+              <th class="p-3">สถานะการชำระ</th>
               <th class="p-3">รูปถ่ายสนาม</th>
               <th class="p-3">หมายเหตุ</th>
               <th class="p-3 text-center">จัดการ</th>
@@ -245,32 +322,78 @@
 
   </div>
 
-  <!-- พิมพ์ A4 -->
-  <div class="print-only">
-    <div class="text-center font-bold mb-4">
-      <h3 class="text-xl">รายงานสรุปผลการลงพื้นที่สำรวจสนาม งานเร่งรัดรายได้</h3>
-      <p class="text-sm">ประจำวันที่ <span id="printCurrentDate">........................................................</span></p>
-    </div>
+  <!-- พิมพ์รวม A4 (แบบรายการไทย TH Sarabun New 16pt - ไม่ใส่ตราครุฑ) -->
+  <div class="print-only" id="summaryPrintArea">
+    <div class="print-header">รายงานสรุปผลการลงพื้นที่สำรวจสนาม งานเร่งรัดรายได้</div>
+    <div class="print-subheader">ประจำวันที่ <span id="printCurrentDate">........................................................</span></div>
 
-    <table class="w-full border-collapse border border-black text-left text-sm mb-6">
+    <table class="print-table">
       <thead>
-        <tr class="bg-gray-100 border-b border-black text-center">
-          <th class="border border-black p-1.5">ลำดับ</th>
-          <th class="border border-black p-1.5">ชื่อ-นามสกุล เจ้าหน้าที่</th>
-          <th class="border border-black p-1.5">ผลงานวันนี้ (ราย)</th>
-          <th class="border border-black p-1.5">ผลงานเดือนนี้ (ราย)</th>
-          <th class="border border-black p-1.5">ผลงานไตรมาสนี้ (ราย)</th>
+        <tr>
+          <th style="width: 10%; text-align: center;">ลำดับ</th>
+          <th style="width: 45%; text-align: center;">ชื่อ-นามสกุล เจ้าหน้าที่</th>
+          <th style="width: 15%; text-align: center;">ผลงานวันนี้ (ราย)</th>
+          <th style="width: 15%; text-align: center;">ผลงานเดือนนี้ (ราย)</th>
+          <th style="width: 15%; text-align: center;">ผลงานไตรมาสนี้ (ราย)</th>
         </tr>
       </thead>
       <tbody id="printOfficerTable">
       </tbody>
     </table>
 
-    <div class="mt-12 flex justify-end">
-      <div class="text-center w-64">
+    <div style="margin-top: 60px; display: flex; justify-content: flex-end;">
+      <div style="text-align: center; width: 280px;">
         <p>ลงชื่อ..........................................................</p>
-        <p class="mt-1">(..........................................................)</p>
-        <p class="mt-1">ตำแหน่ง..........................................................</p>
+        <p style="margin-top: 5px;">(..........................................................)</p>
+        <p style="margin-top: 5px;">ตำแหน่ง..........................................................</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- พิมพ์ใบรายงานรายเคส A4 (แบบรายการไทย TH Sarabun New 16pt - ไม่ใส่ตราครุฑ) -->
+  <div class="print-only" id="singleCasePrintArea" style="display: none;">
+    <div class="print-header">ใบรายงานผลการลงพื้นที่สำรวจสนาม</div>
+    <div class="print-subheader">งานเร่งรัดจัดเก็บรายได้ ฝ่ายจัดเก็บและพัฒนารายได้</div>
+
+    <div style="border: 1px solid #000; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 8px;">
+        <div><strong>วันที่ลงสำรวจ:</strong> <span id="pCaseDate">-</span></div>
+        <div><strong>เจ้าหน้าที่ผู้สำรวจ:</strong> <span id="pCaseOfficer">-</span></div>
+      </div>
+      <div style="margin-bottom: 8px;">
+        <div><strong>ชื่อผู้เสียภาษี / ร้านค้า:</strong> <span id="pCaseTaxName" style="font-weight: bold;">-</span></div>
+        <div><strong>รหัสผู้เสียภาษี:</strong> <span id="pCaseTaxId">-</span> &nbsp;|&nbsp; <strong>ประเภทภาษี:</strong> <span id="pCaseTaxType">-</span></div>
+        <div><strong>สถานที่ / ที่อยู่:</strong> <span id="pCaseAddress">-</span></div>
+      </div>
+      <div style="border-top: 1px solid #ccc; padding-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+        <div><strong>ผลการติดตาม:</strong> <span id="pCaseResult">-</span></div>
+        <div><strong>การรับเอกสาร:</strong> <span id="pCaseReceipt">-</span> <span id="pCaseDocType"></span></div>
+        <div><strong>สถานะการชำระเงิน:</strong> <span id="pCasePayment">-</span></div>
+        <div><strong>ปีที่ค้างชำระ:</strong> <span id="pCaseOverdue">-</span></div>
+      </div>
+      <div style="border-top: 1px solid #ccc; padding-top: 8px; margin-top: 8px;">
+        <div><strong>หมายเหตุเพิ่มเติม:</strong></div>
+        <div id="pCaseNote" style="padding-left: 15px; font-style: italic;">-</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <div style="font-weight: bold; margin-bottom: 8px;">รูปถ่ายหลักฐานการลงสำรวจสนาม:</div>
+      <div id="pCaseImages" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <!-- รูปภาพพิมพ์ -->
+      </div>
+    </div>
+
+    <div style="margin-top: 50px; display: flex; justify-content: space-between; text-align: center;">
+      <div style="width: 250px;">
+        <p>ลงชื่อ..........................................................</p>
+        <p style="margin-top: 5px;">(<span id="pSignOfficer">..........................................................</span>)</p>
+        <p style="margin-top: 5px;">เจ้าหน้าที่ผู้ลงพื้นที่สำรวจ</p>
+      </div>
+      <div style="width: 250px;">
+        <p>ลงชื่อ..........................................................</p>
+        <p style="margin-top: 5px;">(..........................................................)</p>
+        <p style="margin-top: 5px;">หัวหน้าฝ่ายจัดเก็บรายได้</p>
       </div>
     </div>
   </div>
@@ -289,7 +412,7 @@
       <!-- Header Modal -->
       <div class="bg-amber-50/80 px-6 py-4 border-b border-amber-100 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="text-xl">📋</span>
+          <span class="text-xl">🐰</span>
           <h3 class="font-bold text-amber-950 text-base">รายละเอียดการลงพื้นที่สำรวจสนาม</h3>
         </div>
         <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm border border-slate-100 transition">✕</button>
@@ -341,6 +464,19 @@
           </div>
         </div>
 
+        <!-- ตัวเลือกอัปเดตสถานะการชำระเงิน -->
+        <div class="bg-teal-50/50 p-4 rounded-2xl border border-teal-100 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <p class="text-xs font-semibold text-teal-800">💰 อัปเดตสถานะการชำระเงิน</p>
+            <p class="text-xs text-teal-600/80">ปรับเปลี่ยนสถานะเพื่อติดตามยอดเงินภาษี</p>
+          </div>
+          <select id="detailPaymentSelect" onchange="updatePaymentStatus()" class="pastel-select text-xs p-2 rounded-xl font-bold text-slate-700">
+            <option value="ยังไม่ชำระ">🔴 ยังไม่ชำระ / รอติดตาม</option>
+            <option value="นัดชำระ">🟡 นัดชำระแล้ว</option>
+            <option value="ชำระแล้ว">🟢 ชำระแล้ว (ปิดเคส)</option>
+          </select>
+        </div>
+
         <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
           <p class="text-xs font-semibold text-slate-400 mb-1">📝 หมายเหตุเพิ่มเติม</p>
           <p id="detailNote" class="text-slate-700 whitespace-pre-line">-</p>
@@ -354,8 +490,11 @@
         </div>
       </div>
 
-      <!-- Footer Modal -->
-      <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-end">
+      <!-- Footer Modal พร้อมปุ่มพิมพ์รายเคส -->
+      <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-between items-center">
+        <button onclick="printSingleCase()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+          <span>📄</span> พิมพ์ใบรายงานเคสนี้ (A4)
+        </button>
         <button onclick="closeDetailModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2 rounded-xl text-xs font-semibold transition">ปิดหน้าต่าง</button>
       </div>
     </div>
@@ -377,6 +516,9 @@
     const db = firebase.database();
 
     let allCasesData = [];
+    let currentActiveCaseId = null;
+    let donutChartInstance = null;
+    let barChartInstance = null;
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -388,7 +530,6 @@
         .replace(/'/g, "&#039;");
     }
 
-    // ล้างช่องว่างทั้งหมดในชื่อ ป้องกันปัญหาพิมพ์ติดๆ เว้นๆ
     function cleanOfficerName(nameStr) {
       if (!nameStr) return 'ไม่ระบุเจ้าหน้าที่';
       return String(nameStr).replace(/[\s\u00A0]+/g, '').trim();
@@ -428,10 +569,11 @@
       document.getElementById('modalImg').src = '';
     }
 
-    // ฟังก์ชันเปิดดูรายละเอียดทีละรายการ
     function openDetailModal(id) {
       const item = allCasesData.find(c => c.id === id);
       if (!item) return;
+
+      currentActiveCaseId = id;
 
       document.getElementById('detailDate').innerText = item.docDate || item.date || '-';
       document.getElementById('detailOfficer').innerText = cleanOfficerName(item.officerName || item.officer);
@@ -443,6 +585,8 @@
       document.getElementById('detailReceipt').innerText = item.receiptStatus || '-';
       document.getElementById('detailDocType').innerText = item.docType ? `(${item.docType})` : '';
       document.getElementById('detailNote').innerText = item.note || '-';
+      
+      document.getElementById('detailPaymentSelect').value = item.paymentStatus || 'ยังไม่ชำระ';
 
       const imgList = extractImageUrls(item);
       const imgContainer = document.getElementById('detailImagesContainer');
@@ -472,15 +616,73 @@
       const modal = document.getElementById('itemDetailModal');
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+      currentActiveCaseId = null;
     }
 
-    // ฟังก์ชันเมื่อคลิกชื่อเจ้าหน้าที่ในตารางสรุป
+    function updatePaymentStatus() {
+      if (!currentActiveCaseId) return;
+      const newStatus = document.getElementById('detailPaymentSelect').value;
+
+      db.ref(`revenue_cases/${currentActiveCaseId}`).update({
+        paymentStatus: newStatus
+      }).then(() => {
+        // อัปเดตข้อมูลสำเร็จ
+      }).catch(err => {
+        alert('เกิดข้อผิดพลาดในการอัปเดตสถานะ: ' + err.message);
+      });
+    }
+
+    function printSingleCase() {
+      if (!currentActiveCaseId) return;
+      const item = allCasesData.find(c => c.id === currentActiveCaseId);
+      if (!item) return;
+
+      document.getElementById('pCaseDate').innerText = item.docDate || item.date || '-';
+      document.getElementById('pCaseOfficer').innerText = cleanOfficerName(item.officerName || item.officer);
+      document.getElementById('pSignOfficer').innerText = cleanOfficerName(item.officerName || item.officer);
+      document.getElementById('pCaseTaxName').innerText = item.taxName || item.tax_name || '-';
+      document.getElementById('pCaseTaxId').innerText = item.taxId || '-';
+      document.getElementById('pCaseTaxType').innerText = item.taxType || '-';
+      document.getElementById('pCaseAddress').innerText = item.address || '-';
+      document.getElementById('pCaseResult').innerText = item.result || item.followStatus || '-';
+      document.getElementById('pCaseReceipt').innerText = item.receiptStatus || '-';
+      document.getElementById('pCaseDocType').innerText = item.docType ? `(${item.docType})` : '';
+      document.getElementById('pCasePayment').innerText = item.paymentStatus || 'ยังไม่ชำระ';
+      document.getElementById('pCaseOverdue').innerText = item.overdueYears || '-';
+      document.getElementById('pCaseNote').innerText = item.note || '-';
+
+      const imgList = extractImageUrls(item);
+      const imgContainer = document.getElementById('pCaseImages');
+      imgContainer.innerHTML = '';
+
+      if (imgList.length > 0) {
+        imgList.forEach(url => {
+          imgContainer.innerHTML += `
+            <div style="border: 1px solid #ccc; padding: 4px; background: #fafafa; text-align: center;">
+              <img src="${escapeHtml(url)}" style="height: 180px; width: 100%; object-fit: cover; border-radius: 4px;">
+            </div>
+          `;
+        });
+      } else {
+        imgContainer.innerHTML = '<p style="font-size: 14pt; color: #777; font-style: italic;">ไม่มีรูปภาพประกอบ</p>';
+      }
+
+      document.getElementById('summaryPrintArea').style.display = 'none';
+      document.getElementById('singleCasePrintArea').style.display = 'block';
+
+      window.print();
+
+      setTimeout(() => {
+        document.getElementById('summaryPrintArea').style.display = 'block';
+        document.getElementById('singleCasePrintArea').style.display = 'none';
+      }, 1000);
+    }
+
     function selectOfficerAndScroll(officerName) {
       const officerSelect = document.getElementById('exportOfficerFilter');
       officerSelect.value = officerName;
       renderDashboard();
 
-      // Smooth scroll ลงไปที่ส่วนตารางรายการสำรวจสนาม
       const recentSection = document.getElementById('recentSection');
       if (recentSection) {
         recentSection.scrollIntoView({ behavior: 'smooth' });
@@ -536,12 +738,13 @@
           allCasesData = [];
           document.getElementById('officerTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
           document.getElementById('recentTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลในระบบ</td></tr>';
-          document.getElementById('printOfficerTable').innerHTML = '<tr><td colspan="5" class="text-center py-2">ไม่มีข้อมูล</td></tr>';
+          document.getElementById('printOfficerTable').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 10px;">ไม่มีข้อมูล</td></tr>';
           document.getElementById('dailyCount').innerText = 0;
           document.getElementById('monthlyCount').innerText = 0;
           document.getElementById('quarterlyCount').innerText = 0;
           document.getElementById('filteredMatchCount').innerText = 0;
           document.getElementById('totalMatchCount').innerText = 0;
+          renderCharts([], {});
           return;
         }
 
@@ -565,20 +768,19 @@
       });
     }
 
-    // ฟังก์ชันคืนค่าตัวกรองทั้งหมด
     function resetFilters() {
       document.getElementById('searchInput').value = '';
       document.getElementById('exportPeriodFilter').value = 'all';
       document.getElementById('exportOfficerFilter').value = 'all';
       document.getElementById('taxTypeFilter').value = 'all';
       document.getElementById('resultFilter').value = 'all';
+      document.getElementById('paymentFilter').value = 'all';
       renderDashboard();
     }
 
     function renderDashboard() {
       const filteredData = getFilteredData();
 
-      // อัปเดตตัวเลขจำนวนที่ค้นพบ
       document.getElementById('filteredMatchCount').innerText = filteredData.length.toLocaleString();
       document.getElementById('totalMatchCount').innerText = allCasesData.length.toLocaleString();
 
@@ -599,8 +801,9 @@
         const officer = cleanOfficerName(item.officerName || item.officer);
 
         if (!officerMap[officer]) {
-          officerMap[officer] = { daily: 0, monthly: 0, quarterly: 0 };
+          officerMap[officer] = { daily: 0, monthly: 0, quarterly: 0, total: 0 };
         }
+        officerMap[officer].total++;
 
         const rawDate = item.docDate || item.date || item.timestamp || '';
         const parsed = parseDateParts(rawDate);
@@ -629,6 +832,8 @@
       document.getElementById('monthlyCount').innerText = mCount.toLocaleString();
       document.getElementById('quarterlyCount').innerText = qCount.toLocaleString();
 
+      renderCharts(filteredData, officerMap);
+
       let officerHtml = '';
       let printOfficerHtml = '';
       let index = 1;
@@ -637,7 +842,6 @@
         const stat = officerMap[off];
         const safeOff = escapeHtml(off);
 
-        // เพิ่ม onclick และ cursor-pointer ให้ผู้บริหารคลิกชื่อเจ้าหน้าที่ได้ทันที
         officerHtml += `
           <tr onclick="selectOfficerAndScroll('${safeOff}')" class="hover:bg-purple-100/60 cursor-pointer transition rounded-xl group" title="คลิกเพื่อดูกรองเฉพาะรายการของ ${safeOff}">
             <td class="p-3 font-medium text-slate-800 group-hover:text-purple-900 flex items-center gap-1.5">
@@ -651,18 +855,18 @@
         `;
 
         printOfficerHtml += `
-          <tr class="text-center">
-            <td class="border border-black p-1.5">${index++}</td>
-            <td class="border border-black p-1.5 text-left">${safeOff}</td>
-            <td class="border border-black p-1.5">${stat.daily}</td>
-            <td class="border border-black p-1.5">${stat.monthly}</td>
-            <td class="border border-black p-1.5">${stat.quarterly}</td>
+          <tr>
+            <td style="text-align: center;">${index++}</td>
+            <td style="text-align: left;">${safeOff}</td>
+            <td style="text-align: center;">${stat.daily}</td>
+            <td style="text-align: center;">${stat.monthly}</td>
+            <td style="text-align: center;">${stat.quarterly}</td>
           </tr>
         `;
       });
 
       document.getElementById('officerTableBody').innerHTML = officerHtml || '<tr><td colspan="4" class="text-center py-4 text-slate-400">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
-      document.getElementById('printOfficerTable').innerHTML = printOfficerHtml || '<tr><td colspan="5" class="text-center py-2">ไม่มีข้อมูล</td></tr>';
+      document.getElementById('printOfficerTable').innerHTML = printOfficerHtml || '<tr><td colspan="5" style="text-align: center; padding: 10px;">ไม่มีข้อมูล</td></tr>';
 
       const recentList = [...filteredData].reverse();
       let recentHtml = '';
@@ -673,7 +877,7 @@
         const taxName = escapeHtml(item.taxName || item.tax_name || '-');
         const taxId = item.taxId ? `<span class="text-xs text-slate-400">(${escapeHtml(item.taxId)})</span>` : '';
         const result = escapeHtml(item.result || item.followStatus || '-');
-        const receipt = escapeHtml(item.receiptStatus || '-');
+        const payment = escapeHtml(item.paymentStatus || 'ยังไม่ชำระ');
         const note = escapeHtml(item.note || '-');
 
         const imgList = extractImageUrls(item);
@@ -699,13 +903,17 @@
         else if (result.includes('ไม่พบผู้ค้างภาษี')) badgeColor = 'bg-rose-100 text-rose-800';
         else if (result.includes('พบบุคคลอื่น')) badgeColor = 'bg-amber-100 text-amber-800';
 
+        let payBadgeColor = 'bg-rose-100 text-rose-800';
+        if (payment === 'ชำระแล้ว') payBadgeColor = 'bg-emerald-100 text-emerald-800';
+        else if (payment === 'นัดชำระ') payBadgeColor = 'bg-amber-100 text-amber-800';
+
         recentHtml += `
           <tr onclick="openDetailModal('${item.id}')" class="hover:bg-amber-100/50 cursor-pointer transition">
             <td class="p-3 text-xs text-slate-500">${dateStr}</td>
             <td class="p-3 font-medium text-slate-700">${officer}</td>
             <td class="p-3 font-medium text-slate-800">${taxName} ${taxId}</td>
             <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
-            <td class="p-3 text-slate-600 text-xs">${receipt}</td>
+            <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${payBadgeColor}">${payment}</span></td>
             <td class="p-3" onclick="event.stopPropagation()">${imgCellHtml}</td>
             <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${note}</td>
             <td class="p-3 text-center" onclick="event.stopPropagation()">
@@ -720,31 +928,91 @@
       document.getElementById('recentTableBody').innerHTML = recentHtml || '<tr><td colspan="8" class="text-center py-6 text-slate-400">ไม่พบข้อมูลตรงกับคำค้นหาหรือตัวกรองที่เลือก</td></tr>';
     }
 
-    // ฟังก์ชันกรองข้อมูลขั้นสูง
+    function renderCharts(filteredData, officerMap) {
+      let foundCount = 0, notFoundCount = 0, otherCount = 0;
+      filteredData.forEach(item => {
+        const res = item.result || item.followStatus || '';
+        if (res.includes('พบผู้ค้างภาษี')) foundCount++;
+        else if (res.includes('ไม่พบผู้ค้างภาษี')) notFoundCount++;
+        else if (res.includes('พบบุคคลอื่น')) otherCount++;
+      });
+
+      const donutCtx = document.getElementById('resultDonutChart').getContext('2d');
+      if (donutChartInstance) donutChartInstance.destroy();
+
+      donutChartInstance = new Chart(donutCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['พบผู้ค้างภาษี', 'ไม่พบผู้ค้างภาษี', 'พบบุคคลอื่น'],
+          datasets: [{
+            data: [foundCount, notFoundCount, otherCount],
+            backgroundColor: ['#A7F3D0', '#FECDD3', '#FDE68A'],
+            borderColor: ['#059669', '#E11D48', '#D97706'],
+            borderWidth: 1.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { family: 'Mitr', size: 11 } } } }
+        }
+      });
+
+      const officerNames = Object.keys(officerMap);
+      const officerTotals = officerNames.map(name => officerMap[name].total);
+
+      const barCtx = document.getElementById('officerBarChart').getContext('2d');
+      if (barChartInstance) barChartInstance.destroy();
+
+      barChartInstance = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: officerNames,
+          datasets: [{
+            label: 'จำนวนเคสลงพื้นที่ (รายการ)',
+            data: officerTotals,
+            backgroundColor: '#BAE6FD',
+            borderColor: '#0284C7',
+            borderWidth: 1.5,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Mitr' } } },
+            x: { ticks: { font: { family: 'Mitr', size: 10 } } }
+          }
+        }
+      });
+    }
+
     function getFilteredData() {
       const keyword = (document.getElementById('searchInput').value || '').toLowerCase().trim();
       const periodFilter = document.getElementById('exportPeriodFilter').value;
       const officerFilter = document.getElementById('exportOfficerFilter').value;
       const taxTypeFilter = document.getElementById('taxTypeFilter').value;
       const resultFilter = document.getElementById('resultFilter').value;
+      const paymentFilter = document.getElementById('paymentFilter').value;
 
       const now = new Date();
       const nowParsed = parseDateParts(now.toISOString());
 
       return allCasesData.filter(item => {
-        // 1. กรองตามเจ้าหน้าที่
         const officer = cleanOfficerName(item.officerName || item.officer);
         if (officerFilter !== 'all' && officer !== officerFilter) return false;
 
-        // 2. กรองตามประเภทภาษี
         const taxType = item.taxType || '';
         if (taxTypeFilter !== 'all' && taxType !== taxTypeFilter) return false;
 
-        // 3. กรองตามผลการติดตาม
         const result = item.result || item.followStatus || '';
         if (resultFilter !== 'all' && !result.includes(resultFilter)) return false;
 
-        // 4. กรองตามช่วงเวลา
+        const payment = item.paymentStatus || 'ยังไม่ชำระ';
+        if (paymentFilter !== 'all' && payment !== paymentFilter) return false;
+
         const rawDate = item.docDate || item.date || item.timestamp || '';
         const parsed = parseDateParts(rawDate);
 
@@ -755,7 +1023,6 @@
           if (periodFilter === 'quarterly' && !(nowParsed && parsed.year === nowParsed.year && parsed.quarter === nowParsed.quarter)) return false;
         }
 
-        // 5. กรองด้วยคีย์เวิร์ดค้นหา (ชื่อร้าน, รหัสภาษี, ที่อยู่, หมายเหตุ)
         if (keyword !== '') {
           const taxName = (item.taxName || item.tax_name || '').toLowerCase();
           const taxId = (item.taxId || '').toLowerCase();
@@ -796,6 +1063,7 @@
           'ขั้นตอนเอกสาร': item.docType || '',
           'ปีที่ค้างชำระ': item.overdueYears || '',
           'ผลการติดตาม': item.result || item.followStatus || '',
+          'สถานะการชำระเงิน': item.paymentStatus || 'ยังไม่ชำระ',
           'การรับเอกสาร': item.receiptStatus || '',
           'ลิงก์รูปภาพ': images.join(' , '),
           'หมายเหตุ': item.note || ''
@@ -853,6 +1121,7 @@
               overdueYears: String(row['ปีที่ค้างชำระ'] || row['overdueYears'] || ''),
               result: String(row['ผลการติดตาม'] || row['result'] || row['followStatus'] || 'พบผู้ค้างภาษี'),
               followStatus: String(row['ผลการติดตาม'] || row['result'] || row['followStatus'] || 'พบผู้ค้างภาษี'),
+              paymentStatus: String(row['สถานะการชำระเงิน'] || row['paymentStatus'] || 'ยังไม่ชำระ'),
               receiptStatus: String(row['การรับเอกสาร'] || row['receiptStatus'] || 'ผู้ค้างภาษีรับเอง'),
               images: imagesArr,
               note: String(row['หมายเหตุ'] || row['note'] || ''),
