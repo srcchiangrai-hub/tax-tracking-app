@@ -234,7 +234,7 @@
       loadHistory();
     });
 
-    // ฟังก์ชันย่อขนาดรูปภาพก่อนส่งขึ้น Google Drive (เพื่อความเร็วและประหยัดพื้นที่)
+    // ฟังก์ชันย่อขนาดและฝังลายน้ำ (รหัสผู้เสียภาษี/ชื่อ/วันที่) ลงบนภาพก่อนส่งขึ้น Google Drive
     function compressImage(file, maxWidth = 1200, quality = 0.7) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -257,6 +257,44 @@
 
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
+
+            // ดึงค่าข้อมูลจากฟอร์มมาใส่เป็นข้อความลายน้ำบนรูป
+            const taxId = document.getElementById('taxId').value || 'NO-TAX-ID';
+            const taxName = document.getElementById('taxName').value || '';
+            const docDate = document.getElementById('docDate').value || '';
+            
+            // กำหนดขนาดฟอนต์ให้สัมพันธ์กับขนาดภาพ
+            const fontSize = Math.max(16, Math.round(width * 0.035));
+            ctx.font = `bold ${fontSize}px 'Mitr', sans-serif`;
+            
+            const text1 = `รหัส: ${taxId}`;
+            const text2 = `${taxName} (${docDate})`;
+            
+            // คำนวณตำแหน่งวาง (มุมล่างซ้าย)
+            const padding = fontSize * 0.8;
+            const x = padding;
+            let y = height - padding;
+
+            // วาดแถบพื้นหลังสีดำกึ่งโปร่งใสรองรับข้อความเพื่อให้อ่านง่ายเสมอไม่ว่าพื้นหลังจะสีอะไร
+            ctx.save();
+            const textMetrics1 = ctx.measureText(text1);
+            const textMetrics2 = ctx.measureText(text2);
+            const maxTextWidth = Math.max(textMetrics1.width, textMetrics2.width);
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+            ctx.beginPath();
+            const boxHeight = fontSize * 2.5 + padding;
+            ctx.roundRect(x - 10, y - boxHeight - 5, maxTextWidth + 25, boxHeight + 5, 8);
+            ctx.fill();
+            ctx.restore();
+
+            // พิมพ์ข้อความตัวอักษรสีขาวพร้อมเงา
+            ctx.fillStyle = '#FFFFFF';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 4;
+            
+            ctx.fillText(text2, x, y - (fontSize * 0.2));
+            ctx.fillText(text1, x, y - (fontSize * 1.3) - (fontSize * 0.2));
 
             const dataUrl = canvas.toDataURL('image/jpeg', quality);
             const base64Data = dataUrl.split(',')[1];
