@@ -113,7 +113,7 @@
       </div>
       
       <div class="flex items-center gap-2 flex-wrap">
-        <button onclick="triggerPrintAll()" class="bg-sky-400 hover:bg-sky-500 text-white px-4 py-2.5 rounded-2xl text-sm font-medium transition shadow-sm flex items-center gap-1.5">
+        <button onclick="window.print()" class="bg-sky-400 hover:bg-sky-500 text-white px-4 py-2.5 rounded-2xl text-sm font-medium transition shadow-sm flex items-center gap-1.5">
           <span>🖨️</span> พิมพ์รวม A4 (Sarabun 16)
         </button>
         <a href="admin.html" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2.5 rounded-2xl text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
@@ -371,9 +371,9 @@
         <tr>
           <th style="width: 6%; text-align: center;">ลำดับ</th>
           <th style="width: 34%; text-align: center;">ชื่อ-นามสกุล เจ้าหน้าที่</th>
-          <th style="width: 20%; text-align: center;">ผลงานวันนี้<br>(ราย)</th>
-          <th style="width: 20%; text-align: center;">ผลงานเดือนนี้<br>(ราย)</th>
-          <th style="width: 20%; text-align: center;">ผลงานไตรมาสนี้<br>(ราย)</th>
+          <th style="width: 20%; text-align: center;">ผลงานวันนี้<br>(ป้าย/ที่ดิน/รวม)</th>
+          <th style="width: 20%; text-align: center;">ผลงานเดือนนี้<br>(ป้าย/ที่ดิน/รวม)</th>
+          <th style="width: 20%; text-align: center;">ผลงานไตรมาสนี้<br>(ป้าย/ที่ดิน/รวม)</th>
         </tr>
       </thead>
       <tbody id="printOfficerTable">
@@ -574,6 +574,7 @@
       return String(nameStr).replace(/[\s\u00A0]+/g, '').trim();
     }
 
+    // ฟังก์ชันจัดกลุ่มประเภทภาษีให้ได้มาตรฐาน
     function normalizeTaxCategory(taxTypeStr) {
       if (!taxTypeStr) return 'other';
       const str = String(taxTypeStr).trim();
@@ -656,7 +657,7 @@
           `;
         });
       } else {
-        imgContainer.innerHTML = `<span class="text-slate-400 text-xs italic">ไม่มีรูปถ่ายบันทึกไว้</span>`;
+        imgContainer.innerHTML = '<span class="text-xs text-slate-400">ไม่มีรูปภาพประกอบ</span>';
       }
 
       const modal = document.getElementById('itemDetailModal');
@@ -674,24 +675,16 @@
     function updatePaymentStatus() {
       if (!currentActiveCaseId) return;
       const newStatus = document.getElementById('detailPaymentSelect').value;
-      
-      db.ref('surveys/' + currentActiveCaseId).update({
+
+      db.ref(`revenue_cases/${currentActiveCaseId}`).update({
         paymentStatus: newStatus
       }).then(() => {
-        alert('อัปเดตสถานะการชำระเงินเรียบร้อยแล้ว');
+        // อัปเดตข้อมูลสำเร็จ
       }).catch(err => {
-        alert('เกิดข้อผิดพลาดในการอัปเดต: ' + err.message);
+        alert('เกิดข้อผิดพลาดในการอัปเดตสถานะ: ' + err.message);
       });
     }
 
-    // ฟังก์ชันพิมพ์รวม A4
-    function triggerPrintAll() {
-      document.getElementById('summaryPrintArea').style.display = 'block';
-      document.getElementById('singleCasePrintArea').style.display = 'none';
-      window.print();
-    }
-
-    // ฟังก์ชันสั่งพิมพ์เฉพาะเคสรายบุคคล (ซ่อนส่วนสรุปอัตโนมัติ)
     function printSingleCase() {
       if (!currentActiveCaseId) return;
       const item = allCasesData.find(c => c.id === currentActiveCaseId);
@@ -699,6 +692,7 @@
 
       document.getElementById('pCaseDate').innerText = item.docDate || item.date || '-';
       document.getElementById('pCaseOfficer').innerText = cleanOfficerName(item.officerName || item.officer);
+      document.getElementById('pSignOfficer').innerText = cleanOfficerName(item.officerName || item.officer);
       document.getElementById('pCaseTaxName').innerText = item.taxName || item.tax_name || '-';
       document.getElementById('pCaseTaxId').innerText = item.taxId || '-';
       document.getElementById('pCaseTaxType').innerText = item.taxType || '-';
@@ -707,105 +701,55 @@
       document.getElementById('pCaseReceipt').innerText = item.receiptStatus || '-';
       document.getElementById('pCaseDocType').innerText = item.docType ? `(${item.docType})` : '';
       document.getElementById('pCasePayment').innerText = item.paymentStatus || 'ยังไม่ชำระ';
-      document.getElementById('pCaseOverdue').innerText = item.overdueYear || item.overdue_year || '2568';
+      document.getElementById('pCaseOverdue').innerText = item.overdueYears || '-';
       document.getElementById('pCaseNote').innerText = item.note || '-';
-      document.getElementById('pSignOfficer').innerText = cleanOfficerName(item.officerName || item.officer);
 
-      const printImgContainer = document.getElementById('pCaseImages');
-      printImgContainer.innerHTML = '';
       const imgList = extractImageUrls(item);
+      const imgContainer = document.getElementById('pCaseImages');
+      imgContainer.innerHTML = '';
 
       if (imgList.length > 0) {
         imgList.forEach(url => {
-          printImgContainer.innerHTML += `
-            <div style="border: 1px solid #ddd; padding: 4px; text-align: center;">
-              <img src="${escapeHtml(url)}" style="max-height: 220px; width: auto; max-width: 100%; display: block; margin: 0 auto;">
+          imgContainer.innerHTML += `
+            <div style="border: 1px solid #ccc; padding: 4px; background: #fafafa; text-align: center;">
+              <img src="${escapeHtml(url)}" style="height: 180px; width: 100%; object-fit: cover; border-radius: 4px;">
             </div>
           `;
         });
       } else {
-        printImgContainer.innerHTML = '<div style="color: #888; font-style: italic;">ไม่มีรูปถ่ายประกอบ</div>';
+        imgContainer.innerHTML = '<p style="font-size: 14pt; color: #777; font-style: italic;">ไม่มีรูปภาพประกอบ</p>';
       }
 
-      // สลับส่วนพิมพ์ ให้แสดงเฉพาะรายเคส และซ่อนตารางสรุป
       document.getElementById('summaryPrintArea').style.display = 'none';
       document.getElementById('singleCasePrintArea').style.display = 'block';
 
       window.print();
+
+      setTimeout(() => {
+        document.getElementById('summaryPrintArea').style.display = 'block';
+        document.getElementById('singleCasePrintArea').style.display = 'none';
+      }, 1000);
     }
 
-    function isSameDay(d1Str, d2) {
-      if (!d1Str) return false;
-      const d1 = new Date(d1Str);
-      if (isNaN(d1)) return false;
-      return d1.getFullYear() === d2.getFullYear() &&
-             d1.getMonth() === d2.getMonth() &&
-             d1.getDate() === d2.getDate();
-    }
-
-    function isSameMonth(d1Str, d2) {
-      if (!d1Str) return false;
-      const d1 = new Date(d1Str);
-      if (isNaN(d1)) return false;
-      return d1.getFullYear() === d2.getFullYear() &&
-             d1.getMonth() === d2.getMonth();
-    }
-
-    function isSameQuarter(d1Str, d2) {
-      if (!d1Str) return false;
-      const d1 = new Date(d1Str);
-      if (isNaN(d1)) return false;
-      const q1 = Math.floor(d1.getMonth() / 3);
-      const q2 = Math.floor(d2.getMonth() / 3);
-      return d1.getFullYear() === d2.getFullYear() && q1 === q2;
-    }
-
-    function filterData() {
-      const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
-      const periodVal = document.getElementById('exportPeriodFilter').value;
-      const officerVal = document.getElementById('exportOfficerFilter').value;
-      const taxTypeVal = document.getElementById('taxTypeFilter').value;
-      const resultVal = document.getElementById('resultFilter').value;
-      const paymentVal = document.getElementById('paymentFilter').value;
-
-      const now = new Date();
-
-      return allCasesData.filter(item => {
-        const itemDateStr = item.docDate || item.date;
-        
-        // 1. กรองตามช่วงเวลา
-        if (periodVal === 'daily' && !isSameDay(itemDateStr, now)) return false;
-        if (periodVal === 'monthly' && !isSameMonth(itemDateStr, now)) return false;
-        if (periodVal === 'quarterly' && !isSameQuarter(itemDateStr, now)) return false;
-
-        // 2. กรองตามเจ้าหน้าที่
-        const officerName = cleanOfficerName(item.officerName || item.officer);
-        if (officerVal !== 'all' && officerName !== officerVal) return false;
-
-        // 3. กรองตามประเภทภาษี
-        if (taxTypeVal !== 'all' && (item.taxType || '') !== taxTypeVal) return false;
-
-        // 4. กรองตามผลการติดตาม
-        const res = item.result || item.followStatus || '';
-        if (resultVal !== 'all' && res !== resultVal) return false;
-
-        // 5. กรองตามสถานะการเงิน
-        const pay = item.paymentStatus || 'ยังไม่ชำระ';
-        if (paymentVal !== 'all' && pay !== paymentVal) return false;
-
-        // 6. กรองตามคำค้นหา
-        if (searchVal !== '') {
-          const combinedStr = `${item.taxName || ''} ${item.taxId || ''} ${item.address || ''} ${officerName} ${item.note || ''}`.toLowerCase();
-          if (!combinedStr.includes(searchVal)) return false;
-        }
-
-        return true;
-      });
-    }
-
-    function filterByOfficer(name) {
-      document.getElementById('exportOfficerFilter').value = name;
+    function selectOfficerAndScroll(officerName) {
+      const officerSelect = document.getElementById('exportOfficerFilter');
+      officerSelect.value = officerName;
       renderDashboard();
+
+      const recentSection = document.getElementById('recentSection');
+      if (recentSection) {
+        recentSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function deleteCase(id) {
+      if (confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) {
+        db.ref(`revenue_cases/${id}`).remove().then(() => {
+          alert("ลบข้อมูลเรียบร้อยแล้ว");
+        }).catch(err => {
+          alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
+        });
+      }
     }
 
     function resetFilters() {
@@ -818,353 +762,469 @@
       renderDashboard();
     }
 
-    function renderDashboard() {
-      const filtered = filterData();
-      const now = new Date();
-
-      document.getElementById('totalMatchCount').innerText = allCasesData.length;
-      document.getElementById('filteredMatchCount').innerText = filtered.length;
-
-      // คำนวณ KPI แยกประเภทภาษี
-      let dCount = 0, mCount = 0, qCount = 0;
-      let dCats = { sign: 0, land: 0, both: 0, other: 0 };
-      let mCats = { sign: 0, land: 0, both: 0, other: 0 };
-      let qCats = { sign: 0, land: 0, both: 0, other: 0 };
-
-      allCasesData.forEach(item => {
-        const itemDateStr = item.docDate || item.date;
-        const cat = normalizeTaxCategory(item.taxType);
-
-        if (isSameDay(itemDateStr, now)) {
-          dCount++;
-          dCats[cat]++;
-        }
-        if (isSameMonth(itemDateStr, now)) {
-          mCount++;
-          mCats[cat]++;
-        }
-        if (isSameQuarter(itemDateStr, now)) {
-          qCount++;
-          qCats[cat]++;
-        }
-      });
-
-      document.getElementById('dailyCount').innerText = dCount;
-      document.getElementById('dailySignCount').innerText = dCats.sign + ' ราย';
-      document.getElementById('dailyLandCount').innerText = dCats.land + ' ราย';
-      document.getElementById('dailyBothCount').innerText = dCats.both + ' ราย';
-      document.getElementById('dailyOtherCount').innerText = dCats.other + ' ราย';
-
-      document.getElementById('monthlyCount').innerText = mCount;
-      document.getElementById('monthlySignCount').innerText = mCats.sign + ' ราย';
-      document.getElementById('monthlyLandCount').innerText = mCats.land + ' ราย';
-      document.getElementById('monthlyBothCount').innerText = mCats.both + ' ราย';
-      document.getElementById('monthlyOtherCount').innerText = mCats.other + ' ราย';
-
-      document.getElementById('quarterlyCount').innerText = qCount;
-      document.getElementById('quarterlySignCount').innerText = qCats.sign + ' ราย';
-      document.getElementById('quarterlyLandCount').innerText = qCats.land + ' ราย';
-      document.getElementById('quarterlyBothCount').innerText = qCats.both + ' ราย';
-      document.getElementById('quarterlyOtherCount').innerText = qCats.other + ' ราย';
-
-      // สรุปการยื่นเอกสาร
-      const docSummary = {};
-      allCasesData.forEach(item => {
-        if (item.docType && item.docType.trim() !== '') {
-          const dt = item.docType.trim();
-          docSummary[dt] = (docSummary[dt] || 0) + 1;
-        }
-      });
-
-      const docContainer = document.getElementById('docTypeSummaryContainer');
-      docContainer.innerHTML = '';
-      if (Object.keys(docSummary).length > 0) {
-        Object.entries(docSummary).forEach(([type, count]) => {
-          docContainer.innerHTML += `
-            <div class="bg-white p-2.5 rounded-2xl border border-purple-100 flex flex-col justify-between shadow-sm">
-              <span class="text-purple-900 font-medium truncate" title="${escapeHtml(type)}">${escapeHtml(type)}</span>
-              <span class="text-base font-bold text-purple-700 mt-1">${count} <span class="text-xs font-normal text-slate-400">ฉบับ</span></span>
-            </div>
-          `;
-        });
-      } else {
-        docContainer.innerHTML = `<span class="text-slate-400 text-xs italic">ไม่มีการบันทึกเอกสาร</span>`;
-      }
-
-      // สรุปรายเจ้าหน้าที่
-      const officerStats = {};
-      allCasesData.forEach(item => {
-        const offName = cleanOfficerName(item.officerName || item.officer);
-        if (!officerStats[offName]) {
-          officerStats[offName] = {
-            daily: 0, monthly: 0, quarterly: 0,
-            dailySign: 0, dailyLand: 0,
-            monthlySign: 0, monthlyLand: 0,
-            quarterlySign: 0, quarterlyLand: 0
-          };
-        }
-
-        const itemDateStr = item.docDate || item.date;
-        const cat = normalizeTaxCategory(item.taxType);
-
-        if (isSameDay(itemDateStr, now)) {
-          officerStats[offName].daily++;
-          if (cat === 'sign') officerStats[offName].dailySign++;
-          if (cat === 'land') officerStats[offName].dailyLand++;
-        }
-        if (isSameMonth(itemDateStr, now)) {
-          officerStats[offName].monthly++;
-          if (cat === 'sign') officerStats[offName].monthlySign++;
-          if (cat === 'land') officerStats[offName].monthlyLand++;
-        }
-        if (isSameQuarter(itemDateStr, now)) {
-          officerStats[offName].quarterly++;
-          if (cat === 'sign') officerStats[offName].quarterlySign++;
-          if (cat === 'land') officerStats[offName].quarterlyLand++;
-        }
-      });
-
-      // แสดงตารางเจ้าหน้าที่ บนหน้าเว็บ
-      const officerBody = document.getElementById('officerTableBody');
-      const printOfficerBody = document.getElementById('printOfficerTable');
-      officerBody.innerHTML = '';
-      printOfficerBody.innerHTML = '';
-
-      let idx = 1;
-      const officerNames = Object.keys(officerStats);
-
-      if (officerNames.length > 0) {
-        officerNames.forEach(off => {
-          const st = officerStats[off];
-          
-          // Row บนหน้าจอ Web
-          officerBody.innerHTML += `
-            <tr class="hover:bg-purple-50/50 transition cursor-pointer" onclick="filterByOfficer('${escapeHtml(off)}')">
-              <td class="p-3 font-semibold text-purple-950 flex items-center gap-2">
-                <span>👤</span> ${escapeHtml(off)}
-              </td>
-              <td class="p-3 text-center">
-                <span class="text-xs text-slate-500">${st.dailySign}/${st.dailyLand}/</span>
-                <span class="font-bold text-emerald-600">${st.daily}</span>
-              </td>
-              <td class="p-3 text-center">
-                <span class="text-xs text-slate-500">${st.monthlySign}/${st.monthlyLand}/</span>
-                <span class="font-bold text-orange-600">${st.monthly}</span>
-              </td>
-              <td class="p-3 text-center">
-                <span class="text-xs text-slate-500">${st.quarterlySign}/${st.quarterlyLand}/</span>
-                <span class="font-bold text-indigo-600">${st.quarterly}</span>
-              </td>
-            </tr>
-          `;
-
-          // Row สำหรับสั่งพิมพ์ A4 รวม
-          printOfficerBody.innerHTML += `
-            <tr>
-              <td style="text-align: center;">${idx++}</td>
-              <td>${escapeHtml(off)}</td>
-              <td style="text-align: center;">${st.daily}</td>
-              <td style="text-align: center;">${st.monthly}</td>
-              <td style="text-align: center;">${st.quarterly}</td>
-            </tr>
-          `;
-        });
-      } else {
-        officerBody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลเจ้าหน้าที่</td></tr>`;
-      }
-
-      // แสดงรายการเข้าสำรวจสนาม ( recentTableBody )
-      const recentBody = document.getElementById('recentTableBody');
-      recentBody.innerHTML = '';
-
-      if (filtered.length > 0) {
-        filtered.forEach(item => {
-          const imgs = extractImageUrls(item);
-          let imgHtml = '-';
-          if (imgs.length > 0) {
-            imgHtml = `
-              <img src="${escapeHtml(imgs[0])}" 
-                   class="w-10 h-10 object-cover rounded-lg border border-amber-200 cursor-pointer shadow-sm hover:scale-105 transition"
-                   onclick="openImageModal('${escapeHtml(imgs[0])}')">
-            `;
-          }
-
-          let payBadge = '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">ยังไม่ชำระ</span>';
-          if (item.paymentStatus === 'ชำระแล้ว') {
-            payBadge = '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">ชำระแล้ว</span>';
-          } else if (item.paymentStatus === 'นัดชำระ') {
-            payBadge = '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">นัดชำระ</span>';
-          }
-
-          recentBody.innerHTML += `
-            <tr class="hover:bg-amber-50/40 transition">
-              <td class="p-3 font-medium text-slate-600 whitespace-nowrap">${escapeHtml(item.docDate || item.date || '-')}</td>
-              <td class="p-3 font-medium text-slate-800">${escapeHtml(cleanOfficerName(item.officerName || item.officer))}</td>
-              <td class="p-3">
-                <div class="font-bold text-amber-950">${escapeHtml(item.taxName || item.tax_name || '-')}</div>
-                <div class="text-xs text-slate-400">ID: ${escapeHtml(item.taxId || '-')} | ${escapeHtml(item.taxType || '-')}</div>
-              </td>
-              <td class="p-3 font-semibold text-slate-700">${escapeHtml(item.result || item.followStatus || '-')}</td>
-              <td class="p-3 text-xs">
-                <div>${escapeHtml(item.receiptStatus || '-')}</div>
-                <div class="text-slate-400">${escapeHtml(item.docType || '')}</div>
-              </td>
-              <td class="p-3">${payBadge}</td>
-              <td class="p-3">${imgHtml}</td>
-              <td class="p-3 text-xs text-slate-500 max-w-xs truncate" title="${escapeHtml(item.note || '')}">${escapeHtml(item.note || '-')}</td>
-              <td class="p-3 text-center">
-                <button onclick="openDetailModal('${item.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-xl text-xs font-semibold transition shadow-sm">
-                  🔎 รายละเอียด
-                </button>
-              </td>
-            </tr>
-          `;
-        });
-      } else {
-        recentBody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-400">ไม่พบรายการที่ตรงกับเงื่อนไข</td></tr>`;
-      }
-
-      renderCharts(filtered, officerStats);
+    function isSameDay(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth() &&
+             d1.getDate() === d2.getDate();
     }
 
-    function renderCharts(filteredData, officerStats) {
-      // 1. Donut Chart (สัดส่วนผลการติดตาม)
-      const resCounts = {};
-      filteredData.forEach(item => {
-        const r = item.result || item.followStatus || 'ไม่ระบุ';
-        resCounts[r] = (resCounts[r] || 0) + 1;
+    function isSameMonth(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth();
+    }
+
+    function isSameQuarter(d1, d2) {
+      if (d1.getFullYear() !== d2.getFullYear()) return false;
+      const q1 = Math.floor(d1.getMonth() / 3);
+      const q2 = Math.floor(d2.getMonth() / 3);
+      return q1 === q2;
+    }
+
+    function populateOfficerDropdown(cases) {
+      const officerSelect = document.getElementById('exportOfficerFilter');
+      const currentSelected = officerSelect.value;
+      
+      const officersSet = new Set();
+      cases.forEach(c => {
+        const name = cleanOfficerName(c.officerName || c.officer);
+        if (name) officersSet.add(name);
       });
 
-      const donutCtx = document.getElementById('resultDonutChart').getContext('2d');
+      officerSelect.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
+      Array.from(officersSet).sort().forEach(officer => {
+        const opt = document.createElement('option');
+        opt.value = officer;
+        opt.textContent = officer;
+        officerSelect.appendChild(opt);
+      });
+
+      officerSelect.value = currentSelected;
+    }
+
+    function renderCharts(filteredCases) {
+      const resultCounts = {
+        'พบผู้ค้างภาษี': 0,
+        'ไม่พบผู้ค้างภาษี': 0,
+        'พบบุคคลอื่น': 0,
+        'อื่นๆ': 0
+      };
+
+      const officerCounts = {};
+
+      filteredCases.forEach(item => {
+        const res = item.result || item.followStatus || 'อื่นๆ';
+        if (resultCounts[res] !== undefined) {
+          resultCounts[res]++;
+        } else {
+          resultCounts['อื่นๆ']++;
+        }
+
+        const officer = cleanOfficerName(item.officerName || item.officer);
+        officerCounts[officer] = (officerCounts[officer] || 0) + 1;
+      });
+
+      // Render Donut Chart
+      const ctxDonut = document.getElementById('resultDonutChart').getContext('2d');
       if (donutChartInstance) donutChartInstance.destroy();
 
-      donutChartInstance = new Chart(donutCtx, {
+      donutChartInstance = new Chart(ctxDonut, {
         type: 'doughnut',
         data: {
-          labels: Object.keys(resCounts),
+          labels: Object.keys(resultCounts),
           datasets: [{
-            data: Object.values(resCounts),
-            backgroundColor: ['#FFB5A7', '#FCD5CE', '#F8EDEB', '#F8AD9D', '#F4978E']
+            data: Object.values(resultCounts),
+            backgroundColor: ['#f87171', '#34d399', '#fbbf24', '#94a3b8'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } }
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { family: 'Mitr', size: 11 } } }
+          }
         }
       });
 
-      // 2. Bar Chart (สรุปรายเจ้าหน้าที่)
-      const labels = Object.keys(officerStats);
-      const dailyData = labels.map(l => officerStats[l].daily);
-      const monthlyData = labels.map(l => officerStats[l].monthly);
-
-      const barCtx = document.getElementById('officerBarChart').getContext('2d');
+      // Render Bar Chart
+      const ctxBar = document.getElementById('officerBarChart').getContext('2d');
       if (barChartInstance) barChartInstance.destroy();
 
-      barChartInstance = new Chart(barCtx, {
+      barChartInstance = new Chart(ctxBar, {
         type: 'bar',
         data: {
-          labels: labels,
-          datasets: [
-            { label: 'วันนี้', data: dailyData, backgroundColor: '#34D399' },
-            { label: 'เดือนนี้', data: monthlyData, backgroundColor: '#FB923C' }
-          ]
+          labels: Object.keys(officerCounts),
+          datasets: [{
+            label: 'จำนวนที่สำรวจ (ราย)',
+            data: Object.values(officerCounts),
+            backgroundColor: '#38bdf8',
+            borderRadius: 8
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } }
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Mitr' } } },
+            x: { ticks: { font: { family: 'Mitr', size: 10 } } }
+          },
+          plugins: {
+            legend: { display: false }
+          }
         }
       });
     }
 
-    // ฟังก์ชัน Export Excel
+    function renderDashboard() {
+      const searchKeyword = document.getElementById('searchInput').value.trim().toLowerCase();
+      const periodFilter = document.getElementById('exportPeriodFilter').value;
+      const officerFilter = document.getElementById('exportOfficerFilter').value;
+      const taxTypeFilter = document.getElementById('taxTypeFilter').value;
+      const resultFilter = document.getElementById('resultFilter').value;
+      const paymentFilter = document.getElementById('paymentFilter').value;
+
+      const now = new Date();
+
+      // คำนวณ KPI ภาพรวมจำแนกประเภทภาษี
+      let dailyTotal = 0, dailySign = 0, dailyLand = 0, dailyBoth = 0, dailyOther = 0;
+      let monthlyTotal = 0, monthlySign = 0, monthlyLand = 0, monthlyBoth = 0, monthlyOther = 0;
+      let quarterlyTotal = 0, quarterlySign = 0, quarterlyLand = 0, quarterlyBoth = 0, quarterlyOther = 0;
+
+      const officerStats = {};
+
+      allCasesData.forEach(item => {
+        const dateStr = item.docDate || item.date;
+        const itemDate = dateStr ? new Date(dateStr) : null;
+        const officer = cleanOfficerName(item.officerName || item.officer);
+        const category = normalizeTaxCategory(item.taxType);
+
+        if (!officerStats[officer]) {
+          officerStats[officer] = { 
+            dailyTotal: 0, dailySign: 0, dailyLand: 0,
+            monthlyTotal: 0, monthlySign: 0, monthlyLand: 0,
+            quarterlyTotal: 0, quarterlySign: 0, quarterlyLand: 0
+          };
+        }
+
+        if (itemDate && !isNaN(itemDate.getTime())) {
+          // วันนี้
+          if (isSameDay(itemDate, now)) {
+            dailyTotal++;
+            officerStats[officer].dailyTotal++;
+            if (category === 'sign') { dailySign++; officerStats[officer].dailySign++; }
+            else if (category === 'land') { dailyLand++; officerStats[officer].dailyLand++; }
+            else if (category === 'both') { dailyBoth++; officerStats[officer].dailySign++; officerStats[officer].dailyLand++; }
+            else { dailyOther++; }
+          }
+          // เดือนนี้
+          if (isSameMonth(itemDate, now)) {
+            monthlyTotal++;
+            officerStats[officer].monthlyTotal++;
+            if (category === 'sign') { monthlySign++; officerStats[officer].monthlySign++; }
+            else if (category === 'land') { monthlyLand++; officerStats[officer].monthlyLand++; }
+            else if (category === 'both') { monthlyBoth++; officerStats[officer].monthlySign++; officerStats[officer].monthlyLand++; }
+            else { monthlyOther++; }
+          }
+          // ไตรมาสนี้
+          if (isSameQuarter(itemDate, now)) {
+            quarterlyTotal++;
+            officerStats[officer].quarterlyTotal++;
+            if (category === 'sign') { quarterlySign++; officerStats[officer].quarterlySign++; }
+            else if (category === 'land') { quarterlyLand++; officerStats[officer].quarterlyLand++; }
+            else if (category === 'both') { quarterlyBoth++; officerStats[officer].quarterlySign++; officerStats[officer].quarterlyLand++; }
+            else { quarterlyOther++; }
+          }
+        }
+      });
+
+      // อัปเดตตัวเลขใน KPI Cards
+      document.getElementById('dailyCount').innerText = dailyTotal;
+      document.getElementById('dailySignCount').innerText = dailySign + ' ราย';
+      document.getElementById('dailyLandCount').innerText = dailyLand + ' ราย';
+      document.getElementById('dailyBothCount').innerText = dailyBoth + ' ราย';
+      document.getElementById('dailyOtherCount').innerText = dailyOther + ' ราย';
+
+      document.getElementById('monthlyCount').innerText = monthlyTotal;
+      document.getElementById('monthlySignCount').innerText = monthlySign + ' ราย';
+      document.getElementById('monthlyLandCount').innerText = monthlyLand + ' ราย';
+      document.getElementById('monthlyBothCount').innerText = monthlyBoth + ' ราย';
+      document.getElementById('monthlyOtherCount').innerText = monthlyOther + ' ราย';
+
+      document.getElementById('quarterlyCount').innerText = quarterlyTotal;
+      document.getElementById('quarterlySignCount').innerText = quarterlySign + ' ราย';
+      document.getElementById('quarterlyLandCount').innerText = quarterlyLand + ' ราย';
+      document.getElementById('quarterlyBothCount').innerText = quarterlyBoth + ' ราย';
+      document.getElementById('quarterlyOtherCount').innerText = quarterlyOther + ' ราย';
+
+      // ตารางสรุปรายเจ้าหน้าที่
+      const officerTableBody = document.getElementById('officerTableBody');
+      const printOfficerTable = document.getElementById('printOfficerTable');
+      
+      officerTableBody.innerHTML = '';
+      printOfficerTable.innerHTML = '';
+
+      const officerList = Object.keys(officerStats).sort();
+      if (officerList.length === 0) {
+        officerTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">ไม่พบข้อมูลเจ้าหน้าที่</td></tr>';
+      } else {
+        officerList.forEach((officer, index) => {
+          const stats = officerStats[officer];
+          officerTableBody.innerHTML += `
+            <tr class="hover:bg-purple-50/50 transition">
+              <td class="p-3 font-semibold text-purple-950 cursor-pointer hover:underline" onclick="selectOfficerAndScroll('${escapeHtml(officer)}')">
+                👷‍♂️ ${escapeHtml(officer)}
+              </td>
+              <td class="p-3 text-center">
+                <span class="text-amber-700 font-medium">${stats.dailySign}</span> / 
+                <span class="text-emerald-700 font-medium">${stats.dailyLand}</span> / 
+                <span class="font-bold text-slate-800">${stats.dailyTotal}</span>
+              </td>
+              <td class="p-3 text-center">
+                <span class="text-amber-700 font-medium">${stats.monthlySign}</span> / 
+                <span class="text-emerald-700 font-medium">${stats.monthlyLand}</span> / 
+                <span class="font-bold text-slate-800">${stats.monthlyTotal}</span>
+              </td>
+              <td class="p-3 text-center">
+                <span class="text-amber-700 font-medium">${stats.quarterlySign}</span> / 
+                <span class="text-emerald-700 font-medium">${stats.quarterlyLand}</span> / 
+                <span class="font-bold text-slate-800">${stats.quarterlyTotal}</span>
+              </td>
+            </tr>
+          `;
+
+          printOfficerTable.innerHTML += `
+            <tr>
+              <td style="text-align: center;">${index + 1}</td>
+              <td>${escapeHtml(officer)}</td>
+              <td style="text-align: center;">${stats.dailySign} / ${stats.dailyLand} / <strong>${stats.dailyTotal}</strong></td>
+              <td style="text-align: center;">${stats.monthlySign} / ${stats.monthlyLand} / <strong>${stats.monthlyTotal}</strong></td>
+              <td style="text-align: center;">${stats.quarterlySign} / ${stats.quarterlyLand} / <strong>${stats.quarterlyTotal}</strong></td>
+            </tr>
+          `;
+        });
+      }
+
+      // กรองข้อมูลรายการสำหรับการแสดงผลตาราง กราฟ และการจำแนกประเภทเอกสาร
+      const filteredCases = allCasesData.filter(item => {
+        const dateStr = item.docDate || item.date;
+        const itemDate = dateStr ? new Date(dateStr) : null;
+        const officer = cleanOfficerName(item.officerName || item.officer);
+        const taxName = item.taxName || item.tax_name || '';
+        const taxId = item.taxId || '';
+        const address = item.address || '';
+        const taxType = item.taxType || '';
+        const result = item.result || item.followStatus || '';
+        const payment = item.paymentStatus || 'ยังไม่ชำระ';
+        const category = normalizeTaxCategory(taxType);
+
+        // Filter ช่วงเวลา
+        if (periodFilter === 'daily' && (!itemDate || !isSameDay(itemDate, now))) return false;
+        if (periodFilter === 'monthly' && (!itemDate || !isSameMonth(itemDate, now))) return false;
+        if (periodFilter === 'quarterly' && (!itemDate || !isSameQuarter(itemDate, now))) return false;
+
+        // Filter เจ้าหน้าที่
+        if (officerFilter !== 'all' && officer !== officerFilter) return false;
+
+        // Filter ประเภทภาษี
+        if (taxTypeFilter !== 'all') {
+          if (taxTypeFilter === 'อื่นๆ' && category !== 'other') return false;
+          if (taxTypeFilter !== 'อื่นๆ' && taxType !== taxTypeFilter) return false;
+        }
+
+        // Filter ผลการติดตาม
+        if (resultFilter !== 'all' && result !== resultFilter) return false;
+
+        // Filter สถานะชำระ
+        if (paymentFilter !== 'all' && payment !== paymentFilter) return false;
+
+        // Search Keyword
+        if (searchKeyword) {
+          const matchString = `${taxName} ${taxId} ${address} ${officer} ${result} ${item.docType || ''}`.toLowerCase();
+          if (!matchString.includes(searchKeyword)) return false;
+        }
+
+        return true;
+      });
+
+      document.getElementById('filteredMatchCount').innerText = filteredCases.length;
+      document.getElementById('totalMatchCount').innerText = allCasesData.length;
+
+      // สรุปการยื่น/ส่งเอกสารประเภทต่างๆ
+      const docTypeCounts = {};
+      filteredCases.forEach(item => {
+        const doc = (item.docType || item.receiptStatus || 'ไม่ระบุประเภทเอกสาร').trim();
+        if (doc) {
+          docTypeCounts[doc] = (docTypeCounts[doc] || 0) + 1;
+        }
+      });
+
+      const docTypeContainer = document.getElementById('docTypeSummaryContainer');
+      docTypeContainer.innerHTML = '';
+      const docKeys = Object.keys(docTypeCounts);
+
+      if (docKeys.length === 0) {
+        docTypeContainer.innerHTML = '<span class="text-slate-400 col-span-full">ไม่พบข้อมูลการยื่นเอกสาร</span>';
+      } else {
+        docKeys.forEach(docName => {
+          docTypeContainer.innerHTML += `
+            <div class="bg-white/80 p-2.5 rounded-2xl border border-purple-100 flex flex-col justify-between shadow-xs">
+              <span class="text-slate-500 font-medium truncate" title="${escapeHtml(docName)}">📜 ${escapeHtml(docName)}</span>
+              <span class="font-bold text-purple-900 text-sm mt-1">${docTypeCounts[docName]} ราย</span>
+            </div>
+          `;
+        });
+      }
+
+      // Render Charts
+      renderCharts(filteredCases);
+
+      // Render ตารางรายการเข้าสำรวจสนาม
+      const recentTableBody = document.getElementById('recentTableBody');
+      recentTableBody.innerHTML = '';
+
+      if (filteredCases.length === 0) {
+        recentTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-slate-400">ไม่พบข้อมูลตรงตามเงื่อนไขการค้นหา</td></tr>';
+        return;
+      }
+
+      filteredCases.forEach(item => {
+        const imgList = extractImageUrls(item);
+        let imgHtml = '<span class="text-xs text-slate-400">-</span>';
+        if (imgList.length > 0) {
+          const firstImg = escapeHtml(imgList[0]);
+          imgHtml = `
+            <img src="${firstImg}" 
+                 alt="รูปสนาม" 
+                 class="w-10 h-10 object-cover rounded-lg border border-slate-200 cursor-pointer hover:scale-105 transition shadow-sm"
+                 onclick="openImageModal('${firstImg}')">
+          `;
+        }
+
+        let paymentBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">🔴 ยังไม่ชำระ</span>';
+        if (item.paymentStatus === 'ชำระแล้ว') {
+          paymentBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">🟢 ชำระแล้ว</span>';
+        } else if (item.paymentStatus === 'นัดชำระ') {
+          paymentBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">🟡 นัดชำระ</span>';
+        }
+
+        const docText = item.docType ? `${escapeHtml(item.receiptStatus || '')} (${escapeHtml(item.docType)})` : escapeHtml(item.receiptStatus || '-');
+
+        recentTableBody.innerHTML += `
+          <tr class="hover:bg-amber-50/40 transition">
+            <td class="p-3 text-xs text-slate-600 whitespace-nowrap">${escapeHtml(item.docDate || item.date || '-')}</td>
+            <td class="p-3 font-medium text-slate-800 whitespace-nowrap">${escapeHtml(cleanOfficerName(item.officerName || item.officer))}</td>
+            <td class="p-3">
+              <div class="font-bold text-amber-950">${escapeHtml(item.taxName || item.tax_name || '-')}</div>
+              <div class="text-xs text-slate-400">ID: ${escapeHtml(item.taxId || '-')} | ${escapeHtml(item.taxType || '-')}</div>
+            </td>
+            <td class="p-3 font-medium text-slate-700">${escapeHtml(item.result || item.followStatus || '-')}</td>
+            <td class="p-3 text-xs text-purple-900 font-medium">${docText}</td>
+            <td class="p-3 whitespace-nowrap">${paymentBadge}</td>
+            <td class="p-3">${imgHtml}</td>
+            <td class="p-3 text-xs text-slate-500 max-w-xs truncate">${escapeHtml(item.note || '-')}</td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <button onclick="openDetailModal('${item.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-1 rounded-xl text-xs font-medium mr-1 transition">
+                👁️ ดู
+              </button>
+              <button onclick="deleteCase('${item.id}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-xl text-xs font-medium transition">
+                🗑️ ลบ
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
     function exportFilteredExcel() {
-      const dataToExport = filterData().map(item => ({
-        "วันที่": item.docDate || item.date || '',
-        "เจ้าหน้าที่": cleanOfficerName(item.officerName || item.officer),
-        "ผู้เสียภาษี/ร้านค้า": item.taxName || item.tax_name || '',
+      if (allCasesData.length === 0) {
+        alert("ไม่มีข้อมูลสำหรับส่งออก");
+        return;
+      }
+
+      const exportData = allCasesData.map((item, idx) => ({
+        "ลำดับ": idx + 1,
+        "วันที่สำรวจ": item.docDate || item.date || '',
+        "เจ้าหน้าที่ผู้สำรวจ": cleanOfficerName(item.officerName || item.officer),
+        "ชื่อผู้เสียภาษี / ร้านค้า": item.taxName || item.tax_name || '',
         "รหัสผู้เสียภาษี": item.taxId || '',
         "ประเภทภาษี": item.taxType || '',
-        "ที่อยู่": item.address || '',
+        "สถานที่ / ที่อยู่": item.address || '',
         "ผลการติดตาม": item.result || item.followStatus || '',
         "การรับเอกสาร": item.receiptStatus || '',
         "ประเภทเอกสาร": item.docType || '',
-        "สถานะการชำระ": item.paymentStatus || 'ยังไม่ชำระ',
+        "สถานะการชำระเงิน": item.paymentStatus || 'ยังไม่ชำระ',
+        "ปีที่ค้างชำระ": item.overdueYears || '',
         "หมายเหตุ": item.note || ''
       }));
 
-      const ws = XLSX.utils.json_to_sheet(dataToExport);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "รายงานสำรวจสนาม");
-      XLSX.writeFile(wb, `รายงานสำรวจสนาม_${new Date().toISOString().slice(0,10)}.xlsx`);
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "ข้อมูลการสำรวจสนาม");
+
+      XLSX.writeFile(workbook, `รายงานผลการลงสำรวจสนาม_${new Date().toISOString().slice(0, 10)}.xlsx`);
     }
 
-    // ฟังก์ชัน Import Excel
     function importExcelData(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.SheetNames[0];
-        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        if (rows.length === 0) {
-          alert('ไม่พบข้อมูลในไฟล์ Excel');
-          return;
-        }
+          if (jsonData.length === 0) {
+            alert("ไม่พบข้อมูลในไฟล์ Excel");
+            return;
+          }
 
-        let count = 0;
-        rows.forEach(r => {
-          const newRef = db.ref('surveys').push();
-          newRef.set({
-            docDate: r["วันที่"] || new Date().toISOString().slice(0,10),
-            officerName: r["เจ้าหน้าที่"] || 'ไม่ระบุเจ้าหน้าที่',
-            taxName: r["ผู้เสียภาษี/ร้านค้า"] || '',
-            taxId: r["รหัสผู้เสียภาษี"] || '',
-            taxType: r["ประเภทภาษี"] || 'อื่นๆ',
-            address: r["ที่อยู่"] || '',
-            result: r["ผลการติดตาม"] || '',
-            receiptStatus: r["การรับเอกสาร"] || '',
-            docType: r["ประเภทเอกสาร"] || '',
-            paymentStatus: r["สถานะการชำระ"] || 'ยังไม่ชำระ',
-            note: r["หมายเหตุ"] || ''
+          let successCount = 0;
+          const updates = {};
+
+          jsonData.forEach(row => {
+            const newKey = db.ref('revenue_cases').push().key;
+            updates[`revenue_cases/${newKey}`] = {
+              docDate: row["วันที่สำรวจ"] || new Date().toISOString().slice(0, 10),
+              officerName: row["เจ้าหน้าที่ผู้สำรวจ"] || 'ไม่ระบุเจ้าหน้าที่',
+              taxName: row["ชื่อผู้เสียภาษี / ร้านค้า"] || '',
+              taxId: row["รหัสผู้เสียภาษี"] || '',
+              taxType: row["ประเภทภาษี"] || '',
+              address: row["สถานที่ / ที่อยู่"] || '',
+              result: row["ผลการติดตาม"] || '',
+              receiptStatus: row["การรับเอกสาร"] || '',
+              docType: row["ประเภทเอกสาร"] || '',
+              paymentStatus: row["สถานะการชำระเงิน"] || 'ยังไม่ชำระ',
+              overdueYears: row["ปีที่ค้างชำระ"] || '',
+              note: row["หมายเหตุ"] || '',
+              createdAt: firebase.database.ServerValue.TIMESTAMP
+            };
+            successCount++;
           });
-          count++;
-        });
 
-        alert(`นำเข้าข้อมูลจาก Excel สำเร็จแล้ว ${count} รายการ`);
+          db.ref().update(updates).then(() => {
+            alert(`นำเข้าข้อมูลสำเร็จจำนวน ${successCount} รายการ`);
+            document.getElementById('excelFileInput').value = '';
+          }).catch(err => {
+            alert("เกิดข้อผิดพลาดในการนำเข้าข้อมูล: " + err.message);
+          });
+
+        } catch (err) {
+          alert("รูปแบบไฟล์ Excel ไม่ถูกต้อง: " + err.message);
+        }
       };
+
       reader.readAsArrayBuffer(file);
     }
 
-    // โหลดตัวเลือกเจ้าหน้าที่ใส่ Select Filter
-    function populateOfficerSelectOptions() {
-      const select = document.getElementById('exportOfficerFilter');
-      const currentVal = select.value;
-      const officers = new Set();
-
-      allCasesData.forEach(item => {
-        officers.add(cleanOfficerName(item.officerName || item.officer));
-      });
-
-      select.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
-      officers.forEach(off => {
-        if (off !== 'ไม่ระบุเจ้าหน้าที่') {
-          select.innerHTML += `<option value="${escapeHtml(off)}">${escapeHtml(off)}</option>`;
-        }
-      });
-      select.value = currentVal;
-    }
-
     // โหลดข้อมูล Real-time จาก Firebase
-    db.ref('surveys').on('value', snapshot => {
-      const data = snapshot.val();
+    db.ref('revenue_cases').on('value', snapshot => {
       allCasesData = [];
+      const data = snapshot.val();
 
       if (data) {
         Object.keys(data).forEach(key => {
@@ -1173,17 +1233,22 @@
             ...data[key]
           });
         });
+
+        // เรียงลำดับตามวันที่จากใหม่ไปเก่า
+        allCasesData.sort((a, b) => {
+          const dateA = new Date(a.docDate || a.date || 0);
+          const dateB = new Date(b.docDate || b.date || 0);
+          return dateB - dateA;
+        });
       }
 
-      // เรียงจากใหม่ไปเก่า
-      allCasesData.sort((a, b) => new Date(b.docDate || b.date) - new Date(a.docDate || a.date));
-
-      // กำหนดวันที่ปัจจุบันบนใบสั่งพิมพ์รวม
-      const todayStr = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-      document.getElementById('printCurrentDate').innerText = todayStr;
-
-      populateOfficerSelectOptions();
+      populateOfficerDropdown(allCasesData);
       renderDashboard();
+
+      // ตั้งค่าวันที่ปัจจุบันสำหรับการพิมพ์
+      const options = { year: 'numeric', month: 'long', day: 'numeric', calendar: 'thailand' };
+      const todayThai = new Date().toLocaleDateString('th-TH', options);
+      document.getElementById('printCurrentDate').innerText = todayThai;
     });
   </script>
 </body>
