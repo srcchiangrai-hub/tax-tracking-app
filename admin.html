@@ -145,8 +145,19 @@
           <div class="md:col-span-2 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
             <label class="block text-xs font-bold text-amber-900 mb-2">📷 รูปภาพประกอบการลงพื้นที่ (จะถูกบันทึกลง Google Drive)</label>
             
-            <input type="file" id="imageInput" accept="image/*" capture="environment" onchange="previewImage(event)"
-                   class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-200 file:text-amber-900 hover:file:bg-amber-300 cursor-pointer">
+            <!-- ปุ่มตัวเลือกแยก 2 ปุ่ม -->
+            <div class="grid grid-cols-2 gap-3 mb-2">
+              <button type="button" onclick="openCamera()" class="bg-amber-200 hover:bg-amber-300 text-amber-900 text-xs font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                <span>📷</span> ถ่ายรูปด้วยกล้อง
+              </button>
+              <button type="button" onclick="openGallery()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                <span>🖼️</span> เลือกจากอัลบั้ม
+              </button>
+            </div>
+
+            <!-- Input แอบไว้เบื้องหลัง 2 ตัว สำหรับ กล้อง และ อัลบั้ม -->
+            <input type="file" id="imageInputCamera" accept="image/*" capture="environment" onchange="handleFileSelect(event)" class="hidden">
+            <input type="file" id="imageInputGallery" accept="image/*" onchange="handleFileSelect(event)" class="hidden">
             
             <!-- ตัวอย่างรูปภาพที่เลือก -->
             <div id="imagePreviewContainer" class="hidden mt-3 flex items-center gap-3 bg-white p-2.5 rounded-xl border border-amber-100">
@@ -226,6 +237,7 @@
 
     // ตัวแปรเก็บข้อมูลฝั่ง Local เพื่อไว้กดแก้ไขง่ายๆ
     let rawCasesData = {};
+    let selectedFile = null;
 
     // ใส่วันที่ปัจจุบันเป็น default ให้ช่องวันที่
     document.addEventListener('DOMContentLoaded', () => {
@@ -233,6 +245,38 @@
       document.getElementById('docDate').value = today;
       loadHistory();
     });
+
+    // ฟังก์ชันเปิดใช้งานกล้อง
+    function openCamera() {
+      document.getElementById('imageInputCamera').click();
+    }
+
+    // ฟังก์ชันเปิดเลือกรูปจากอัลบั้ม
+    function openGallery() {
+      document.getElementById('imageInputGallery').click();
+    }
+
+    // ฟังก์ชันจัดการเมื่อเลือกรูปภาพแล้ว
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        selectedFile = file;
+        previewImage(file);
+      }
+    }
+
+    // ฟังก์ชัน Preview รูปภาพเมื่อผู้ใช้ถ่ายหรือเลือกรูป
+    function previewImage(file) {
+      const previewContainer = document.getElementById('imagePreviewContainer');
+      const previewImg = document.getElementById('imagePreview');
+
+      if (file) {
+        previewImg.src = URL.createObjectURL(file);
+        previewContainer.classList.remove('hidden');
+      } else {
+        previewContainer.classList.add('hidden');
+      }
+    }
 
     // ฟังก์ชันย่อขนาดและฝังลายน้ำ (รหัสผู้เสียภาษี/ชื่อ/วันที่) ลงบนภาพก่อนส่งขึ้น Google Drive
     function compressImage(file, maxWidth = 1200, quality = 0.7) {
@@ -326,20 +370,6 @@
       }
     }
 
-    // ฟังก์ชัน Preview รูปภาพเมื่อผู้ใช้ถ่ายหรือเลือกรูป
-    function previewImage(event) {
-      const file = event.target.files[0];
-      const previewContainer = document.getElementById('imagePreviewContainer');
-      const previewImg = document.getElementById('imagePreview');
-
-      if (file) {
-        previewImg.src = URL.createObjectURL(file);
-        previewContainer.classList.remove('hidden');
-      } else {
-        previewContainer.classList.add('hidden');
-      }
-    }
-
     // ดึงประวัติรายการบันทึกแบบ Realtime
     function loadHistory() {
       db.ref('revenue_cases').on('value', (snapshot) => {
@@ -403,7 +433,6 @@
 
       const submitBtn = document.getElementById('submitBtn');
       const statusDiv = document.getElementById('uploadStatus');
-      const imageInput = document.getElementById('imageInput');
       const editKeyId = document.getElementById('editKeyId').value;
       let finalImageUrl = document.getElementById('existingImageUrl').value || '';
 
@@ -413,9 +442,9 @@
 
       try {
         // กรณีมีการเลือกรูปภาพใหม่
-        if (imageInput.files && imageInput.files[0]) {
+        if (selectedFile) {
           statusDiv.classList.remove('hidden');
-          finalImageUrl = await uploadImageToDrive(imageInput.files[0]);
+          finalImageUrl = await uploadImageToDrive(selectedFile);
           statusDiv.classList.add('hidden');
         }
 
@@ -511,6 +540,10 @@
       document.getElementById('surveyForm').reset();
       document.getElementById('editKeyId').value = '';
       document.getElementById('existingImageUrl').value = '';
+      document.getElementById('imageInputCamera').value = '';
+      document.getElementById('imageInputGallery').value = '';
+      selectedFile = null;
+
       document.getElementById('imagePreviewContainer').classList.add('hidden');
       
       const today = new Date().toISOString().split('T')[0];
