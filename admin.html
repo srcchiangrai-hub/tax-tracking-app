@@ -112,7 +112,7 @@
             <input type="text" id="overdueYears" placeholder="เช่น 2566, 2567" class="pastel-input w-full p-2.5 rounded-xl text-sm">
           </div>
 
-          <!-- เปลี่ยนขั้นตอนเอกสารเป็น Multi-select (Checkbox) -->
+          <!-- ขั้นตอนเอกสาร Multi-select (Checkbox) -->
           <div class="md:col-span-2">
             <label class="block text-xs font-semibold text-slate-600 mb-2">ขั้นตอนเอกสาร (เลือกได้หลายรายการ)</label>
             <div class="pastel-input p-3.5 rounded-xl space-y-2 text-sm bg-white">
@@ -390,7 +390,6 @@
           const result = item.result || item.followStatus || '-';
           const imageUrl = item.imageUrl || item.photoUrl || '';
           
-          // แสดงขั้นตอนเอกสาร (ถ้าเก็บเป็น Array ให้จอยสายอักษร หากเป็น String ให้แสดงตรงๆ)
           let docTypeDisplay = '-';
           if (Array.isArray(item.docType)) {
             docTypeDisplay = item.docType.join(', ');
@@ -440,7 +439,6 @@
       const editKeyId = document.getElementById('editKeyId').value;
       let finalImageUrl = document.getElementById('existingImageUrl').value || '';
 
-      // ดึงค่า Checkbox ของขั้นตอนเอกสารที่ถูกเลือก
       const selectedDocTypes = Array.from(document.querySelectorAll('input[name="docType"]:checked'))
                                     .map(cb => cb.value);
 
@@ -461,7 +459,7 @@
           taxName: document.getElementById('taxName').value,
           address: document.getElementById('address').value,
           taxType: document.getElementById('taxType').value,
-          docType: selectedDocTypes, // บันทึกเป็น Array
+          docType: selectedDocTypes,
           overdueYears: document.getElementById('overdueYears').value,
           result: document.getElementById('followStatus').value,
           followStatus: document.getElementById('followStatus').value,
@@ -507,7 +505,6 @@
       document.getElementById('receiptStatus').value = item.receiptStatus || 'ผู้ค้างภาษีรับเอง';
       document.getElementById('note').value = item.note || '';
 
-      // คืนค่า Checkbox ขั้นตอนเอกสาร
       const checkboxes = document.querySelectorAll('input[name="docType"]');
       const savedDocTypes = Array.isArray(item.docType) ? item.docType : [item.docType];
       
@@ -550,7 +547,6 @@
       document.getElementById('imageInputGallery').value = '';
       selectedFile = null;
 
-      // ล้างค่า Checkbox ให้ว่างทั้งหมด
       document.querySelectorAll('input[name="docType"]').forEach(cb => cb.checked = false);
 
       document.getElementById('imagePreviewContainer').classList.add('hidden');
