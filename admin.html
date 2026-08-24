@@ -108,19 +108,35 @@
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">ขั้นตอนเอกสาร</label>
-            <select id="docType" class="pastel-select w-full p-2.5 rounded-xl text-sm">
-              <option value="หนังสือแจ้งเตือน ครั้งที่ 1">หนังสือแจ้งเตือน ครั้งที่ 1</option>
-              <option value="หนังสือแจ้งเตือน ครั้งที่ 2">หนังสือแจ้งเตือน ครั้งที่ 2</option>
-              <option value="หนังสือแจ้งประเมิน ">หนังสือแจ้งประเมิน </option>
-              <option value="ลงพื้นที่สำรวจทั่วไป">ลงพื้นที่สำรวจทั่วไป</option>
-              <option value="หนังสือแจ้งเตือนแบบ 2">หนังสือแจ้งเตือนแบบ 2</option>
-            </select>
-          </div>
-
-          <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">ปีที่ค้างชำระ</label>
             <input type="text" id="overdueYears" placeholder="เช่น 2566, 2567" class="pastel-input w-full p-2.5 rounded-xl text-sm">
+          </div>
+
+          <!-- เปลี่ยนขั้นตอนเอกสารเป็น Multi-select (Checkbox) -->
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-2">ขั้นตอนเอกสาร (เลือกได้หลายรายการ)</label>
+            <div class="pastel-input p-3.5 rounded-xl space-y-2 text-sm bg-white">
+              <label class="flex items-center gap-2 cursor-pointer hover:text-amber-800">
+                <input type="checkbox" name="docType" value="หนังสือแจ้งเตือน ครั้งที่ 1" class="w-4 h-4 accent-amber-500 rounded">
+                <span>หนังสือแจ้งเตือน ครั้งที่ 1</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer hover:text-amber-800">
+                <input type="checkbox" name="docType" value="หนังสือแจ้งเตือน ครั้งที่ 2" class="w-4 h-4 accent-amber-500 rounded">
+                <span>หนังสือแจ้งเตือน ครั้งที่ 2</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer hover:text-amber-800">
+                <input type="checkbox" name="docType" value="หนังสือแจ้งประเมิน" class="w-4 h-4 accent-amber-500 rounded">
+                <span>หนังสือแจ้งประเมิน</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer hover:text-amber-800">
+                <input type="checkbox" name="docType" value="ลงพื้นที่สำรวจทั่วไป" class="w-4 h-4 accent-amber-500 rounded">
+                <span>ลงพื้นที่สำรวจทั่วไป</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer hover:text-amber-800">
+                <input type="checkbox" name="docType" value="หนังสือแจ้งเตือนแบบ 2" class="w-4 h-4 accent-amber-500 rounded">
+                <span>หนังสือแจ้งเตือนแบบ 2</span>
+              </label>
+            </div>
           </div>
 
           <div>
@@ -132,7 +148,7 @@
             </select>
           </div>
 
-          <div class="md:col-span-2">
+          <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">การรับเอกสาร</label>
             <select id="receiptStatus" class="pastel-select w-full p-2.5 rounded-xl text-sm">
               <option value="ผู้ค้างภาษีรับเอง">ผู้ค้างภาษีรับเอง</option>
@@ -146,7 +162,6 @@
           <div class="md:col-span-2 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
             <label class="block text-xs font-bold text-amber-900 mb-2">📷 รูปภาพประกอบการลงพื้นที่ (จะถูกบันทึกลง Google Drive)</label>
             
-            <!-- ปุ่มตัวเลือกแยก 2 ปุ่ม -->
             <div class="grid grid-cols-2 gap-3 mb-2">
               <button type="button" onclick="openCamera()" class="bg-amber-200 hover:bg-amber-300 text-amber-900 text-xs font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
                 <span>📷</span> ถ่ายรูปด้วยกล้อง
@@ -156,11 +171,9 @@
               </button>
             </div>
 
-            <!-- Input แอบไว้เบื้องหลัง 2 ตัว สำหรับ กล้อง และ อัลบั้ม -->
             <input type="file" id="imageInputCamera" accept="image/*" capture="environment" onchange="handleFileSelect(event)" class="hidden">
             <input type="file" id="imageInputGallery" accept="image/*" onchange="handleFileSelect(event)" class="hidden">
             
-            <!-- ตัวอย่างรูปภาพที่เลือก -->
             <div id="imagePreviewContainer" class="hidden mt-3 flex items-center gap-3 bg-white p-2.5 rounded-xl border border-amber-100">
               <img id="imagePreview" src="" class="w-16 h-16 object-cover rounded-lg border border-slate-200">
               <div>
@@ -169,7 +182,6 @@
               </div>
             </div>
 
-            <!-- ข้อความสถานะการอัปโหลด -->
             <div id="uploadStatus" class="hidden text-xs font-bold text-amber-700 mt-2 animate-pulse flex items-center gap-1.5">
               <span>⏳</span> กำลังส่งรูปภาพขึ้น Google Drive กรุณารอสักครู่...
             </div>
@@ -205,12 +217,13 @@
               <th class="p-3">รูปภาพ</th>
               <th class="p-3">เจ้าหน้าที่</th>
               <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
+              <th class="p-3">ขั้นตอนเอกสาร</th>
               <th class="p-3">ผลการติดตาม</th>
               <th class="p-3 text-center">จัดการ</th>
             </tr>
           </thead>
           <tbody id="historyTableBody" class="divide-y divide-amber-50 text-sm">
-            <tr><td colspan="6" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+            <tr><td colspan="7" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
@@ -219,10 +232,8 @@
   </div>
 
   <script>
-    // ตั้งค่า URL ของ Google Apps Script Web App
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw5re9sB07OtORYK4_ZOH3hkXy0u_51GBZ1g6SKBw2PfvVByTbSgUkXrZYrWR6iwjm-Vg/exec";
 
-    // ตั้งค่า Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyCWPTSuhl_TGkRQr0_K3AnyjbnBJTlbm4s",
       authDomain: "tax-tracking-app-25fb7.firebaseapp.com",
@@ -236,28 +247,23 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ตัวแปรเก็บข้อมูลฝั่ง Local เพื่อไว้กดแก้ไขง่ายๆ
     let rawCasesData = {};
     let selectedFile = null;
 
-    // ใส่วันที่ปัจจุบันเป็น default ให้ช่องวันที่
     document.addEventListener('DOMContentLoaded', () => {
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('docDate').value = today;
       loadHistory();
     });
 
-    // ฟังก์ชันเปิดใช้งานกล้อง
     function openCamera() {
       document.getElementById('imageInputCamera').click();
     }
 
-    // ฟังก์ชันเปิดเลือกรูปจากอัลบั้ม
     function openGallery() {
       document.getElementById('imageInputGallery').click();
     }
 
-    // ฟังก์ชันจัดการเมื่อเลือกรูปภาพแล้ว
     function handleFileSelect(event) {
       const file = event.target.files[0];
       if (file) {
@@ -266,7 +272,6 @@
       }
     }
 
-    // ฟังก์ชัน Preview รูปภาพเมื่อผู้ใช้ถ่ายหรือเลือกรูป
     function previewImage(file) {
       const previewContainer = document.getElementById('imagePreviewContainer');
       const previewImg = document.getElementById('imagePreview');
@@ -279,7 +284,6 @@
       }
     }
 
-    // ฟังก์ชันย่อขนาดและฝังลายน้ำ (รหัสผู้เสียภาษี/ชื่อ/วันที่) ลงบนภาพก่อนส่งขึ้น Google Drive
     function compressImage(file, maxWidth = 1200, quality = 0.7) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -303,24 +307,20 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // ดึงค่าข้อมูลจากฟอร์มมาใส่เป็นข้อความลายน้ำบนรูป
             const taxId = document.getElementById('taxId').value || 'NO-TAX-ID';
             const taxName = document.getElementById('taxName').value || '';
             const docDate = document.getElementById('docDate').value || '';
             
-            // กำหนดขนาดฟอนต์ให้สัมพันธ์กับขนาดภาพ
             const fontSize = Math.max(16, Math.round(width * 0.035));
             ctx.font = `bold ${fontSize}px 'Mitr', sans-serif`;
             
             const text1 = `รหัส: ${taxId}`;
             const text2 = `${taxName} (${docDate})`;
             
-            // คำนวณตำแหน่งวาง (มุมล่างซ้าย)
             const padding = fontSize * 0.8;
             const x = padding;
             let y = height - padding;
 
-            // วาดแถบพื้นหลังสีดำกึ่งโปร่งใสรองรับข้อความเพื่อให้อ่านง่ายเสมอไม่ว่าพื้นหลังจะสีอะไร
             ctx.save();
             const textMetrics1 = ctx.measureText(text1);
             const textMetrics2 = ctx.measureText(text2);
@@ -333,7 +333,6 @@
             ctx.fill();
             ctx.restore();
 
-            // พิมพ์ข้อความตัวอักษรสีขาวพร้อมเงา
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
             ctx.shadowBlur = 4;
@@ -349,7 +348,6 @@
       });
     }
 
-    // ฟังก์ชันสำหรับส่งไฟล์รูปภาพไปยัง Google Apps Script
     async function uploadImageToDrive(file) {
       const base64Data = await compressImage(file);
       const payload = {
@@ -371,14 +369,13 @@
       }
     }
 
-    // ดึงประวัติรายการบันทึกแบบ Realtime
     function loadHistory() {
       db.ref('revenue_cases').on('value', (snapshot) => {
         rawCasesData = snapshot.val() || {};
         const tbody = document.getElementById('historyTableBody');
         
         if (!rawCasesData || Object.keys(rawCasesData).length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">ยังไม่มีประวัติการบันทึกข้อมูล</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400">ยังไม่มีประวัติการบันทึกข้อมูล</td></tr>';
           return;
         }
 
@@ -392,14 +389,20 @@
           const taxName = item.taxName || item.tax_name || '-';
           const result = item.result || item.followStatus || '-';
           const imageUrl = item.imageUrl || item.photoUrl || '';
+          
+          // แสดงขั้นตอนเอกสาร (ถ้าเก็บเป็น Array ให้จอยสายอักษร หากเป็น String ให้แสดงตรงๆ)
+          let docTypeDisplay = '-';
+          if (Array.isArray(item.docType)) {
+            docTypeDisplay = item.docType.join(', ');
+          } else if (item.docType) {
+            docTypeDisplay = item.docType;
+          }
 
-          // สีของ Badge ผลการติดตาม
           let badgeColor = 'bg-slate-100 text-slate-700';
           if (result.includes('พบผู้ค้างภาษี')) badgeColor = 'bg-emerald-100 text-emerald-800';
           else if (result.includes('ไม่พบผู้ค้างภาษี')) badgeColor = 'bg-rose-100 text-rose-800';
           else if (result.includes('พบบุคคลอื่น')) badgeColor = 'bg-amber-100 text-amber-800';
 
-          // โค้ดแสดงรูปภาพในตาราง
           let imageTd = '<span class="text-xs text-slate-300">- ไม่มีรูป -</span>';
           if (imageUrl) {
             imageTd = `
@@ -415,6 +418,7 @@
               <td class="p-3">${imageTd}</td>
               <td class="p-3 font-medium text-slate-700">${officer}</td>
               <td class="p-3 font-medium text-slate-800">${taxName}</td>
+              <td class="p-3 text-xs text-slate-600">${docTypeDisplay}</td>
               <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
               <td class="p-3 text-center space-x-2">
                 <button onclick="editCase('${key}')" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded-lg transition font-medium">✏️ แก้ไข</button>
@@ -428,7 +432,6 @@
       });
     }
 
-    // บันทึก / แก้ไข ข้อมูล
     async function handleFormSubmit(event) {
       event.preventDefault();
 
@@ -437,12 +440,14 @@
       const editKeyId = document.getElementById('editKeyId').value;
       let finalImageUrl = document.getElementById('existingImageUrl').value || '';
 
-      // ล็อกปุ่มป้องกันการกดซ้ำ
+      // ดึงค่า Checkbox ของขั้นตอนเอกสารที่ถูกเลือก
+      const selectedDocTypes = Array.from(document.querySelectorAll('input[name="docType"]:checked'))
+                                    .map(cb => cb.value);
+
       submitBtn.disabled = true;
       submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
       try {
-        // กรณีมีการเลือกรูปภาพใหม่
         if (selectedFile) {
           statusDiv.classList.remove('hidden');
           finalImageUrl = await uploadImageToDrive(selectedFile);
@@ -456,7 +461,7 @@
           taxName: document.getElementById('taxName').value,
           address: document.getElementById('address').value,
           taxType: document.getElementById('taxType').value,
-          docType: document.getElementById('docType').value,
+          docType: selectedDocTypes, // บันทึกเป็น Array
           overdueYears: document.getElementById('overdueYears').value,
           result: document.getElementById('followStatus').value,
           followStatus: document.getElementById('followStatus').value,
@@ -467,11 +472,9 @@
         };
 
         if (editKeyId) {
-          // โหมดแก้ไข
           await db.ref('revenue_cases/' + editKeyId).update(formData);
           alert('อัปเดตข้อมูลเรียบร้อยแล้ว');
         } else {
-          // โหมดบันทึกใหม่
           await db.ref('revenue_cases').push(formData);
           alert('บันทึกข้อมูลและรูปภาพสำเร็จแล้ว');
         }
@@ -487,7 +490,6 @@
       }
     }
 
-    // ดึงข้อมูลเข้าฟอร์มเมื่อกด "แก้ไข"
     function editCase(key) {
       const item = rawCasesData[key];
       if (!item) return;
@@ -500,13 +502,19 @@
       document.getElementById('taxName').value = item.taxName || '';
       document.getElementById('address').value = item.address || '';
       document.getElementById('taxType').value = item.taxType || 'ภาษีป้าย';
-      document.getElementById('docType').value = item.docType || 'หนังสือแจ้งเตือน ครั้งที่ 1';
       document.getElementById('overdueYears').value = item.overdueYears || '';
       document.getElementById('followStatus').value = item.result || item.followStatus || 'พบผู้ค้างภาษี';
       document.getElementById('receiptStatus').value = item.receiptStatus || 'ผู้ค้างภาษีรับเอง';
       document.getElementById('note').value = item.note || '';
 
-      // แสดงภาพตัวอย่างเดิม หากมีอยู่แล้ว
+      // คืนค่า Checkbox ขั้นตอนเอกสาร
+      const checkboxes = document.querySelectorAll('input[name="docType"]');
+      const savedDocTypes = Array.isArray(item.docType) ? item.docType : [item.docType];
+      
+      checkboxes.forEach(cb => {
+        cb.checked = savedDocTypes.includes(cb.value);
+      });
+
       const existingUrl = item.imageUrl || item.photoUrl || '';
       const previewContainer = document.getElementById('imagePreviewContainer');
       const previewImg = document.getElementById('imagePreview');
@@ -517,7 +525,6 @@
         previewContainer.classList.add('hidden');
       }
 
-      // ปรับ UI เข้าสู่โหมดแก้ไข
       document.getElementById('formTitle').innerHTML = '<span>✏️</span> แก้ไขข้อมูลการลงพื้นที่';
       document.getElementById('editBadge').classList.remove('hidden');
       document.getElementById('submitBtn').innerHTML = '💾 บันทึกการแก้ไข';
@@ -527,7 +534,6 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ลบข้อมูล
     function deleteCase(key) {
       if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
         db.ref('revenue_cases/' + key).remove()
@@ -536,7 +542,6 @@
       }
     }
 
-    // รีเซ็ตฟอร์มกลับค่าเริ่มต้น
     function resetForm() {
       document.getElementById('surveyForm').reset();
       document.getElementById('editKeyId').value = '';
@@ -544,6 +549,9 @@
       document.getElementById('imageInputCamera').value = '';
       document.getElementById('imageInputGallery').value = '';
       selectedFile = null;
+
+      // ล้างค่า Checkbox ให้ว่างทั้งหมด
+      document.querySelectorAll('input[name="docType"]').forEach(cb => cb.checked = false);
 
       document.getElementById('imagePreviewContainer').classList.add('hidden');
       
