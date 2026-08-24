@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - ระบบบันทึกข้อมูลการลงพื้นที่</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=TH+Sarabun+New:wght@400;700&display=swap" rel="stylesheet">
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -35,11 +35,39 @@
       outline: none;
       box-shadow: 0 0 0 3px rgba(255, 181, 167, 0.2);
     }
+
+    /* คลาสใช้สำหรับฟอนต์ราชการใน Modal และใบพิมพ์ */
+    .gov-font {
+      font-family: 'TH Sarabun New', 'TH SarabunPSK', sans-serif !important;
+    }
+
+    /* CSS สำหรับหน้าต่างพิมพ์เอกสารราชการ */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printGovArea, #printGovArea * {
+        visibility: visible;
+      }
+      #printGovArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        color: #000;
+        font-family: 'TH Sarabun New', 'TH SarabunPSK', sans-serif !important;
+        font-size: 16pt;
+        line-height: 1.6;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body class="p-4 md:p-8 text-slate-700">
 
-  <div class="max-w-4xl mx-auto space-y-6">
+  <div class="max-w-4xl mx-auto space-y-6 no-print">
     
     <!-- Header -->
     <div class="pastel-card p-5 rounded-3xl flex justify-between items-center border-amber-100">
@@ -231,6 +259,34 @@
 
   </div>
 
+  <!-- Modal แสดงรายละเอียด (ใช้ฟอนต์ TH Sarabun New) -->
+  <div id="detailModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 gov-font relative">
+      <button onclick="closeDetailModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      
+      <div class="border-b pb-3 mb-4 flex items-center gap-2">
+        <span class="text-2xl">📄</span>
+        <h3 class="text-2xl font-bold text-slate-800">รายละเอียดข้อมูลการลงพื้นที่สำรวจ</h3>
+      </div>
+
+      <div id="modalDetailContent" class="space-y-2 text-xl text-slate-800">
+        <!-- ข้อมูลจะถูกโหลดใส่ที่นี่แบบไดนามิก -->
+      </div>
+
+      <div class="mt-6 pt-4 border-t flex justify-end gap-3 no-print">
+        <button id="modalPrintBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg text-xl transition flex items-center gap-1">
+          🖨️ พิมพ์เอกสารนี้
+        </button>
+        <button onclick="closeDetailModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-1.5 rounded-lg text-xl transition">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- พื้นที่สำหรับสร้างเอกสารพิมพ์แบบราชการ (ปกติจะถูกซ่อนไว้ แสดงเฉพาะเวลาสั่งพิมพ์) -->
+  <div id="printGovArea"></div>
+
   <script>
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw5re9sB07OtORYK4_ZOH3hkXy0u_51GBZ1g6SKBw2PfvVByTbSgUkXrZYrWR6iwjm-Vg/exec";
 
@@ -419,9 +475,11 @@
               <td class="p-3 font-medium text-slate-800">${taxName}</td>
               <td class="p-3 text-xs text-slate-600">${docTypeDisplay}</td>
               <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
-              <td class="p-3 text-center space-x-2">
-                <button onclick="editCase('${key}')" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded-lg transition font-medium">✏️ แก้ไข</button>
-                <button onclick="deleteCase('${key}')" class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-lg transition font-medium">🗑️ ลบ</button>
+              <td class="p-3 text-center space-x-1">
+                <button onclick="viewDetail('${key}')" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded-lg transition font-medium">👁️ ดู</button>
+                <button onclick="printSingleRecord('${key}')" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-1 rounded-lg transition font-medium">🖨️ พิมพ์</button>
+                <button onclick="editCase('${key}')" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded-lg transition font-medium">✏️ แก้ไข</button>
+                <button onclick="deleteCase('${key}')" class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 px-2 py-1 rounded-lg transition font-medium">🗑️ ลบ</button>
               </td>
             </tr>
           `;
@@ -559,6 +617,143 @@
       document.getElementById('submitBtn').innerHTML = '➕ บันทึกข้อมูล';
       document.getElementById('submitBtn').className = 'bg-orange-400 hover:bg-orange-500 text-white px-6 py-3 rounded-2xl text-sm font-semibold transition shadow-md flex-1';
       document.getElementById('cancelEditBtn').classList.add('hidden');
+    }
+
+    // ========================================================
+    // ฟังก์ชันเพิ่มเติม: คลิกดูรายละเอียด (Modal) & พิมพ์ทีละราย
+    // ========================================================
+
+    // 1. เปิด Modal ดูรายละเอียด
+    function viewDetail(key) {
+      const item = rawCasesData[key];
+      if (!item) return;
+
+      let docTypes = Array.isArray(item.docType) ? item.docType.join(', ') : (item.docType || '-');
+      let imageUrl = item.imageUrl || item.photoUrl || '';
+
+      let content = `
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+          <p><b>วันที่สำรวจ:</b> ${item.docDate || item.date || '-'}</p>
+          <p><b>เจ้าหน้าที่สำรวจ:</b> ${item.officerName || item.officer || '-'}</p>
+          <p><b>รหัสผู้เสียภาษี:</b> ${item.taxId || '-'}</p>
+          <p><b>ชื่อผู้เสียภาษี/ร้านค้า:</b> ${item.taxName || item.tax_name || '-'}</p>
+          <p class="col-span-2"><b>สถานที่/ที่อยู่:</b> ${item.address || '-'}</p>
+          <p><b>ประเภทภาษี:</b> ${item.taxType || '-'}</p>
+          <p><b>ปีที่ค้างชำระ:</b> ${item.overdueYears || '-'}</p>
+          <p class="col-span-2"><b>ขั้นตอนเอกสาร:</b> ${docTypes}</p>
+          <p><b>ผลการติดตาม:</b> ${item.result || item.followStatus || '-'}</p>
+          <p><b>การรับเอกสาร:</b> ${item.receiptStatus || '-'}</p>
+          <p class="col-span-2"><b>หมายเหตุเพิ่มเติม:</b> ${item.note || '-'}</p>
+        </div>
+      `;
+
+      if (imageUrl) {
+        content += `
+          <div class="mt-4 border-t pt-3">
+            <p class="font-bold mb-2">รูปภาพประกอบการลงพื้นที่:</p>
+            <img src="${imageUrl}" class="w-full max-h-72 object-contain rounded-lg border">
+          </div>
+        `;
+      }
+
+      document.getElementById('modalDetailContent').innerHTML = content;
+      document.getElementById('modalPrintBtn').onclick = function() { printSingleRecord(key); };
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    // 2. ปิด Modal
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+    }
+
+    // 3. ฟังก์ชันพิมพ์เอกสารแบบราชการ (ทีละรายการ)
+    function printSingleRecord(key) {
+      const item = rawCasesData[key];
+      if (!item) return;
+
+      let docTypes = Array.isArray(item.docType) ? item.docType.join(', ') : (item.docType || '-');
+      let imageUrl = item.imageUrl || item.photoUrl || '';
+
+      const printHTML = `
+        <div style="padding: 20px;">
+          <div style="text-align: center; margin-bottom: 25px;">
+            <h2 style="font-size: 24pt; font-weight: bold; margin: 0;">รายงานการลงพื้นที่สำรวจและติดตามการจัดเก็บภาษี</h2>
+            <p style="font-size: 18pt; margin: 0;">แบบฟอร์มบันทึกข้อมูลทางราชการ</p>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 16pt; margin-top: 15px;">
+            <tr>
+              <td style="padding: 6px; width: 30%; font-weight: bold;">วันที่สำรวจ:</td>
+              <td style="padding: 6px; width: 70%;">${item.docDate || item.date || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">เจ้าหน้าที่ผู้สำรวจ:</td>
+              <td style="padding: 6px;">${item.officerName || item.officer || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">รหัสผู้เสียภาษี:</td>
+              <td style="padding: 6px;">${item.taxId || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">ชื่อผู้เสียภาษี / ร้านค้า:</td>
+              <td style="padding: 6px;">${item.taxName || item.tax_name || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">สถานที่ / ที่อยู่สำรวจ:</td>
+              <td style="padding: 6px;">${item.address || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">ประเภทภาษี:</td>
+              <td style="padding: 6px;">${item.taxType || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">ปีที่ค้างชำระ:</td>
+              <td style="padding: 6px;">${item.overdueYears || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">ขั้นตอนเอกสาร:</td>
+              <td style="padding: 6px;">${docTypes}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">ผลการติดตาม:</td>
+              <td style="padding: 6px;">${item.result || item.followStatus || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">สถานะการรับเอกสาร:</td>
+              <td style="padding: 6px;">${item.receiptStatus || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; font-weight: bold;">หมายเหตุ:</td>
+              <td style="padding: 6px;">${item.note || '-'}</td>
+            </tr>
+          </table>
+
+          ${imageUrl ? `
+            <div style="margin-top: 25px; page-break-inside: avoid;">
+              <p style="font-size: 16pt; font-weight: bold; margin-bottom: 10px;">รูปภาพประกอบการลงพื้นที่:</p>
+              <div style="text-align: center;">
+                <img src="${imageUrl}" style="max-width: 100%; max-height: 350px; border: 1px solid #ddd; padding: 4px; rounded: 4px;">
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="margin-top: 60px; display: flex; justify-content: space-between; page-break-inside: avoid;">
+            <div style="text-align: center; width: 45%;">
+              <p>ลงชื่อ........................................................</p>
+              <p style="margin-top: 5px;">( ${item.officerName || item.officer || '........................................................'} )</p>
+              <p style="margin-top: 2px;">เจ้าหน้าที่ผู้สำรวจ</p>
+            </div>
+            <div style="text-align: center; width: 45%;">
+              <p>ลงชื่อ........................................................</p>
+              <p style="margin-top: 5px;">( ........................................................ )</p>
+              <p style="margin-top: 2px;">หัวหน้างาน/ผู้ตรวจสอบ</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('printGovArea').innerHTML = printHTML;
+      window.print();
     }
   </script>
 </body>
