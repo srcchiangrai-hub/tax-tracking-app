@@ -359,6 +359,7 @@ function initAdmin() {
           <td class="p-3 font-medium text-slate-800">${item.taxName || item.tax_name || '-'}</td>
           <td class="p-3">${statusBadge}</td>
           <td class="p-3 text-center space-x-1">
+            <button onclick="printSingleRecord('${key}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2.5 py-1 rounded-xl text-xs font-semibold transition">🖨️ พิมพ์</button>
             <button onclick="editRecord('${key}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded-xl text-xs font-semibold transition">✏️ แก้ไข</button>
             <button onclick="deleteRecord('${key}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-xl text-xs font-semibold transition">🗑️ ลบ</button>
           </td>
@@ -516,4 +517,78 @@ function resetForm() {
     document.getElementById('submitBtn').className = 'bg-orange-400 hover:bg-orange-500 text-white px-6 py-3 rounded-2xl text-sm font-semibold transition shadow-md flex-1';
   }
   if (document.getElementById('cancelEditBtn')) document.getElementById('cancelEditBtn').classList.add('hidden');
+}
+
+// ==========================================
+// 5. ฟังก์ชันสั่งพิมพ์ (Print Functions)
+// ==========================================
+
+/**
+ * ฟังก์ชันสำหรับสั่งพิมพ์หน้าเว็บทั้งหน้า
+ */
+function printReport() {
+  window.print();
+}
+
+/**
+ * ฟังก์ชันสั่งพิมพ์ใบรายงานสรุปเฉพาะรายการที่เลือก (พิมพ์ทีละเคส)
+ */
+function printSingleRecord(key) {
+  const item = cachedSurveysObj[key];
+  if (!item) {
+    alert('ไม่พบข้อมูลรายการนี้');
+    return;
+  }
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>ใบรายงานการสำรวจ - ${item.taxName || ''}</title>
+        <style>
+          body { font-family: 'Sarabun', sans-serif, Tahoma; padding: 30px; line-height: 1.6; color: #333; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+          .subtitle { font-size: 14px; color: #666; }
+          hr { border: 0; border-top: 1px solid #ccc; margin: 20px 0; }
+          .box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+          .row { display: flex; margin-bottom: 8px; }
+          .label { font-weight: bold; width: 180px; flex-shrink: 0; }
+          .value { flex-grow: 1; }
+          .img-container { text-align: center; margin-top: 15px; }
+          .img-container img { max-width: 300px; max-height: 200px; border-radius: 8px; border: 1px solid #ddd; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">ใบรายงานการลงพื้นที่สำรวจภาษี</div>
+          <div class="subtitle">ระบบติดตามและจัดเก็บรายได้</div>
+        </div>
+        <hr>
+        <div class="box">
+          <div class="row"><div class="label">วันที่สำรวจ:</div><div class="value">${item.docDate || item.date || '-'}</div></div>
+          <div class="row"><div class="label">เจ้าหน้าที่ผู้สำรวจ:</div><div class="value">${item.officerName || item.officer || '-'}</div></div>
+          <div class="row"><div class="label">รหัสผู้เสียภาษี:</div><div class="value">${item.taxId || '-'}</div></div>
+          <div class="row"><div class="label">ชื่อผู้เสียภาษี/ร้านค้า:</div><div class="value">${item.taxName || item.tax_name || '-'}</div></div>
+          <div class="row"><div class="label">สถานที่/ที่อยู่:</div><div class="value">${item.address || '-'}</div></div>
+          <div class="row"><div class="label">ประเภทภาษี:</div><div class="value">${item.taxType || '-'}</div></div>
+          <div class="row"><div class="label">ขั้นตอนเอกสาร:</div><div class="value">${item.docType || '-'}</div></div>
+          <div class="row"><div class="label">ปีที่ค้าง:</div><div class="value">${item.overdueYears || '-'}</div></div>
+          <div class="row"><div class="label">ผลการติดตาม:</div><div class="value">${item.followStatus || item.result || '-'}</div></div>
+          <div class="row"><div class="label">การรับเอกสาร:</div><div class="value">${item.receiptStatus || '-'}</div></div>
+          <div class="row"><div class="label">หมายเหตุเพิ่มเติม:</div><div class="value">${item.note || '-'}</div></div>
+        </div>
+        ${(item.imageUrl || item.photoUrl) ? `
+          <div class="img-container">
+            <div><b>รูปภาพประกอบการสำรวจ</b></div><br>
+            <img src="${item.imageUrl || item.photoUrl}">
+          </div>
+        ` : ''}
+        <script>
+          window.onload = function() { window.print(); window.close(); }
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
 }
