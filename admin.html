@@ -35,6 +35,25 @@
       outline: none;
       box-shadow: 0 0 0 3px rgba(255, 181, 167, 0.2);
     }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: white !important;
+        font-family: 'Mitr', sans-serif !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .print-card {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+      }
+    }
   </style>
 </head>
 <body class="p-4 md:p-8 text-slate-700">
@@ -42,7 +61,7 @@
   <div class="max-w-4xl mx-auto space-y-6">
     
     <!-- Header -->
-    <div class="pastel-card p-5 rounded-3xl flex justify-between items-center border-amber-100">
+    <div class="pastel-card p-5 rounded-3xl flex justify-between items-center border-amber-100 no-print">
       <div class="flex items-center gap-3">
         <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
           🦉
@@ -59,7 +78,7 @@
     </div>
 
     <!-- ฟอร์มบันทึก / แก้ไขข้อมูล -->
-    <div class="pastel-card p-6 rounded-3xl border-orange-100">
+    <div class="pastel-card p-6 rounded-3xl border-orange-100 no-print">
       <div class="flex items-center justify-between mb-4">
         <h2 id="formTitle" class="text-lg font-bold text-orange-950 flex items-center gap-2">
           <span>📝</span> กรอกข้อมูลการลงพื้นที่สำรวจ
@@ -112,7 +131,7 @@
             <input type="text" id="overdueYears" placeholder="เช่น 2566, 2567" class="pastel-input w-full p-2.5 rounded-xl text-sm">
           </div>
 
-          <!-- เปลี่ยนขั้นตอนเอกสารเป็น Multi-select (Checkbox) -->
+          <!-- ขั้นตอนเอกสารเป็น Multi-select (Checkbox) -->
           <div class="md:col-span-2">
             <label class="block text-xs font-semibold text-slate-600 mb-2">ขั้นตอนเอกสาร (เลือกได้หลายรายการ)</label>
             <div class="pastel-input p-3.5 rounded-xl space-y-2 text-sm bg-white">
@@ -205,24 +224,36 @@
     </div>
 
     <!-- ประวัติการบันทึก -->
-    <div class="pastel-card p-6 rounded-3xl border-amber-100">
-      <h2 class="text-lg font-bold text-amber-950 mb-4 flex items-center gap-2">
-        <span>📋</span> รายการที่เคยบันทึกไว้ในระบบ
-      </h2>
+    <div class="pastel-card p-6 rounded-3xl border-amber-100 print-card">
+      <div class="flex items-center justify-between mb-4 no-print">
+        <h2 class="text-lg font-bold text-amber-950 flex items-center gap-2">
+          <span>📋</span> รายการที่เคยบันทึกไว้ในระบบ
+        </h2>
+        <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow flex items-center gap-1.5">
+          <span>🖨️</span> พิมพ์ตารางทั้งหมด
+        </button>
+      </div>
+
+      <!-- หัวกระดาษที่จะแสดงเฉพาะตอนปริ้นตารางทั้งหมด -->
+      <div class="hidden print-only mb-6 text-center border-b pb-4">
+        <h1 class="text-2xl font-bold text-black mb-1">รายงานสรุปข้อมูลการลงพื้นที่สำรวจภาษี</h1>
+        <p class="text-xs text-gray-600">ข้อมูล ณ วันที่พิมพ์: <span id="printDate"></span></p>
+      </div>
+
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="border-b-2 border-amber-100 text-xs font-semibold text-slate-500">
+            <tr class="border-b-2 border-amber-100 print:border-black text-xs font-semibold text-slate-500 print:text-black">
               <th class="p-3">วันที่</th>
               <th class="p-3">รูปภาพ</th>
               <th class="p-3">เจ้าหน้าที่</th>
               <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
               <th class="p-3">ขั้นตอนเอกสาร</th>
               <th class="p-3">ผลการติดตาม</th>
-              <th class="p-3 text-center">จัดการ</th>
+              <th class="p-3 text-center no-print">จัดการ</th>
             </tr>
           </thead>
-          <tbody id="historyTableBody" class="divide-y divide-amber-50 text-sm">
+          <tbody id="historyTableBody" class="divide-y divide-amber-50 print:divide-gray-300 text-sm">
             <tr><td colspan="7" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
@@ -253,6 +284,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('docDate').value = today;
+      document.getElementById('printDate').innerText = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
       loadHistory();
     });
 
@@ -390,7 +422,6 @@
           const result = item.result || item.followStatus || '-';
           const imageUrl = item.imageUrl || item.photoUrl || '';
           
-          // แสดงขั้นตอนเอกสาร (ถ้าเก็บเป็น Array ให้จอยสายอักษร หากเป็น String ให้แสดงตรงๆ)
           let docTypeDisplay = '-';
           if (Array.isArray(item.docType)) {
             docTypeDisplay = item.docType.join(', ');
@@ -420,7 +451,8 @@
               <td class="p-3 font-medium text-slate-800">${taxName}</td>
               <td class="p-3 text-xs text-slate-600">${docTypeDisplay}</td>
               <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${result}</span></td>
-              <td class="p-3 text-center space-x-2">
+              <td class="p-3 text-center space-x-2 no-print">
+                <button onclick="printSingleItem('${key}')" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2.5 py-1 rounded-lg transition font-medium" title="พิมพ์ใบงานรายรายการ">🖨️ พิมพ์</button>
                 <button onclick="editCase('${key}')" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded-lg transition font-medium">✏️ แก้ไข</button>
                 <button onclick="deleteCase('${key}')" class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-lg transition font-medium">🗑️ ลบ</button>
               </td>
@@ -432,6 +464,90 @@
       });
     }
 
+    // ฟังก์ชันพิมพ์แบบฟอร์มใบงานเดี่ยว
+    function printSingleItem(key) {
+      const item = rawCasesData[key];
+      if (!item) return;
+
+      const dateStr = item.docDate || item.date || '-';
+      const officer = item.officerName || item.officer || '-';
+      const taxId = item.taxId || '-';
+      const taxName = item.taxName || item.tax_name || '-';
+      const address = item.address || '-';
+      const taxType = item.taxType || '-';
+      const overdueYears = item.overdueYears || '-';
+      const result = item.result || item.followStatus || '-';
+      const receiptStatus = item.receiptStatus || '-';
+      const note = item.note || '-';
+      const imageUrl = item.imageUrl || item.photoUrl || '';
+      
+      let docTypeDisplay = '-';
+      if (Array.isArray(item.docType)) {
+        docTypeDisplay = item.docType.join(', ');
+      } else if (item.docType) {
+        docTypeDisplay = item.docType;
+      }
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+          <meta charset="UTF-8">
+          <title>ใบงานบันทึกการลงพื้นที่ - ${taxName}</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
+          <style>
+            body { font-family: 'Mitr', sans-serif; padding: 20px; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body class="bg-white text-slate-800 max-w-2xl mx-auto p-6 border border-slate-300 rounded-lg shadow-sm">
+          <div class="text-center border-b pb-4 mb-4">
+            <h1 class="text-xl font-bold">เอกสารบันทึกข้อมูลการลงพื้นที่สำรวจภาษี</h1>
+            <p class="text-sm text-slate-500">วันที่สำรวจ: ${dateStr}</p>
+          </div>
+
+          <table class="w-full text-sm border-collapse mb-6">
+            <tbody>
+              <tr class="border-b"><td class="py-2 font-bold w-1/3 text-slate-600">เจ้าหน้าที่ผู้สำรวจ:</td><td class="py-2">${officer}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">รหัสผู้เสียภาษี:</td><td class="py-2">${taxId}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">ชื่อผู้เสียภาษี/ร้านค้า:</td><td class="py-2">${taxName}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">สถานที่/ที่อยู่:</td><td class="py-2">${address}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">ประเภทภาษี:</td><td class="py-2">${taxType}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">ปีที่ค้างชำระ:</td><td class="py-2">${overdueYears}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">ขั้นตอนเอกสาร:</td><td class="py-2">${docTypeDisplay}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">ผลการติดตาม:</td><td class="py-2">${result}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">การรับเอกสาร:</td><td class="py-2">${receiptStatus}</td></tr>
+              <tr class="border-b"><td class="py-2 font-bold text-slate-600">หมายเหตุ:</td><td class="py-2">${note}</td></tr>
+            </tbody>
+          </table>
+
+          ${imageUrl ? `
+            <div class="text-center mb-6">
+              <p class="font-bold text-sm text-slate-600 mb-2">รูปภาพประกอบการลงพื้นที่</p>
+              <img src="${imageUrl}" class="max-h-72 mx-auto rounded border border-slate-300 shadow-sm">
+            </div>
+          ` : ''}
+
+          <div class="mt-8 pt-4 border-t border-dashed flex justify-between text-xs text-slate-500">
+            <div>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')}</div>
+            <div>ลงชื่อเจ้าหน้าที่.........................................................</div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
     async function handleFormSubmit(event) {
       event.preventDefault();
 
@@ -440,7 +556,6 @@
       const editKeyId = document.getElementById('editKeyId').value;
       let finalImageUrl = document.getElementById('existingImageUrl').value || '';
 
-      // ดึงค่า Checkbox ของขั้นตอนเอกสารที่ถูกเลือก
       const selectedDocTypes = Array.from(document.querySelectorAll('input[name="docType"]:checked'))
                                     .map(cb => cb.value);
 
@@ -461,7 +576,7 @@
           taxName: document.getElementById('taxName').value,
           address: document.getElementById('address').value,
           taxType: document.getElementById('taxType').value,
-          docType: selectedDocTypes, // บันทึกเป็น Array
+          docType: selectedDocTypes,
           overdueYears: document.getElementById('overdueYears').value,
           result: document.getElementById('followStatus').value,
           followStatus: document.getElementById('followStatus').value,
@@ -507,7 +622,6 @@
       document.getElementById('receiptStatus').value = item.receiptStatus || 'ผู้ค้างภาษีรับเอง';
       document.getElementById('note').value = item.note || '';
 
-      // คืนค่า Checkbox ขั้นตอนเอกสาร
       const checkboxes = document.querySelectorAll('input[name="docType"]');
       const savedDocTypes = Array.isArray(item.docType) ? item.docType : [item.docType];
       
@@ -550,7 +664,6 @@
       document.getElementById('imageInputGallery').value = '';
       selectedFile = null;
 
-      // ล้างค่า Checkbox ให้ว่างทั้งหมด
       document.querySelectorAll('input[name="docType"]').forEach(cb => cb.checked = false);
 
       document.getElementById('imagePreviewContainer').classList.add('hidden');
