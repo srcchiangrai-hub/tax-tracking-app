@@ -331,7 +331,7 @@
           <thead>
             <tr class="border-b-2 border-amber-100 text-xs font-semibold text-slate-500">
               <th class="p-3">วันที่</th>
-              <th class="p-3">เจ้าหน้าที่</th>
+              <th class="p-3">เจ้าหน้าที่ (คลิกเพื่อดูรายการ)</th>
               <th class="p-3">ผู้เสียภาษี / ร้านค้า</th>
               <th class="p-3">ผลการติดตาม</th>
               <th class="p-3">การรับ/ส่งเอกสาร</th>
@@ -570,7 +570,9 @@
       appId: "1:122118718226:web:df2d284fe543ec799da9cb"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.database();
 
     let allCasesData = [];
@@ -588,7 +590,6 @@
         .replace(/'/g, "&#039;");
     }
 
-    // ฟังก์ชันช่วยดึงค่าฟิลด์แบบยืดหยุ่น (เผื่อ admin.html ใช้ชื่อต่างกัน)
     function getItemOfficer(item) {
       return item.officerName || item.officer || item.adminName || item.userName || item.recorder || 'ไม่ระบุเจ้าหน้าที่';
     }
@@ -615,7 +616,7 @@
 
     function cleanOfficerName(nameStr) {
       if (!nameStr) return 'ไม่ระบุเจ้าหน้าที่';
-      return String(nameStr).replace(/[\s\u00A0]+/g, '').trim();
+      return String(nameStr).trim();
     }
 
     function normalizeTaxCategory(taxTypeStr) {
@@ -639,6 +640,7 @@
       else if (Array.isArray(item.imageUrls)) urls = item.imageUrls;
       else if (typeof item.images === 'object' && item.images !== null) urls = Object.values(item.images);
       else if (typeof item.imageUrl === 'string' && item.imageUrl.trim() !== '') urls = [item.imageUrl];
+      else if (typeof item.photoUrl === 'string' && item.photoUrl.trim() !== '') urls = [item.photoUrl];
       else if (typeof item.photo === 'string' && item.photo.trim() !== '') urls = [item.photo];
       else if (typeof item.img === 'string' && item.img.trim() !== '') urls = [item.img];
 
@@ -709,6 +711,7 @@
       currentActiveCaseId = null;
     }
 
+    // เปิด Modal ดูรายการทั้งหมดที่บันทึกโดยเจ้าหน้าที่คนนั้น
     function openOfficerRecordsModal(officerName) {
       const cleanName = cleanOfficerName(officerName);
       const userItems = allCasesData.filter(item => cleanOfficerName(getItemOfficer(item)) === cleanName);
@@ -765,9 +768,9 @@
     function updatePaymentStatus() {
       if (!currentActiveCaseId) return;
       const newStatus = document.getElementById('detailPaymentSelect').value;
+      const targetNode = allCasesData.find(c => c.id === currentActiveCaseId)?._node || 'field_surveys';
       
-      // อัปเดตไปยังทุกล็อกพาธเพื่อป้องกันปัญหาชื่อฟิลด์ต่างกัน
-      db.ref('field_surveys/' + currentActiveCaseId).update({
+      db.ref(`${targetNode}/${currentActiveCaseId}`).update({
         paymentStatus: newStatus
       }).then(() => {
         const item = allCasesData.find(c => c.id === currentActiveCaseId);
@@ -794,7 +797,7 @@
       document.getElementById('pCaseReceipt').innerText = item.receiptStatus || item.receipt || '-';
       document.getElementById('pCaseDocType').innerText = item.docType ? `(${item.docType})` : '';
       document.getElementById('pCasePayment').innerText = item.paymentStatus || 'ยังไม่ชำระ';
-      document.getElementById('pCaseOverdue').innerText = item.overdueYear || item.year || '-';
+      document.getElementById('pCaseOverdue').innerText = item.overdueYear || item.overdueYears || item.year || '-';
       document.getElementById('pCaseNote').innerText = item.note || '-';
 
       const imgList = extractImageUrls(item);
@@ -831,22 +834,18 @@
       return q1 === q2;
     }
 
-    // ฟังก์ชันแปลงวันที่ที่ยืดหยุ่นมากยิ่งขึ้น
     function parseDate(dateVal) {
       if (!dateVal) return null;
       if (typeof dateVal === 'number') return new Date(dateVal);
 
       const str = String(dateVal).trim();
       
-      // แบบ YYYY-MM-DD หรือ YYYY/MM/DD
       if (str.includes('-') || str.includes('/')) {
         const parts = str.split(/[-/]/);
         if (parts.length === 3) {
-          // ถ้าเอาปีขึ้นก่อน YYYY-MM-DD
           if (parts[0].length === 4) {
             return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
           }
-          // ถ้าเอาวันขึ้นก่อน DD-MM-YYYY
           if (parts[2].length === 4) {
             return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
           }
@@ -913,7 +912,7 @@
 
       allCasesData.forEach(item => {
         const name = cleanOfficerName(getItemOfficer(item));
-        if (name) officerSet.add(name);
+        if (name && name !== 'ไม่ระบุเจ้าหน้าที่') officerSet.add(name);
       });
 
       select.innerHTML = '<option value="all">👷‍♂️ เจ้าหน้าที่ทั้งหมด</option>';
@@ -935,7 +934,6 @@
         const d = parseDate(getItemDate(item));
         const cat = normalizeTaxCategory(getItemTaxType(item));
 
-        // หากวันทีี่ไม่มีรูปแบบที่ชัดเจน ให้นับรวมข้อมูลทั้งหมดในหน้าสถิติ
         if (d) {
           if (isSameDay(d, today)) {
             dailyStats.total++;
@@ -1093,7 +1091,6 @@
             if (cat === 'land') officerStats[off].quarterly.land++;
           }
         } else {
-          // หากไม่มีวันที่ ให้ถือว่าเป็นข้อมูลของเดือน/ไตรมาสนี้ไว้ก่อนเพื่อไม่ให้ยอดเป็น 0
           officerStats[off].monthly.total++;
           officerStats[off].quarterly.total++;
         }
@@ -1176,8 +1173,8 @@
           <tr class="hover:bg-amber-50/40 transition">
             <td class="p-3 font-medium text-slate-600">${date}</td>
             <td class="p-3 font-medium text-slate-800">
-              <a href="#" onclick="openOfficerRecordsModal('${officer}'); return false;" class="hover:underline text-purple-700 font-bold">
-                ${officer}
+              <a href="#" onclick="openOfficerRecordsModal('${officer}'); return false;" class="hover:underline text-purple-700 font-bold flex items-center gap-1">
+                <span>👤</span> ${officer}
               </a>
             </td>
             <td class="p-3 font-bold text-slate-900">${taxName}</td>
@@ -1228,7 +1225,7 @@
         'การรับ/ส่งเอกสาร': item.receiptStatus || item.receipt || '',
         'ประเภทเอกสาร': item.docType || '',
         'สถานะการชำระเงิน': item.paymentStatus || 'ยังไม่ชำระ',
-        'ปีที่ค้างชำระ': item.overdueYear || item.year || '',
+        'ปีที่ค้างชำระ': item.overdueYear || item.overdueYears || item.year || '',
         'หมายเหตุ': item.note || ''
       }));
 
@@ -1264,7 +1261,7 @@
 
           let successCount = 0;
           jsonData.forEach(row => {
-            const newRef = db.ref('field_surveys').push();
+            const newRef = db.ref('revenue_cases').push();
             newRef.set({
               docDate: row['วันที่สำรวจ'] || row['date'] || new Date().toISOString().slice(0,10),
               officerName: row['เจ้าหน้าที่ผู้สำรวจ'] || row['officer'] || 'ไม่ระบุเจ้าหน้าที่',
@@ -1273,10 +1270,11 @@
               taxType: row['ประเภทภาษี'] || row['taxType'] || 'อื่นๆ',
               address: row['สถานที่ / ที่อยู่'] || row['address'] || '',
               result: row['ผลการติดตาม'] || row['result'] || 'พบผู้ค้างภาษี',
+              followStatus: row['ผลการติดตาม'] || row['result'] || 'พบผู้ค้างภาษี',
               receiptStatus: row['การรับ/ส่งเอกสาร'] || row['receiptStatus'] || '',
               docType: row['ประเภทเอกสาร'] || row['docType'] || '',
               paymentStatus: row['สถานะการชำระเงิน'] || row['paymentStatus'] || 'ยังไม่ชำระ',
-              overdueYear: row['ปีที่ค้างชำระ'] || row['year'] || '',
+              overdueYears: row['ปีที่ค้างชำระ'] || row['year'] || '',
               note: row['หมายเหตุ'] || row['note'] || '',
               createdAt: firebase.database.ServerValue.TIMESTAMP
             });
@@ -1292,34 +1290,50 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // โหลดข้อมูลแบบ Realtime จาก Firebase Database (ดึงจากทั้ง Node field_surveys และ Node อื่นๆ ถ้ามี)
+    // โหลดข้อมูล Realtime จาก Firebase ทั้ง node field_surveys และ revenue_cases เผื่อไว้สองฝั่ง
     function initDatabaseListener() {
-      // ฟังข้อมูลหลักที่ node 'field_surveys'
-      db.ref('field_surveys').on('value', snapshot => {
-        allCasesData = [];
-        const data = snapshot.val();
-        
-        if (data) {
-          Object.keys(data).forEach(key => {
-            allCasesData.push({
-              id: key,
-              ...data[key]
-            });
+      const fetchData = (nodeName) => {
+        return new Promise(resolve => {
+          db.ref(nodeName).once('value', snapshot => {
+            const items = [];
+            const data = snapshot.val();
+            if (data) {
+              Object.keys(data).forEach(key => {
+                items.push({
+                  id: key,
+                  _node: nodeName,
+                  ...data[key]
+                });
+              });
+            }
+            resolve(items);
           });
-        }
-
-        // เรียงลำดับตามวันที่ล่าสุด
-        allCasesData.sort((a, b) => {
-          const d1 = parseDate(getItemDate(b)) || new Date(0);
-          const d2 = parseDate(getItemDate(a)) || new Date(0);
-          return d1 - d2;
         });
+      };
 
-        populateOfficerDropdown();
-        renderDashboard();
-      }, err => {
-        console.error("Firebase Error: ", err);
-      });
+      const loadAll = () => {
+        Promise.all([fetchData('field_surveys'), fetchData('revenue_cases')]).then(([arr1, arr2]) => {
+          const map = new Map();
+          // รวมข้อมูลจากทั้ง 2 Nodes
+          arr1.concat(arr2).forEach(item => {
+            map.set(item.id, item);
+          });
+
+          allCasesData = Array.from(map.values());
+
+          allCasesData.sort((a, b) => {
+            const d1 = parseDate(getItemDate(b)) || new Date(0);
+            const d2 = parseDate(getItemDate(a)) || new Date(0);
+            return d1 - d2;
+          });
+
+          populateOfficerDropdown();
+          renderDashboard();
+        });
+      };
+
+      db.ref('field_surveys').on('value', () => loadAll());
+      db.ref('revenue_cases').on('value', () => loadAll());
     }
 
     document.addEventListener('DOMContentLoaded', () => {
